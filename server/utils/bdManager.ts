@@ -92,6 +92,7 @@ export const bdManager = {
         description: data.description ?? null,
         input: data.input ?? null,
         triggerType: data.triggerType ?? null,
+        triggerParams: data.triggerParams ?? null,
         status: aStatus,
         bundles: {
           create: incomingBundles.map(toBundleCreate),
@@ -119,6 +120,7 @@ export const bdManager = {
         description: data.description ?? null,
         input: data.input ?? null,
         triggerType: data.triggerType ?? null,
+        triggerParams: data.triggerParams ?? null,
         status,
         bundles: {
           create: incomingBundles.map(toBundleCreate),
@@ -175,7 +177,15 @@ export const bdManager = {
     })
   },
 
-  // 7. Upsert the last successful payload for a source (one row per source).
+  // 7. Persist updated triggerParams (e.g. _lastSeenId, _lastHash) without touching other fields.
+  async updateTriggerParams(id: number, params: Record<string, any>) {
+    await prisma.alertTable.update({
+      where: { id },
+      data: { triggerParams: params },
+    })
+  },
+
+  // 8. Upsert the last successful payload for a source (one row per source).
   async upsertLastPayload(source: string, payload: any) {
     await prisma.lastSourcePayload.upsert({
       where:  { source },

@@ -104,7 +104,8 @@ const statusLabel = (status: string) => {
   text-align: left;
   background: transparent;
   border: none;
-  border-left: 2px solid transparent;
+  
+  border-left: 1px solid transparent;
   color: #cbd5e1;
   padding: 9px 12px;
   border-radius: 5px;

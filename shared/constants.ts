@@ -1,10 +1,15 @@
 export enum Source {
+  // ── Webhook sources ──────────────────────────────────────
   GitHubPush        = 'GitHub Push',
   GitHubPullRequest = 'GitHub Pull Request',
   SentryIssue       = 'Sentry Issue',
   GrafanaAlert      = 'Grafana Alert',
   GitLabPipeline    = 'GitLab Pipeline',
   GenericWebhook    = 'Generic Webhook',
+
+  // ── Polling sources ──────────────────────────────────────
+  RSSFeed           = 'RSS Feed',
+  GenericAPI        = 'Generic API',
 }
 
 export enum Formatting {
@@ -26,7 +31,6 @@ export enum AlertStatus {
 }
 
 // Which triggers each input source supports.
-// For now every source only supports a Webhook trigger.
 export const sourceTriggers: Record<Source, Trigger[]> = {
   [Source.GitHubPush]:        [Trigger.Webhook],
   [Source.GitHubPullRequest]: [Trigger.Webhook],
@@ -34,6 +38,27 @@ export const sourceTriggers: Record<Source, Trigger[]> = {
   [Source.GrafanaAlert]:      [Trigger.Webhook],
   [Source.GitLabPipeline]:    [Trigger.Webhook],
   [Source.GenericWebhook]:    [Trigger.Webhook],
+  [Source.RSSFeed]:           [Trigger.Polling],
+  [Source.GenericAPI]:        [Trigger.Polling],
+}
+
+// ── TriggerParams shapes ────────────────────────────────────────────────────
+// Stored as JSON in AlertTable.triggerParams.
+// _-prefixed keys are runtime state managed by the polling engine.
+
+export type RSSParams = {
+  url:             string
+  intervalSeconds: number    // always 86400 when dailyAt is set
+  dailyAt?:        string    // "HH:MM" — only present when intervalSeconds === 86400
+  keyword?:        string    // optional filter on item title/description
+  _lastSeenId?:    string    // guid/id of the last item that fired an alert
+}
+
+export type GenericAPIParams = {
+  url:             string
+  intervalSeconds: number
+  dailyAt?:        string    // "HH:MM" — only present when intervalSeconds === 86400
+  _lastHash?:      string    // SHA-256 of last response body
 }
 
 // Lightweight model used in the frontend (JSON-safe, id as string)
@@ -60,6 +85,7 @@ export type AlertModel = {
   triggerType: string
   status: AlertStatus
   token: string
+  triggerParams?: Record<string, any>
   bundles: BundleModel[]
 }
 
@@ -150,8 +176,40 @@ Duration: {{object_attributes.duration}} seconds`
       event: 'triggered',
       data: { key: 'value' },
     },
-      script: `🔔 **Webhook Event Received**
-  Event type: {{event}}
-  Primary key: {{data.key}}`
+    script: `🔔 **Webhook Event Received**
+Event type: {{event}}
+Primary key: {{data.key}}`
+  },
+
+  [Source.RSSFeed]: {
+    payload: {
+      item: {
+        title:       'New release: v2.4.0',
+        link:        'https://example.com/blog/release-v2-4-0',
+        pubDate:     '2026-06-11T10:00:00Z',
+        contentSnippet: 'This release includes performance improvements and bug fixes.',
+        guid:        'https://example.com/blog/release-v2-4-0',
+      },
+      feedTitle: 'Example Project Blog',
+    },
+    script: `📰 **{{feedTitle}}**
+{{item.title}}
+{{item.pubDate}}
+{{item.link}}`
+  },
+
+  [Source.GenericAPI]: {
+    payload: {
+      status:    'degraded',
+      updatedAt: '2026-06-11T10:00:00Z',
+      components: [
+        { name: 'API', status: 'operational' },
+        { name: 'Dashboard', status: 'degraded' },
+      ],
+    },
+    script: `⚠️ **API status changed: {{status}}**
+Updated: {{updatedAt}}
+{{#each components}}• {{name}}: {{status}}
+{{/each}}`
   },
 }

@@ -5,15 +5,12 @@ import { Formatting, AlertStatus, Trigger, type DiscussionModel, type BundleMode
 
 const props = withDefaults(defineProps<{
   alertaInicial?: AlertModel | null
-  availableDiscussions?: DiscussionModel[]
-  discussionsLoading?: boolean
 }>(), {
   alertaInicial: null,
-  availableDiscussions: () => [],
-  discussionsLoading: false
 })
 
-const emit = defineEmits(['saved', 'updated', 'deleted', 'close'])
+// State and navigation come from the composable + Nuxt router.
+const { availableDiscussions, discussionsLoading, fetchAlerts } = useAlerts()
 
 // ── Internal mode ────────────────────────────────────────────
 const editing = ref(false)           // false = view mode, true = edit mode
@@ -30,6 +27,7 @@ const blankForm = (): AlertModel => ({
   triggerType: '',
   status: AlertStatus.Draft,
   token: '',
+  triggerParams: {},
   bundles: []
 })
 
@@ -39,7 +37,8 @@ const form = ref<AlertModel>(blankForm())
 const resolveDiscussions = (ids: any[]): DiscussionModel[] =>
   (ids || []).map((entry: any) => {
     const id = String(typeof entry === 'object' ? entry.id : entry)
-    return props.availableDiscussions.find(d => d.id === id) ?? { id, title: `#${id}` }
+    const discussions = availableDiscussions?.value ?? []
+    return discussions.find(d => d.id === id) ?? { id, title: `#${id}` }
   })
 
 const fillFrom = (a: AlertModel | null) => {
@@ -52,6 +51,7 @@ const fillFrom = (a: AlertModel | null) => {
       triggerType: a.triggerType || '',
       status: a.status || AlertStatus.Draft,
       token: a.token || '',
+      triggerParams: (a.triggerParams as Record<string, any>) ?? {},
       bundles: (a.bundles || []).map(b => ({
         id: b.id,
         name: b.name,
@@ -74,7 +74,8 @@ watch(() => props.alertaInicial, (a) => {
 }, { immediate: true })
 
 // Re-resolve discussion titles once available discussions finish loading.
-watch(() => props.availableDiscussions, (available) => {
+
+watch(availableDiscussions, (available) => {
   if (available.length === 0) return
   form.value.bundles = form.value.bundles.map(b => ({
     ...b,
@@ -130,8 +131,8 @@ const cancelEdit = () => {
     fillFrom(props.alertaInicial)
     editing.value = false
   } else {
-    // New alert with nothing saved — close entirely.
-    emit('close')
+    // New alert with nothing saved — go back to the list.
+    navigateTo('/')
   }
 }
 
@@ -163,6 +164,7 @@ const buildPayload = () => ({
   input: form.value.input,
   triggerType: form.value.triggerType,
   status: form.value.status,
+  triggerParams: form.value.triggerParams ?? {},
   bundles: form.value.bundles.map(b => ({
     id: b.id,
     name: b.name,
@@ -177,10 +179,16 @@ const save = async () => {
   saving.value = true
   try {
     const payload = buildPayload()
-    isExisting.value
-      ? await alertService.updateAlert(payload)
-      : await alertService.saveAlert(payload)
-    emit('saved')
+    if (isExisting.value) {
+      await alertService.updateAlert(payload)
+      await fetchAlerts()
+      // Stay on this route; the watcher on alertaInicial will refresh the form.
+    } else {
+      const res: any = await alertService.saveAlert(payload)
+      const newId = res?.data?.id
+      await fetchAlerts()
+      await navigateTo('/alerts/' + newId)
+    }
   } catch (error: any) {
     console.error('Error saving:', error.data || error)
     alert(`Error saving alert:\n\n${error.data?.message || error.message || 'Unknown error'}`)
@@ -189,14 +197,14 @@ const save = async () => {
   }
 }
 
-// Toggle status (works in view mode — doesn't close the panel).
+// Toggle status (works in view mode — doesn't leave the page).
 const toggleStatus = async () => {
   if (!isExisting.value || !canActivate.value) return
   const next = form.value.status === AlertStatus.Active ? AlertStatus.Inactive : AlertStatus.Active
   try {
     const res: any = await alertService.setStatus(form.value.id as number, next)
     if (res?.data?.status) form.value.status = res.data.status
-    emit('updated') // refresh sidebar, keep panel open
+    await fetchAlerts() // refresh sidebar count / status dots
   } catch (error: any) {
     console.error('Error toggling:', error)
   }
@@ -206,7 +214,8 @@ const doDelete = async () => {
   try {
     await alertService.delete(form.value.id as number)
     confirmingDelete.value = false
-    emit('deleted')
+    await fetchAlerts()
+    navigateTo('/')
   } catch (error: any) {
     console.error('Error deleting:', error)
   }
@@ -253,7 +262,8 @@ const copyWebhook = () => {
           <h2 class="view-title">{{ form.title || 'Untitled' }}</h2>
         </div>
         <div class="head-right">
-          <div v-if="isExisting" class="toggle-wrap" :title="canActivate ? '' : 'Add a bundle to activate'">
+          <div v-if="isExisting" class="toggle-wrap" :title="canActivate ? '' : 
+                (form.status == AlertStatus.Draft ? 'Complete necessary fields and add a bundle to activate' : 'Add a bundle to activate')">
             <button
               type="button" class="toggle" :class="{ on: form.status === AlertStatus.Active }"
               :disabled="!canActivate" @click="toggleStatus"
@@ -352,6 +362,17 @@ const copyWebhook = () => {
         <div v-if="form.input" class="field">
           <label class="field-label">Trigger</label>
           <TriggerSelector v-model="form.triggerType" :source="form.input" />
+        </div>
+
+        <!-- Polling / Olvid params (when trigger requires configuration) -->
+        <div v-if="form.input && form.triggerType && form.triggerType !== 'Webhook'" class="field">
+          <label class="field-label">Trigger configuration</label>
+          <TriggerParamsEditor
+            :source="form.input"
+            :trigger-type="form.triggerType"
+            :model-value="form.triggerParams ?? {}"
+            @update:model-value="form.triggerParams = $event"
+          />
         </div>
 
         <!-- Bundles (once input + trigger set) -->

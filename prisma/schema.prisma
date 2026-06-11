@@ -17,9 +17,10 @@ model AlertTable {
   input       String?                        // Source enum value (e.g. "GitHub Push")
   status      String   @default("draft")    // draft | inactive | active
   triggerType String?                        // Trigger enum value (e.g. "Webhook")
-  token       String?  @unique @default(uuid())
-  createdAt   DateTime @default(now())
-  bundles     Bundle[]
+  token         String?  @unique @default(uuid())
+  triggerParams Json?                        // source-specific config; _-prefixed keys are runtime state
+  createdAt     DateTime @default(now())
+  bundles       Bundle[]
 }
 
 // A bundle is one output of an alert: a set of discussions + a formatting.
