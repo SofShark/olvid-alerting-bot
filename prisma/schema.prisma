@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+model AlertTable {
+  id          Int          @id @default(autoincrement())
+  title       String                            
+  description String?
+  input       String?                           // Source enum value (e.g. "GitHub Push")
+  triggerType String?                           // Trigger enum value (e.g. "Webhook")
+  status      String       @default("draft")    // draft | inactive | active
+  token       String?       @unique @default(uuid()) // webhook endpoint token
+  createdAt   DateTime     @default(now())
+  bundles     Bundle[]
+  logs        WebhookLog[]?
+}
+
+// A bundle is one output of an alert: a set of discussions + a formatting.
+// One alert can have many bundles (same event, different audiences/formats).
+model Bundle {
+  id              Int        @id @default(autoincrement())
+  name            String?
+  alertId         Int
+  alert           AlertTable @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  discussion_list BigInt[]
+  formating       String     @default("Unformatted")
+  custom_script   String?
+  createdAt       DateTime   @default(now())
+}
+
+model WebhookLog {
+  id         Int        @id @default(autoincrement())
+  alertId    Int
+  alert      AlertTable @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  payload    Json
+  status     String
+  error      String?
+  receivedAt DateTime   @default(now())
+}
+
