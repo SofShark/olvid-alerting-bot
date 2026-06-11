@@ -45,13 +45,13 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 </script>
 
 <template>
-  <div class="discussion-selector">
+  <div class="selector">
 
     <!-- Selected chips -->
     <div v-if="modelValue.length > 0" class="chips">
       <div v-for="d in modelValue" :key="d.id" class="chip">
         <span class="chip-title">{{ d.title }}</span>
-        <span class="chip-id">#{{ d.id }}</span>
+        <!--span class="chip-id">#{{ d.id }}</span-->
         <button type="button" class="chip-remove" @click="remove(d.id)">✕</button>
       </div>
     </div>
@@ -74,7 +74,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
           class="dropdown-item"
         >
           <span class="item-title">{{ d.title }}</span>
-          <span class="item-id">#{{ d.id }}</span>
+          <!--span class="item-id">#{{ d.id }}</span-->
         </div>
         <div v-if="filtered.length === 0" class="dropdown-empty">
           {{ available.length === 0 ? 'No discussions found in daemon' : 'All discussions already added' }}
@@ -86,7 +86,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 </template>
 
 <style scoped>
-.discussion-selector { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.selector { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 
 /* ── Chips ── */
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }

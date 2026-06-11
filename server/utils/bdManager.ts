@@ -174,4 +174,22 @@ export const bdManager = {
       include: { bundles: true },
     })
   },
+
+  // 7. Upsert the last successful payload for a source (one row per source).
+  async upsertLastPayload(source: string, payload: any) {
+    await prisma.lastSourcePayload.upsert({
+      where:  { source },
+      create: { source, payload },
+      update: { payload },
+    })
+  },
+
+  // 8. Retrieve the last successful payload for a source, or null if none yet.
+  async getLastPayloadForSource(source: string) {
+    const row = await prisma.lastSourcePayload.findUnique({
+      where: { source },
+      select: { payload: true },
+    })
+    return row?.payload ?? null
+  },
 }

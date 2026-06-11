@@ -319,8 +319,7 @@ const copyWebhook = () => {
         <button type="button" class="btn-danger-ghost" @click="confirmingDelete = true">Delete</button>
         <div class="foot-spacer"></div>
         <ButtonPrimary @click="startEditing">Edit Alert </ButtonPrimary>
-        <!--button type="button" class="btn-primary" @click="startEditing">Edit Alert</button-->
-      </div>
+       </div>
 
     </template>
 
@@ -390,9 +389,6 @@ const copyWebhook = () => {
         <ButtonPrimary :disabled="!form.title || saving" @click="save" > 
           {{ saving ? 'Saving…' : saveLabel }}
         </ButtonPrimary>
-        <!--button type="button" class="btn-primary" :disabled="!form.title || saving" @click="save">
-          {{ saving ? 'Saving…' : saveLabel }}
-        </button-->
       </div>
 
     </template>
@@ -650,20 +646,6 @@ const copyWebhook = () => {
   border-top: 1px solid #1e293b;
 }
 .foot-spacer { flex: 1; }
-
-.btn-primary {
-  background: #2563eb;
-  color: #fff;
-  border: 1px solid #1d4ed8;
-  padding: 8px 20px;
-  border-radius: 5px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.15s;
-}
-.btn-primary:hover:not(:disabled) { background: #1d4ed8; }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-ghost {
   background: transparent;

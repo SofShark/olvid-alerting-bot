@@ -25,6 +25,9 @@ export default defineEventHandler(async (event) => {
 
   try {
     await alertManager.processAlert(alert, payload)
+    if (alert.input) {
+      await bdManager.upsertLastPayload(alert.input, payload)
+    }
   } catch (error: any) {
     console.error('❌ [Webhook] Unexpected error:', error.message)
     throw createError({ statusCode: 500, statusMessage: 'Internal Server Error' })

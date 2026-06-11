@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 datasource db {
   provider = "postgresql"
 }
@@ -13,16 +11,15 @@ generator client {
 
 
 model AlertTable {
-  id          Int          @id @default(autoincrement())
-  title       String                            
+  id          Int      @id @default(autoincrement())
+  title       String
   description String?
-  input       String?                           // Source enum value (e.g. "GitHub Push")
-  triggerType String?                           // Trigger enum value (e.g. "Webhook")
-  status      String       @default("draft")    // draft | inactive | active
-  token       String?       @unique @default(uuid()) // webhook endpoint token
-  createdAt   DateTime     @default(now())
+  input       String?                        // Source enum value (e.g. "GitHub Push")
+  status      String   @default("draft")    // draft | inactive | active
+  triggerType String?                        // Trigger enum value (e.g. "Webhook")
+  token       String?  @unique @default(uuid())
+  createdAt   DateTime @default(now())
   bundles     Bundle[]
-  logs        WebhookLog[]?
 }
 
 // A bundle is one output of an alert: a set of discussions + a formatting.
@@ -38,13 +35,10 @@ model Bundle {
   createdAt       DateTime   @default(now())
 }
 
-model WebhookLog {
-  id         Int        @id @default(autoincrement())
-  alertId    Int
-  alert      AlertTable @relation(fields: [alertId], references: [id], onDelete: Cascade)
-  payload    Json
-  status     String
-  error      String?
-  receivedAt DateTime   @default(now())
+// One row per input source — stores only the last successful webhook payload.
+// source is the primary key so upsert is a single operation.
+model LastSourcePayload {
+  source    String   @id   // e.g. "GitHub Push"
+  payload   Json
+  updatedAt DateTime @updatedAt
 }
-

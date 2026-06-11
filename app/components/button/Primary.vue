@@ -15,15 +15,17 @@
   font-weight: 600; 
   font-size: 14px;
   cursor: pointer;
-  display: flex; 
+  display:inline-flex;
   align-items: center; 
   gap: 6px;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-.btn-primary:hover { 
+.btn-primary:hover:not(:disabled) { 
   background-color: #1d4ed8; 
   border-color: #1e40af; 
 }
+
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>

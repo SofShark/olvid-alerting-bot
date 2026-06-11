@@ -108,10 +108,6 @@ const onDeleted = async () => {
               <ButtonPrimary @click="openNew">
                 <span class="plus-icon">+</span> New Alert
               </ButtonPrimary>
-
-              <!--button class="btn-primary" @click="openNew">
-                <span class="plus-icon">+</span> New Alert
-              </button-->
             </div>
           </div>
         </div>
@@ -158,19 +154,6 @@ const onDeleted = async () => {
   object-fit: contain; 
 }
 
-.btn-primary {
-  background-color: #2563eb;
-  color: white;
-  border: 1px solid #1d4ed8;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 600; font-size: 14px;
-  cursor: pointer;
-  display: flex; align-items: center; gap: 6px;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-.btn-primary:hover { background-color: #1d4ed8; border-color: #1e40af; }
 .plus-icon { font-size: 16px; line-height: 1; }
 
 /* Main split */
@@ -204,5 +187,4 @@ const onDeleted = async () => {
 .placeholder-inner { text-align: center; color: #475569; }
 .ph-icon { font-size: 40px; margin-bottom: 12px; }
 .placeholder-inner p { margin: 0 0 18px; font-size: 14px; }
-.placeholder-inner .btn-primary { display: inline-flex; }
 </style>

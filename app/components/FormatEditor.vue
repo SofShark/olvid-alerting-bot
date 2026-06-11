@@ -1,16 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import Handlebars from 'handlebars'
 import { sampleData, Source } from '#shared/constants'
-
-// should change ad to have a global record of the available sources
 
 const props = defineProps({
   initialScript: {
     type: String,
     default: ''
   },
-  inputSource:{
+  inputSource: {
     type: String,
     default: Source.GenericWebhook
   }
@@ -19,24 +17,66 @@ const props = defineProps({
 const emit = defineEmits(['save', 'close'])
 
 const scriptContent = ref('')
-const jsonPayload = ref('')
-// change so it shows a concrete payload examplo according to the input selected
+const jsonPayload   = ref('')
 
+// Payload source toggle
+const payloadType        = ref<'example' | 'last'>('example')
+const lastPayloadLoading = ref(false)
+const lastPayloadMissing = ref(false)
 
+function loadExamplePayload(source: string) {
+  const data = sampleData[source as Source] ?? sampleData[Source.GenericWebhook]
+  jsonPayload.value = JSON.stringify(data.payload, null, 2)
+  lastPayloadMissing.value = false
+}
+
+async function loadLastPayload(source: string) {
+  lastPayloadLoading.value = true
+  lastPayloadMissing.value = false
+  try {
+    const res = await $fetch<{ payload: any }>(`/api/payloads?source=${encodeURIComponent(source)}&type=last`)
+    if (res.payload) {
+      jsonPayload.value = JSON.stringify(res.payload, null, 2)
+      lastPayloadMissing.value = false
+    } else {
+      lastPayloadMissing.value = true
+      jsonPayload.value = ''
+    }
+  } catch {
+    lastPayloadMissing.value = true
+    jsonPayload.value = ''
+  } finally {
+    lastPayloadLoading.value = false
+  }
+}
+
+async function refreshPayload(source: string, type: 'example' | 'last') {
+  if (type === 'last') {
+    await loadLastPayload(source)
+  } else {
+    loadExamplePayload(source)
+  }
+}
+
+// Re-load when source changes; reset type to example
 watch(
   () => props.inputSource,
   (source) => {
-    const data = sampleData[source as Source] ?? sampleData[Source.GenericWebhook]
-    jsonPayload.value = JSON.stringify(data.payload, null, 2)
+    payloadType.value = 'example'
+    loadExamplePayload(source)
 
-    if (!props.initialScript ||props.initialScript==='') {
+    if (!props.initialScript || props.initialScript === '') {
+      const data = sampleData[source as Source] ?? sampleData[Source.GenericWebhook]
       scriptContent.value = data.script
     } else {
       scriptContent.value = props.initialScript
     }
   },
-  { immediate: true }   // ← runs on mount too, replaces onMounted
+  { immediate: true }
 )
+
+// Re-load when toggle changes
+watch(payloadType, (type) => refreshPayload(props.inputSource, type))
 
 const errorMensaje = ref('')
 const previewData = computed(() => {
@@ -101,10 +141,25 @@ const close = () => {
             <div class="code-header">
               <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
               <span class="code-title">payload.json (Test Data)</span>
+              <div class="payload-toggle">
+                <button
+                  :class="['toggle-btn', { active: payloadType === 'example' }]"
+                  @click="payloadType = 'example'"
+                >Example</button>
+                <button
+                  :class="['toggle-btn', { active: payloadType === 'last' }]"
+                  @click="payloadType = 'last'"
+                >Last received</button>
+              </div>
             </div>
-            <textarea 
-              :value="jsonPayload" 
-              class="editor-textarea json-color" 
+            <div v-if="lastPayloadLoading" class="payload-notice">Loading…</div>
+            <div v-else-if="lastPayloadMissing" class="payload-empty">
+              No payloads from this input source have been received yet.
+            </div>
+            <textarea
+              v-else
+              :value="jsonPayload"
+              class="editor-textarea json-color"
               readonly
               spellcheck="false"
             ></textarea>
@@ -169,27 +224,6 @@ const close = () => {
   overflow: hidden;
 }
 
-/* 1. Fondo principal 
-.editor-overlay {
-  position: fixed;
-  top: 0; left: 0; width: 100vw; height: 100vh;
-  background-color: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(5px);
-  display: flex; justify-content: center; align-items: center;
-  z-index: 2000;
-  font-family: system-ui, -apple-system, sans-serif;
-  object-fit: contain;
-}
-
-.editor-window {
-  background: #ffffff;
-  width: 95%; max-width: 1200px; height: 90vh;
-  border-radius: 12px;
-  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3);
-  display: flex; flex-direction: column;
-  overflow: hidden;
-}
-*/
 
 .window-header {
   display: flex; justify-content: space-between; align-items: center;
@@ -244,6 +278,33 @@ const close = () => {
 
 .code-title {
   color: #a3a3a3; font-size: 13px; font-family: monospace; margin-left: 10px;
+  flex: 1;
+}
+
+.payload-toggle {
+  display: flex; gap: 4px; margin-left: auto;
+}
+
+.toggle-btn {
+  background: #3a3a3a; color: #a3a3a3;
+  border: 1px solid #555; border-radius: 4px;
+  padding: 3px 10px; font-size: 12px; cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.toggle-btn:hover { background: #4a4a4a; color: #d4d4d4; }
+.toggle-btn.active { background: #2563eb; color: #ffffff; border-color: #2563eb; }
+
+.payload-notice {
+  background: #2d2d2d; color: #f59e0b;
+  font-size: 12px; font-family: monospace;
+  padding: 6px 15px; border-top: 1px solid #3a3a3a;
+}
+
+.payload-empty {
+  background: #1e1e1e; color: #6b7280;
+  font-size: 13px; font-family: monospace;
+  padding: 30px 15px; text-align: center;
+  flex: 1;
 }
 
 .editor-textarea {
