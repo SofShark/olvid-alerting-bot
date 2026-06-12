@@ -42,6 +42,7 @@ const selectedId = computed(() => {
 
         <div class="split-right">
           <slot />
+          <!-- :key="route.path"-->
         </div>
 
       </div>
@@ -58,6 +59,10 @@ body {
   margin: 0;
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
 }
 </style>
 
@@ -92,6 +97,12 @@ body {
   gap: 20px;
   height: calc(100vh - 140px);
 }
-.split-left  { min-height: 0; }
-.split-right { min-height: 0; }
+.split-left  { 
+  min-height: 0;
+  overflow-y: auto;
+}
+.split-right { 
+  min-height: 0;
+  overflow-y: auto;
+}
 </style>
