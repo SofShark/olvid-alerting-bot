@@ -25,6 +25,7 @@ const selectedId = computed(() => {
             Alerting System
           </span>
         </div>
+        <ThemeToggle />
       </div>
     </header>
 
@@ -55,8 +56,8 @@ const selectedId = computed(() => {
 .layout-dark { min-height: 100vh; display: flex; flex-direction: column; }
 
 .top-nav {
-  background-color: #0e1327;
-  border-bottom: 1px solid #1b212b;
+  background-color: var(--color-bg-nav);
+  border-bottom: 1px solid var(--color-border-subtle);
   padding: 15px 0;
   position: sticky; top: 0; z-index: 100;
 }
@@ -67,7 +68,7 @@ const selectedId = computed(() => {
 .brand { display: flex; align-items: center; gap: 12px; }
 .logo-text {
   display: flex; align-items: flex-end; gap: 15px;
-  font-size: 16px; color: #94a3b8; font-weight: 500;
+  font-size: 16px; color: var(--color-text-muted); font-weight: 500;
 }
 .olvid-logo-img { margin-left: 40px; width: 200px; height: auto; object-fit: contain; }
 

@@ -126,7 +126,7 @@ function onLeafClick() {
 .attr-sigil { color: #f472b6; margin-right: 1px; }
 
 .leaf-value {
-  color: var(--color-text-secondary);
+  color:blanchedalmond;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

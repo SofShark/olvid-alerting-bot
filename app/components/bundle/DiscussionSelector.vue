@@ -6,9 +6,11 @@ const props = withDefaults(defineProps<{
   modelValue: DiscussionModel[]
   available?: DiscussionModel[]
   isLoading?: boolean
+  readonly?: boolean
 }>(), {
   available: () => [],
-  isLoading: false
+  isLoading: false,
+  readonly: false,
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -51,13 +53,23 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
     <div v-if="modelValue.length > 0" class="chips">
       <div v-for="d in modelValue" :key="d.id" class="chip">
         <span class="chip-title">{{ d.title }}</span>
-        <!--span class="chip-id">#{{ d.id }}</span-->
-        <button type="button" class="chip-remove" @click="remove(d.id)">✕</button>
+        <button
+          v-if="!readonly"
+          type="button"
+          class="chip-remove"
+          @click="remove(d.id)"
+        >✕</button>
       </div>
     </div>
 
-    <!-- Search / add -->
-    <div class="search-wrap" ref="containerRef">
+    <!-- Empty hint in readonly mode -->
+    <p
+      v-if="readonly && modelValue.length === 0"
+      class="empty-readonly"
+    >— no discussions —</p>
+
+    <!-- Search / add — hidden when readonly. -->
+    <div v-if="!readonly" class="search-wrap" ref="containerRef">
       <input
         v-model="searchQuery"
         @focus="isDropdownOpen = true"
@@ -74,7 +86,6 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
           class="dropdown-item"
         >
           <span class="item-title">{{ d.title }}</span>
-          <!--span class="item-id">#{{ d.id }}</span-->
         </div>
         <div v-if="filtered.length === 0" class="dropdown-empty">
           {{ available.length === 0 ? 'No discussions found in daemon' : 'All discussions already added' }}
@@ -162,6 +173,13 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   padding: var(--space-3) var(--space-4);
   color: var(--color-text-faint);
   font-size: var(--text-base);
+  font-style: italic;
+}
+
+.empty-readonly {
+  margin: 0;
+  color: var(--color-text-faint);
+  font-size: var(--text-md);
   font-style: italic;
 }
 </style>

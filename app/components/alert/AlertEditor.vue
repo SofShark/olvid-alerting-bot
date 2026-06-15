@@ -292,26 +292,30 @@ const runTestPoll = async () => {
         </div>
       </div>
 
-      <!-- Body (view) -->
+      <!-- Body (view) — same field layout as edit mode, controls disabled. -->
       <div class="panel-body">
 
-        <div v-if="form.description" class="detail-row">
-          <span class="detail-label">Description </span>           <p class="detail-text">{{ form.description }}</p>
+        <div class="field">
+          <label class="field-label">Description</label>
+          <textarea
+            :value="form.description || '— no description —'"
+            rows="2"
+            class="field-input"
+            disabled
+          />
         </div>
 
-        <div class="detail-cols">
-          <div v-if="form.input" class="detail-row">
-            <span class="detail-label">Input Source</span>
-            <span class="detail-badge">
-              {{ form.input }}
-              <span v-if="form.triggerType" class="trigger-inline">via {{ form.triggerType }}</span>
-            </span>
-          </div>
+        <div v-if="form.input" class="field">
+          <label class="field-label">Input Source</label>
+          <span class="detail-badge">
+            {{ form.input }}
+            <span v-if="form.triggerType" class="trigger-inline">via {{ form.triggerType }}</span>
+          </span>
         </div>
 
         <!-- Webhook URL — only shown when trigger is specifically Webhook -->
-        <div v-if="form.triggerType === Trigger.Webhook && webhookUrl && form.input!='' " class="detail-row">
-          <span class="detail-label">Webhook Endpoint</span>
+        <div v-if="form.triggerType === Trigger.Webhook && webhookUrl && form.input != ''" class="field">
+          <label class="field-label">Webhook Endpoint</label>
           <div class="webhook-box">
             <code>{{ webhookUrl }}</code>
             <button type="button" class="btn-copy" @click="copyWebhook">📋</button>
@@ -373,25 +377,27 @@ const runTestPoll = async () => {
           </div>
         </div>
 
-        <!-- Bundles summary -->
+        <!-- Bundles — full BundleCard in readonly mode so view + edit share
+             exactly the same visual structure. -->
         <div class="divider"><span>Bundles ({{ form.bundles.length }})</span></div>
 
         <div v-if="form.bundles.length === 0" class="bundles-hint">
-          No bundles configured. Edit the alert to add one.
+          No bundles configured. Click <strong>Edit Alert</strong> to add one.
         </div>
 
-        <div v-for="(b, i) in form.bundles" :key="i" class="bundle-summary">
-          <div class="bs-head">
-            <span class="bs-tag">BUNDLE {{ i + 1 }}</span>
-            <span class="bs-format">{{ b.formating }}</span>
-          </div>
-          <div class="bs-discussions">
-            <span v-for="d in b.discussion_list" :key="d.id" class="bs-chip">{{ d.title }}</span>
-            <span v-if="b.discussion_list.length === 0" class="bs-none">No discussions</span>
-          </div>
-          <span v-if="b.formating === Formatting.Custom && b.custom_script" class="bs-script-hint">
-            Custom script ({{ b.custom_script.length }} chars)
-          </span>
+        <div class="bundles-grid">
+          <BundleCard
+            v-for="(b, i) in form.bundles"
+            :key="i"
+            :bundle="b"
+            :index="i"
+            :available-discussions="availableDiscussions"
+            :discussions-loading="discussionsLoading"
+            :input-source="form.input"
+            :alert-context="form"
+            :trigger-params="form.triggerParams"
+            readonly
+          />
         </div>
 
       </div>
@@ -565,17 +571,7 @@ const runTestPoll = async () => {
   min-width: 54px;
 }
 
-/* ── View-mode detail rows ──────────────────────── */
-.detail-row    { display: flex; flex-direction: column; gap: var(--space-1); }
-.detail-cols   { display: flex; gap: var(--space-8); flex-wrap: wrap; }
-.detail-label {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.detail-text { margin: 0; color: var(--color-text-secondary); font-size: var(--text-base); line-height: 1.5; }
+/* ── View-mode "Input Source" badge ─────────────── */
 .detail-badge {
   display: inline-flex;
   align-items: center;
@@ -595,49 +591,18 @@ const runTestPoll = async () => {
   margin-left: var(--space-2);
 }
 
-/* ── Bundle summary cards (view mode) ───────────── */
-.bundle-summary {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4) var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-.bs-head { display: flex; align-items: center; justify-content: space-between; }
-.bs-tag {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: var(--color-text-dim);
-  font-family: var(--font-mono);
-}
-.bs-format { font-size: var(--text-md); color: var(--color-text-muted); }
-.bs-discussions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.bs-chip {
-  background: var(--color-accent-soft);
-  border: 1px solid var(--color-accent-border);
-  color: var(--color-accent-text);
-  font-size: var(--text-sm);
-  padding: 2px var(--space-3);
-  border-radius: var(--radius-sm);
-}
-.bs-none { color: var(--color-text-faint); font-size: var(--text-md); font-style: italic; }
-.bs-script-hint { color: var(--color-success); font-size: var(--text-sm); }
-
 /* ── Webhook box ────────────────────────────────── */
 .webhook-box {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  background: var(--color-bg-input);
+  background: var(--color-bg-code);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
 }
 .webhook-box code {
-  color: #38bdf8;
+  color: var(--color-text-webhook);
   font-size: var(--text-md);
   font-family: var(--font-mono);
   overflow: hidden;

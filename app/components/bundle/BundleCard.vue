@@ -15,6 +15,9 @@ const props = withDefaults(defineProps<{
   inputSource?: string
   index: number
   hideRemove?: boolean
+  /** True when this card is rendered inside the alert *view* — disable all
+   *  controls so the user inspects without mutating. Implies hideRemove. */
+  readonly?: boolean
   /** Polling alerts pass their condition + a live payload so we can preview the default message. */
   alertContext?: any
   pollPayload?: any
@@ -24,6 +27,7 @@ const props = withDefaults(defineProps<{
   discussionsLoading: false,
   inputSource: '',
   hideRemove: false,
+  readonly: false,
   alertContext: null,
   pollPayload: null,
   triggerParams: null,
@@ -46,12 +50,30 @@ const formating = computed<Formatting>({
 
 const isPolling = computed(() => isPollingSource(props.inputSource))
 
+// Option set offered by the format dropdown. Driven by the alert's source —
+// polling alerts get the watched-field-aware formats, everything else gets
+// the classic webhook-style options.
+const formatOptions = computed(() =>
+  isPolling.value
+    ? [
+        { value: Formatting.PollingDefault, label: 'Default (watched fields)' },
+        { value: Formatting.PollingCustom,  label: 'Custom script (Handlebars)' },
+      ]
+    : [
+        { value: Formatting.Unformatted, label: 'Brute (raw JSON)' },
+        { value: Formatting.Simple,      label: 'Simple (title + description)' },
+        { value: Formatting.Custom,      label: 'Custom script (Handlebars)' },
+      ],
+)
+
 // Auto-promote stale webhook-style formats when the source is polling — and
 // vice-versa — so the bundle always carries a format that makes sense for
-// the alert it's attached to. Runs whenever the source changes.
+// the alert it's attached to. Skipped in readonly (view) mode: nothing
+// should mutate when the user is only inspecting.
 watch(
   () => [props.inputSource, props.bundle.formating],
   ([src, current]) => {
+    if (props.readonly) return
     const polling = isPollingSource(String(src ?? ''))
     const isPollingFmt = current === Formatting.PollingDefault || current === Formatting.PollingCustom
     if (polling && !isPollingFmt) {
@@ -99,7 +121,7 @@ const pollingPreview = computed(() => {
     <div class="card-head">
       <span class="card-tag">BUNDLE {{ index + 1 }}</span>
       <button
-        v-if="!hideRemove"
+        v-if="!hideRemove && !readonly"
         type="button"
         class="card-remove"
         title="Remove bundle"
@@ -114,6 +136,7 @@ const pollingPreview = computed(() => {
         v-model="discussions"
         :available="availableDiscussions"
         :is-loading="discussionsLoading"
+        :readonly="readonly"
       />
     </div>
 
@@ -121,19 +144,15 @@ const pollingPreview = computed(() => {
     <div class="field">
       <label class="field-label">Message Format</label>
       <div class="format-row">
-        <select v-model="formating" @change="onFormatChange" class="field-input format-select">
-          <template v-if="isPolling">
-            <option :value="Formatting.PollingDefault">Default (watched fields)</option>
-            <option :value="Formatting.PollingCustom">Custom (Handlebars)</option>
-          </template>
-          <template v-else>
-            <option :value="Formatting.Unformatted">Brute (raw JSON)</option>
-            <option :value="Formatting.Simple">Simple (title + description)</option>
-            <option :value="Formatting.Custom">Custom (Handlebars)</option>
-          </template>
-        </select>
+        <Select
+          v-model="formating"
+          :options="formatOptions"
+          :disabled="readonly"
+          class="format-select"
+          @update:model-value="onFormatChange"
+        />
         <button
-          v-if="formating === Formatting.Custom || formating === Formatting.PollingCustom"
+          v-if="(formating === Formatting.Custom || formating === Formatting.PollingCustom) && !readonly"
           type="button"
           class="btn btn-secondary btn-sm"
           @click="isEditorOpen = true"
@@ -148,12 +167,12 @@ const pollingPreview = computed(() => {
         class="poll-preview"
       >{{ pollingPreview || 'Default polling message — fills in the watched paths and their observed values when the alert fires.' }}</pre>
 
-      <span
+      <!--span
         v-else-if="(formating === Formatting.Custom || formating === Formatting.PollingCustom) && bundle.custom_script"
         class="script-hint"
       >
         ✓ custom script set ({{ bundle.custom_script.length }} chars)
-      </span>
+      </span-->
     </div>
   </div>
 </template>

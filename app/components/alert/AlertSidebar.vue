@@ -59,7 +59,7 @@ const statusLabel = (status: string) => {
 .sidebar {
   display: flex;
   flex-direction: column;
-  background: #0b1120;
+  background: var(--color-bg-card);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-xl);
   overflow: hidden;
@@ -108,9 +108,9 @@ const statusLabel = (status: string) => {
   font-size: var(--text-base);
   transition: background-color .15s;
 }
-.alert-row:hover { background: #151f32; }
+.alert-row:hover { background: var(--color-bg-card-soft); }
 .alert-row.selected {
-  background: #151f32;
+  background: var(--color-bg-card-soft);
   border-left-color: var(--color-accent);
   color: var(--color-text-primary);
 }

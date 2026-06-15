@@ -37,10 +37,10 @@ const isDraft = computed(() => alert.value?.status === AlertStatus.Draft)
 .loading-panel {
   height: 100%;
   display: flex; align-items: center; justify-content: center;
-  background: #0b1120;
-  border: 1px dashed #1e293b;
-  border-radius: 8px;
-  color: #475569;
+  background: var(--color-bg-card);
+  border: 1px dashed var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  color: var(--color-text-faint);
   font-size: 14px;
 }
 </style>

@@ -5,6 +5,11 @@
  */
 
 :root {
+  /* Tells the browser to use dark UI for native form controls — the
+   * OS-rendered <select> dropdown panel, date pickers, scrollbars. Flips
+   * to `light` under [data-theme='light']. */
+  color-scheme: dark;
+
   /* ── Brand & accent ───────────────────────────── */
   --color-accent:         #2563eb;
   --color-accent-hover:   #1d4ed8;
@@ -37,6 +42,7 @@
   --color-text-faint:     #475569;
   --color-text-code:      #d4d4d4;
   --color-text-on-accent: #ffffff;
+  --color-text-webhook:   #38bdf8; 
 
   /* ── Status ───────────────────────────────────── */
   --color-success:        #22c55e;
@@ -95,12 +101,18 @@
 }
 
 [data-theme='light'] {
+  color-scheme: light;
+
   --color-bg-app:         #f8fafc;
-  --color-bg-nav:         #ffffff;
+  --color-bg-nav:         #e2e8f0;
   --color-bg-panel:       #ffffff;
   --color-bg-card:        #f1f5f9;
   --color-bg-card-soft:   #e2e8f0;
   --color-bg-input:       #ffffff;
+  --color-bg-code:        #1e1e1e;
+  --color-bg-code-header: #2d2d2d;
+  --color-bg-code-soft:   #262626;
+
 
   --color-border-subtle:  #e2e8f0;
   --color-border-default: #cbd5e1;
@@ -111,8 +123,23 @@
   --color-text-muted:     #475569;
   --color-text-dim:       #64748b;
   --color-text-faint:     #94a3b8;
+  --color-text-code:      #d4d4d4;
+  --color-text-on-accent: #ffffff;
+  --color-text-webhook:#019443;
 
   --color-overlay:        rgba(15, 23, 42, 0.4);
+
+  /* Accent surfaces need to re-tint for light mode — the dark-mode values
+   * are too saturated/dark to use over white panels. */
+  --color-accent-soft:    #dbeafe;
+  --color-accent-border:  #60a5fa;
+  --color-accent-text:    #1d4ed8;
+
+  /* Status-soft tints: lighten the dark-mode backgrounds so the colored
+   * borders read on a white surface. */
+  --color-success-soft:   #dcfce7;
+  --color-warning-soft:   #fef3c7;
+  --color-danger-soft:    #fee2e2;
 
   /* Code blocks stay dark — they read as embedded IDE panels. */
 }

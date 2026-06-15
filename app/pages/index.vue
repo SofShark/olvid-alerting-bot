@@ -14,11 +14,11 @@
 .placeholder {
   height: 100%;
   display: flex; align-items: center; justify-content: center;
-  background: #0b1120;
-  border: 1px dashed #1e293b;
-  border-radius: 8px;
+  background: var(--color-bg-card);
+  border: 1px dashed var(--color-border-subtle);
+  border-radius: var(--radius-xl);
 }
-.placeholder-inner { text-align: center; color: #475569; }
+.placeholder-inner { text-align: center; color: var(--color-text-faint); }
 .ph-icon { font-size: 40px; margin-bottom: 12px; }
 .placeholder-inner p { margin: 0 0 18px; font-size: 14px; }
 .plus-icon { font-size: 16px; line-height: 1; }
