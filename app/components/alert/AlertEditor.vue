@@ -296,8 +296,7 @@ const runTestPoll = async () => {
       <div class="panel-body">
 
         <div v-if="form.description" class="detail-row">
-          <span class="detail-label">Description</span>
-          <p class="detail-text">{{ form.description }}</p>
+          <span class="detail-label">Description </span>           <p class="detail-text">{{ form.description }}</p>
         </div>
 
         <div class="detail-cols">
