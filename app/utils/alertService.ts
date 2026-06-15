@@ -1,5 +1,6 @@
-// app/utils/alertService.ts
-// Client-side abstraction over the /api/backend endpoints.
+// Client-side abstraction over the /api/backend endpoints. Top-level of
+// utils/ so Nuxt's auto-import picks it up — sub-directory scanning is
+// inconsistent across Nuxt versions.
 
 export const alertService = {
   // 1. Get every saved alert (with its bundles).
@@ -11,7 +12,7 @@ export const alertService = {
   async saveAlert(form: object) {
     return await $fetch('/api/backend', {
       method: 'POST',
-      body: form
+      body: form,
     })
   },
 
@@ -19,7 +20,7 @@ export const alertService = {
   async updateAlert(form: object) {
     return await $fetch('/api/backend', {
       method: 'PUT',
-      body: form
+      body: form,
     })
   },
 
@@ -28,7 +29,7 @@ export const alertService = {
   async setStatus(id: number, status: string) {
     return await $fetch('/api/backend', {
       method: 'PATCH',
-      body: { id, status }
+      body: { id, status },
     })
   },
 
@@ -36,12 +37,12 @@ export const alertService = {
   async delete(alertId: number) {
     return await $fetch('/api/backend', {
       method: 'DELETE',
-      body: { id: alertId }
+      body: { id: alertId },
     })
   },
 
   // 6. Available Olvid discussions for the selectors.
   async getDiscussionList() {
     return await $fetch('/api/discussions')
-  }
+  },
 }

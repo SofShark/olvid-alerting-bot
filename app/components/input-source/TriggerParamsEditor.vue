@@ -26,7 +26,6 @@ const isPolling = computed(() => props.triggerType === Trigger.Polling)
 // ── Poll interval ───────────────────────────────────────────────────────────
 
 const UNITS = [
-  { label: 'seconds', multiplier: 1,     min: 10  },
   { label: 'minutes', multiplier: 60,    min: 1   },
   { label: 'hours',   multiplier: 3600,  min: 1   },
   { label: 'daily',   multiplier: 86400, min: 1   },
@@ -34,14 +33,18 @@ const UNITS = [
 
 type UnitLabel = typeof UNITS[number]['label']
 
+// Minimum polling interval is 1 minute — sub-minute polling is excluded.
+const MIN_INTERVAL_SECONDS = 60
+
 function detectUnit(seconds: number): UnitLabel {
   if (seconds % 86400 === 0) return 'daily'
   if (seconds % 3600  === 0) return 'hours'
-  if (seconds % 60    === 0) return 'minutes'
-  return 'seconds'
+  return 'minutes'
 }
 
-const storedSeconds = computed(() => Number(p.value.intervalSeconds) || 300)
+const storedSeconds = computed(() =>
+  Math.max(MIN_INTERVAL_SECONDS, Number(p.value.intervalSeconds) || 300),
+)
 const intervalUnit  = ref<UnitLabel>(detectUnit(storedSeconds.value))
 const isDaily       = computed(() => intervalUnit.value === 'daily')
 
@@ -53,19 +56,27 @@ const intervalValue = computed(() => {
 watch(storedSeconds, (s) => { intervalUnit.value = detectUnit(s) })
 
 function onValueInput(raw: string) {
-  const num = Math.max(1, Number(raw) || 1)
-  const m   = UNITS.find(u => u.label === intervalUnit.value)!.multiplier
-  set('intervalSeconds', num * m)
+  const unit    = UNITS.find(u => u.label === intervalUnit.value)!
+  const num     = Math.max(unit.min, Number(raw) || unit.min)
+  const seconds = Math.max(MIN_INTERVAL_SECONDS, num * unit.multiplier)
+  set('intervalSeconds', seconds)
 }
 
 function onUnitChange(unit: UnitLabel) {
-  intervalUnit.value = unit
   if (unit === 'daily') {
+    intervalUnit.value = unit
     setMany({ intervalSeconds: 86400, dailyAt: p.value.dailyAt ?? '08:00' })
-  } else {
-    const m = UNITS.find(u => u.label === unit)!.multiplier
-    setMany({ intervalSeconds: intervalValue.value * m, dailyAt: undefined })
+    return
   }
+  // Number-input and unit-select are independent: switching the unit keeps
+  // the displayed number unchanged. "10 minutes" → "10 hours", not 0.166 h.
+  // We capture the currently-displayed value BEFORE flipping intervalUnit
+  // since intervalValue is derived from (storedSeconds / current multiplier).
+  const displayed = isDaily.value ? UNITS.find(u => u.label === unit)!.min : intervalValue.value
+  const multiplier = UNITS.find(u => u.label === unit)!.multiplier
+  intervalUnit.value = unit
+  const seconds = Math.max(MIN_INTERVAL_SECONDS, displayed * multiplier)
+  setMany({ intervalSeconds: seconds, dailyAt: undefined })
 }
 
 const minValue = computed(() => UNITS.find(u => u.label === intervalUnit.value)!.min)
@@ -78,34 +89,34 @@ const selectedFormat = computed(() => (p.value.format as PollingFormat) ?? Polli
   <div v-if="isPolling" class="params-editor">
 
     <!-- URL -->
-    <div class="param-field">
-      <label class="param-label">URL <span class="req">*</span></label>
+    <div class="field">
+      <label class="field-label">URL <span class="field-required">*</span></label>
       <input
         type="url"
         :value="p.url ?? ''"
         placeholder="https://example.com/feed.xml"
-        class="param-input"
+        class="field-input"
         @input="set('url', ($event.target as HTMLInputElement).value)"
       />
-      <span class="param-hint">Endpoint the alert system will poll.</span>
+      <span class="field-hint">Endpoint the alert system will poll.</span>
     </div>
 
     <!-- Format -->
-    <div class="param-field">
-      <label class="param-label">Format <span class="req">*</span></label>
+    <div class="field">
+      <label class="field-label">Format <span class="field-required">*</span></label>
       <select
         :value="selectedFormat"
-        class="param-input"
+        class="field-input"
         @change="set('format', ($event.target as HTMLSelectElement).value)"
       >
         <option v-for="f in FORMATS" :key="f" :value="f">{{ f }}</option>
       </select>
-      <span class="param-hint">Content type returned by the URL.</span>
+      <span class="field-hint">Content type returned by the URL.</span>
     </div>
 
     <!-- Interval -->
-    <div class="param-field">
-      <label class="param-label">Poll interval <span class="req">*</span></label>
+    <div class="field">
+      <label class="field-label">Poll interval <span class="field-required">*</span></label>
       <div class="interval-row">
 
         <template v-if="!isDaily">
@@ -114,7 +125,7 @@ const selectedFormat = computed(() => (p.value.format as PollingFormat) ?? Polli
             type="number"
             :value="intervalValue"
             :min="minValue"
-            class="param-input interval-number"
+            class="field-input interval-number"
             @input="onValueInput(($event.target as HTMLInputElement).value)"
           />
         </template>
@@ -124,14 +135,14 @@ const selectedFormat = computed(() => (p.value.format as PollingFormat) ?? Polli
           <input
             type="time"
             :value="p.dailyAt ?? '08:00'"
-            class="param-input interval-time"
+            class="field-input interval-time"
             @input="set('dailyAt', ($event.target as HTMLInputElement).value)"
           />
         </template>
 
         <select
           :value="intervalUnit"
-          class="param-input interval-unit"
+          class="field-input interval-unit"
           @change="onUnitChange(($event.target as HTMLSelectElement).value as UnitLabel)"
         >
           <option v-for="u in UNITS" :key="u.label" :value="u.label">{{ u.label }}</option>
@@ -147,34 +158,18 @@ const selectedFormat = computed(() => (p.value.format as PollingFormat) ?? Polli
 .params-editor {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px;
-  background: #0f172a;
-  border: 1px solid #1e293b;
-  border-radius: 6px;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
-.param-field { display: flex; flex-direction: column; gap: 5px; }
-.param-label {
-  font-size: 12px; font-weight: 600; color: #94a3b8;
-  text-transform: uppercase; letter-spacing: 0.5px;
-}
-.req { color: #ef4444; }
 
-.param-input {
-  padding: 8px 12px;
-  background: #090d16; color: #f1f5f9;
-  border: 1px solid #1e293b; border-radius: 5px;
-  font-family: inherit; font-size: 13px;
-  box-sizing: border-box; width: 100%;
-}
-.param-input:focus { outline: none; border-color: #3b82f6; }
-.param-input::placeholder { color: #334155; }
-
-.interval-row { display: flex; align-items: center; gap: 8px; }
-.interval-label { font-size: 13px; color: #64748b; white-space: nowrap; flex-shrink: 0; }
+/* Interval row composition is unique to this editor — number + unit on one
+ * line, swapping to a time picker in 'daily' mode. */
+.interval-row { display: flex; align-items: center; gap: var(--space-3); }
+.interval-label { font-size: var(--text-base); color: var(--color-text-dim); white-space: nowrap; flex-shrink: 0; }
 .interval-number { width: 80px;  flex-shrink: 0; }
 .interval-time   { width: 110px; flex-shrink: 0; color-scheme: dark; }
 .interval-unit   { flex: 1; max-width: 130px; cursor: pointer; appearance: auto; }
-
-.param-hint { font-size: 11px; color: #475569; }
 </style>

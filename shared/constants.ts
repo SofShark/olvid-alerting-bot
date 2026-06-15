@@ -171,13 +171,13 @@ export type AlertModel = {
   bundles: BundleModel[]
 }
 
-// 🌟 Type the structure so TypeScript can help us
+// Type the structure so TypeScript can help us
 export interface TemplateData {
   payload: object;
   script: string;
 }
 
-// 🌟 Merge everything into a single master object
+// Merge everything into a single master object
 export const sampleData: Record<Source, TemplateData> = {
   [Source.GitHubPush]: {
     payload:{
@@ -274,9 +274,7 @@ Primary key: {{data.key}}`
       },
     },
     script: `📡 **Polling update**
-{{entry.title}}
-{{entry.updated}}
-{{entry.link}}`
+{{entry.title}}`
   },
 
   /*[Source.RSSFeed]: {

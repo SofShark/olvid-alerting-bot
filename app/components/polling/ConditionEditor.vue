@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import XmlTreeNode from './XmlTreeNode.vue'
 import {
   ConditionKind,
   ConditionOperator,
@@ -111,13 +110,18 @@ function removePath(path: string) {
 }
 
 // ── Manual "+ add path" input ───────────────────────────────────────────────
-const isAdding = ref(false)
-const newPath  = ref('')
+const isAdding    = ref(false)
+const newPath     = ref('')
+const addError    = ref('')
 const addInputRef = ref<HTMLInputElement | null>(null)
+
+// Typing clears any pending error so the input doesn't look stuck.
+watch(newPath, () => { if (addError.value) addError.value = '' })
 
 async function startAdding() {
   isAdding.value = true
   newPath.value  = ''
+  addError.value = ''
   await nextTick()
   addInputRef.value?.focus()
 }
@@ -126,18 +130,53 @@ function commitAdd() {
   const v = newPath.value.trim()
   if (!v) {
     isAdding.value = false
+    addError.value = ''
     return
   }
-  if (!paths.value.includes(v)) {
-    patchRule({ paths: [...paths.value, v] })
+  if (paths.value.includes(v)) {
+    // Already on the list — silently dedupe.
+    newPath.value  = ''
+    addError.value = ''
+    return
   }
-  newPath.value = ''
-  // Keep the input open so the user can paste another variant immediately.
+
+  // Validate against the retrieved source when we have one. Without a
+  // snapshot we can't tell, so we accept the path and let the user fix it
+  // later if it doesn't resolve at poll time.
+  if (parsed.value !== null) {
+    const observed = (function (obj: any, path: string) {
+      const parts = path.split('.').filter(Boolean)
+      let cur: any = obj
+      for (const part of parts) {
+        if (cur == null) return undefined
+        cur = cur[part]
+      }
+      return cur
+    })(parsed.value, v)
+
+    if (observed === undefined) {
+      addError.value = `Path "${v}" doesn't resolve to anything in the retrieved source. Fix it, click ⟳ above to refresh, or press Esc to cancel.`
+      return
+    }
+  }
+
+  patchRule({ paths: [...paths.value, v] })
+  newPath.value  = ''
+  addError.value = ''
+  // Input stays open so the user can paste another variant immediately.
 }
 
 function cancelAdd() {
   isAdding.value = false
   newPath.value  = ''
+  addError.value = ''
+}
+
+// Blur should NOT silently lose the input if an error is on screen — the
+// user is mid-fix. Keep the input open until they explicitly act.
+function onAddBlur() {
+  if (addError.value) return
+  cancelAdd()
 }
 
 // ── Retrieve (auto on mount + when url/format change) ──────────────────────
@@ -284,9 +323,9 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
 
 
     <!-- ── Condition (plain panel — no code-block dots) ──────────────────── -->
-    <div class="panel cond-panel">
-      <div class="panel-head">Condition</div>
-      <div class="panel-body">
+    <div class="cond-panel">
+      <div class="cond-panel-head">Condition</div>
+      <div class="cond-panel-body">
 
         <div class="cond-modes">
           <label class="mode" :class="{ active: kind === ConditionKind.None }">
@@ -330,7 +369,11 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
                 class="chip-add"
                 @click="startAdding"
               >+ add path</button>
-              <span v-else class="chip-input-wrap">
+              <span
+                v-else
+                class="chip-input-wrap"
+                :class="{ 'has-error': addError }"
+              >
                 <input
                   ref="addInputRef"
                   v-model="newPath"
@@ -339,7 +382,7 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
                   placeholder="paste or type a path, then Enter"
                   @keydown.enter.prevent="commitAdd"
                   @keydown.escape="cancelAdd"
-                  @blur="cancelAdd"
+                  @blur="onAddBlur"
                 />
                 <button
                   type="button"
@@ -347,12 +390,21 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
                   title="Done"
                   @mousedown.prevent="commitAdd"
                 >✓</button>
+                <button
+                  v-if="addError"
+                  type="button"
+                  class="chip-input-cancel"
+                  title="Cancel"
+                  @mousedown.prevent="cancelAdd"
+                >✕</button>
               </span>
 
               <span v-if="paths.length === 0 && !isAdding" class="chips-hint">
                 — none yet —
               </span>
             </div>
+
+            <p v-if="addError" class="add-error">⚠ {{ addError }}</p>
           </div>
 
           <!-- Operator + value + aggregation, on one line when it fits -->
@@ -397,7 +449,7 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
         <!-- ── Source XML (the only code-block) ──────────────────────────────── -->
     <div class="code-block source-block">
       <div class="code-header">
-        <span class="dot red" /><span class="dot yellow" /><span class="dot green" />
+        <span class="dot dot-red" /><span class="dot dot-yellow" /><span class="dot dot-green" />
         <span class="code-title">source.{{ (format ?? 'xml').toLowerCase() }}</span>
         <span class="code-url" :title="props.url">{{ props.url }}</span>
         <button
@@ -467,38 +519,25 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
 </template>
 
 <style scoped>
-.cond-editor { display: flex; flex-direction: column; gap: 12px; }
 
-/* ── Source (code-block) ────────────────────────────────────────────── */
-.code-block {
-  background: #1e1e1e;
-  border: 1px solid #2d2d2d;
-  border-radius: 8px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 320px;
-  max-height: 520px;
-}
-.code-header {
-  background: #2d2d2d;
-  padding: 8px 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid #1e1e1e;
-  flex-shrink: 0;
-}
-.dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
-.red { background: #ff5f56; } .yellow { background: #ffbd2e; } .green { background: #27c93f; }
-.code-title { color: #a3a3a3; font-size: 12px; font-family: ui-monospace, monospace; margin-left: 8px; }
+
+/* The Mac-style code-block frame (.code-block / .code-header / .dot / etc.)
+ * comes from the global stylesheet. Everything here is condition-editor
+ * specific: the URL strip in the header, the refresh button, the source
+ * error box, the condition rule panel, the chips/inputs for paths, and
+ * the preview strip.
+ */
+
+.cond-editor { display: flex; flex-direction: column; gap: var(--space-4); }
+
+/* ── Source code-block header extras ────────────────────────────────── */
 .code-url {
-  margin-left: 8px;
+  margin-left: var(--space-3);
   flex: 1;
   min-width: 0;
-  color: #6b7280;
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -508,252 +547,283 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
   border: 1px solid #444;
   color: #a3a3a3;
   width: 26px; height: 22px;
-  border-radius: 4px;
-  font-size: 14px; line-height: 1;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-lg); line-height: 1;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color .15s, border-color .15s, color .15s;
   flex-shrink: 0;
 }
-.btn-refresh:hover:not(:disabled) { background: #2d2d2d; color: #f1f5f9; border-color: #666; }
+.btn-refresh:hover:not(:disabled) {
+  background: var(--color-bg-code-header);
+  color: var(--color-text-primary);
+  border-color: #666;
+}
 .btn-refresh:disabled { opacity: 0.4; cursor: wait; }
 
-.code-body { padding: 12px; overflow-y: auto; flex: 1; color: #d4d4d4; }
-.tree-body { background: #1e1e1e; }
-.muted { color: #6b7280; font-size: 12px; line-height: 1.5; }
-.muted strong { color: #93c5fd; }
+/* ── Source body callouts ──────────────────────────────────────────── */
+.tree-body { background: var(--color-bg-code); }
+.muted { color: var(--color-text-dim); font-size: var(--text-md); line-height: 1.5; }
+.muted strong { color: var(--color-accent-text); }
 
 .tree-hint {
-  margin: 0 0 10px;
-  padding: 8px 10px;
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3) var(--space-4);
   background: #0a0a0a;
-  border-left: 3px solid #3b82f6;
-  border-radius: 4px;
-  color: #93c5fd;
-  font-size: 11px;
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent-text);
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 
-/* Inline source error */
 .source-error {
-  display: flex; flex-direction: column; gap: 8px;
-  padding: 12px;
-  background: #1a0a0a;
-  border: 1px solid #7f1d1d;
-  border-radius: 6px;
-  color: #fecaca;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-danger-bright);
 }
-.error-head { font-weight: 700; font-size: 13px; color: #fca5a5; }
+.error-head { font-weight: 700; font-size: var(--text-base); color: var(--color-danger-text); }
 .error-body {
   margin: 0;
-  padding: 8px 10px;
+  padding: var(--space-3) var(--space-4);
   background: #0a0a0a;
-  border-radius: 4px;
-  color: #fecaca;
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
+  border-radius: var(--radius-sm);
+  color: var(--color-danger-bright);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
 }
-.error-hint { margin: 0; color: #94a3b8; font-size: 11px; }
+.error-hint { margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); }
 
-/* ── Plain panels (condition / preview) ─────────────────────────────── */
-.panel {
-  background: #0f172a;
-  border: 1px solid #1e293b;
-  border-radius: 8px;
+/* ── Condition panel (renamed from .panel to avoid clashing with the
+ *    global wizard/editor shell). ───────────────────────────────────── */
+.cond-panel {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
   overflow: hidden;
 }
-.panel-head {
-  padding: 8px 14px;
-  background: #131a24;
-  border-bottom: 1px solid #1e293b;
-  font-size: 11px;
+.cond-panel-head {
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-bg-card-soft);
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: var(--text-sm);
   font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
-.panel-body { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+.cond-panel-body {
+  padding: var(--space-5);
+  display: flex; flex-direction: column;
+  gap: var(--space-5);
+}
 
-/* Mode radios — same row */
-.cond-modes { display: flex; gap: 10px; flex-wrap: wrap; }
+/* Mode radios (None / Rule). */
+.cond-modes { display: flex; gap: var(--space-3); flex-wrap: wrap; }
 .mode {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 12px;
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #cbd5e1;
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: 7px var(--space-4);
+  background: var(--color-border-subtle);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color .15s, border-color .15s, color .15s;
 }
-.mode:hover { border-color: #475569; }
-.mode.active { background: #0f2744; border-color: #1e40af; color: #f1f5f9; }
-.mode input[type='radio'] { accent-color: #3b82f6; cursor: pointer; }
+.mode:hover { border-color: var(--color-border-strong); }
+.mode.active {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-border);
+  color: var(--color-text-primary);
+}
+.mode input[type='radio'] { accent-color: var(--color-accent); cursor: pointer; }
 
 /* Rule block */
-.rule-block { display: flex; flex-direction: column; gap: 10px; }
-.rule-row { display: flex; flex-direction: column; gap: 6px; }
-.rule-row.inline {
-  flex-direction: row;
-  align-items: center;
-  flex-wrap: wrap;
-}
+.rule-block { display: flex; flex-direction: column; gap: var(--space-3); }
+.rule-row { display: flex; flex-direction: column; gap: var(--space-2); }
+.rule-row.inline { flex-direction: row; align-items: center; flex-wrap: wrap; }
 .rule-label {
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--color-text-dim);
 }
-.rule-count { color: #475569; font-weight: 500; margin-left: 4px; }
-.rule-row.inline .rule-label { margin-right: 4px; }
+.rule-count { color: var(--color-text-faint); font-weight: 500; margin-left: var(--space-1); }
+.rule-row.inline .rule-label { margin-right: var(--space-1); }
 
 .rule-hint {
   margin: 0;
-  color: #64748b;
-  font-size: 11px;
+  color: var(--color-text-dim);
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 .rule-hint code {
-  color: #93c5fd;
+  color: var(--color-accent-text);
   background: #0a0a0a;
   padding: 1px 5px;
   border-radius: 3px;
-  font-family: ui-monospace, monospace;
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
 }
-.rule-hint strong { color: #cbd5e1; font-weight: 600; }
+.rule-hint strong { color: var(--color-text-secondary); font-weight: 600; }
 
-/* Chips */
-.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: #0f2744;
-  border: 1px solid #1e40af;
-  color: #93c5fd;
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
-  padding: 3px 4px 3px 8px;
-  border-radius: 4px;
-}
+/* Watched-path chips. Use the global .chip / .chip-add base + scoped
+ * tweaks for the path-flavored display (asymmetric padding to make room
+ * for the × button). */
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.chip { padding: 3px var(--space-1) 3px var(--space-3); }
 .chip-path { white-space: nowrap; }
 .chip-x {
   background: transparent;
   border: none;
-  color: #93c5fd;
-  font-size: 14px;
+  color: var(--color-accent-text);
+  font-size: var(--text-lg);
   line-height: 1;
-  padding: 0 4px;
+  padding: 0 var(--space-1);
   cursor: pointer;
 }
-.chip-x:hover { color: #fff; }
-.chips-hint { color: #475569; font-size: 12px; font-style: italic; }
+.chip-x:hover { color: var(--color-text-on-accent); }
+.chips-hint { color: var(--color-text-faint); font-size: var(--text-md); font-style: italic; }
 
-/* + add path */
+/* + add path — manual entry that morphs into an inline input. */
 .chip-add {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: 1px dashed #334155;
-  color: #94a3b8;
-  font-size: 11px;
-  font-family: ui-monospace, monospace;
-  padding: 3px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s;
+  font-family: var(--font-mono);
+  padding: 3px var(--space-4);
 }
-.chip-add:hover { border-color: #3b82f6; color: #93c5fd; background: #0f2744; }
 
 .chip-input-wrap {
   display: inline-flex;
   align-items: stretch;
-  border: 1px solid #3b82f6;
-  border-radius: 4px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
   overflow: hidden;
-  background: #090d16;
+  background: var(--color-bg-input);
+}
+.chip-input-wrap.has-error {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-soft);
 }
 .chip-input {
   background: transparent;
   border: none;
-  color: #f1f5f9;
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
-  padding: 3px 8px;
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: 3px var(--space-3);
   min-width: 260px;
 }
 .chip-input:focus { outline: none; }
-.chip-input::placeholder { color: #475569; }
+.chip-input::placeholder { color: var(--color-text-faint); }
+
 .chip-input-done {
   background: #1e3a8a;
   border: none;
-  border-left: 1px solid #3b82f6;
-  color: #fff;
-  font-size: 12px;
-  padding: 0 8px;
+  border-left: 1px solid var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-size: var(--text-md);
+  padding: 0 var(--space-3);
   cursor: pointer;
 }
-.chip-input-done:hover { background: #2563eb; }
+.chip-input-done:hover { background: var(--color-accent); }
+.chip-input-wrap.has-error .chip-input-done {
+  background: var(--color-danger-border);
+  border-left-color: var(--color-danger-strong);
+}
+.chip-input-wrap.has-error .chip-input-done:hover { background: #991b1b; }
 
-/* Inputs / selects */
+.chip-input-cancel {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--color-danger-border);
+  color: var(--color-danger-text);
+  font-size: var(--text-lg);
+  padding: 0 var(--space-3);
+  cursor: pointer;
+}
+.chip-input-cancel:hover { color: var(--color-text-on-accent); background: var(--color-danger-border); }
+
+.add-error {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-danger-bright);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+/* Operator / value / aggregation inputs. */
 .rule-select,
 .rule-input {
-  background: #090d16;
-  color: #f1f5f9;
-  border: 1px solid #1e293b;
-  border-radius: 5px;
-  padding: 6px 10px;
-  font-size: 12px;
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-md);
 }
 .rule-select { cursor: pointer; }
 .rule-select:focus,
-.rule-input:focus { outline: none; border-color: #3b82f6; }
+.rule-input:focus { outline: none; border-color: var(--color-accent); }
 .rule-select.agg { min-width: 110px; }
 .rule-select.op  { min-width: 200px; flex: 1 1 auto; }
 .rule-input      { min-width: 120px; flex: 1 1 120px; }
-.agg-fake { color: #64748b; font-size: 12px; }
+.agg-fake { color: var(--color-text-dim); font-size: var(--text-md); }
 
 /* ── Preview strip ──────────────────────────────────────────────────── */
 .preview-strip {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   flex-wrap: wrap;
-  padding: 10px 14px;
-  border-radius: 8px;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-xl);
   border: 1px solid;
-  font-size: 12px;
+  font-size: var(--text-md);
 }
-.preview-strip.ok { background: #06270f; border-color: #166534; color: #bbf7d0; }
-.preview-strip.no { background: #1a1a1a; border-color: #334155; color: #cbd5e1; }
-.preview-strip .bullet { font-size: 16px; line-height: 1; }
-.preview-strip.ok .bullet { color: #22c55e; }
-.preview-strip.no .bullet { color: #64748b; }
+.preview-strip.ok {
+  background: var(--color-success-soft);
+  border-color: var(--color-success-border);
+  color: var(--color-success-bright);
+}
+.preview-strip.no {
+  background: #1a1a1a;
+  border-color: var(--color-border-default);
+  color: var(--color-text-secondary);
+}
+.preview-strip .bullet { font-size: var(--text-xl); line-height: 1; }
+.preview-strip.ok .bullet { color: var(--color-success); }
+.preview-strip.no .bullet { color: var(--color-text-dim); }
 .preview-label { flex: 1; min-width: 0; }
 
-.preview-detail { margin-left: auto; color: #94a3b8; font-size: 11px; max-width: 100%; }
+.preview-detail { margin-left: auto; color: var(--color-text-muted); font-size: var(--text-sm); max-width: 100%; }
 .preview-detail summary { cursor: pointer; user-select: none; }
-.preview-detail summary:hover { color: #93c5fd; }
+.preview-detail summary:hover { color: var(--color-accent-text); }
 .preview-detail ul {
-  margin: 6px 0 0;
-  padding: 8px 12px;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3) var(--space-4);
   list-style: none;
   background: #0a0a0a;
-  border-radius: 4px;
-  display: flex; flex-direction: column; gap: 4px;
+  border-radius: var(--radius-sm);
+  display: flex; flex-direction: column; gap: var(--space-1);
   max-height: 200px;
   overflow-y: auto;
 }
-.preview-detail li { font-family: ui-monospace, monospace; font-size: 11px; }
-.preview-detail li.ok { color: #bbf7d0; }
-.preview-detail li.no { color: #cbd5e1; }
-.preview-detail code { color: #93c5fd; background: #1e1e1e; padding: 1px 4px; border-radius: 3px; }
+.preview-detail li { font-family: var(--font-mono); font-size: var(--text-sm); }
+.preview-detail li.ok { color: var(--color-success-bright); }
+.preview-detail li.no { color: var(--color-text-secondary); }
+.preview-detail code {
+  color: var(--color-accent-text);
+  background: var(--color-bg-code);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
 </style>

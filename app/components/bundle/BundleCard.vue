@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import FormatEditor from './FormatEditor.vue'
 import {
   Formatting,
   isPollingSource,
   type BundleModel,
   type DiscussionModel,
 } from '#shared/constants'
+import { buildPollingDefaultMessage } from '#shared/pollingMessage'
 
 const props = withDefaults(defineProps<{
   bundle: BundleModel
@@ -78,7 +78,6 @@ const saveScript = (script: string) => {
 
 // Inline preview of the polling-default message (uses live payload if the
 // parent passed one, otherwise placeholder text).
-import { buildPollingDefaultMessage } from '#shared/pollingMessage'
 const pollingPreview = computed(() => {
   if (!isPolling.value || formating.value !== Formatting.PollingDefault) return ''
   if (!props.alertContext) return ''
@@ -87,7 +86,7 @@ const pollingPreview = computed(() => {
 </script>
 
 <template>
-  <div class="bundle-card">
+  <div class="card bundle-card">
     <FormatEditor
       v-if="isEditorOpen"
       :initial-script="bundle.custom_script || ''"
@@ -97,14 +96,20 @@ const pollingPreview = computed(() => {
       @close="isEditorOpen = false"
     />
 
-    <div class="bundle-head">
-      <span class="bundle-tag">BUNDLE {{ index + 1 }}</span>
-      <button v-if="!hideRemove" type="button" class="bundle-remove" title="Remove bundle" @click="emit('remove')">✕</button>
+    <div class="card-head">
+      <span class="card-tag">BUNDLE {{ index + 1 }}</span>
+      <button
+        v-if="!hideRemove"
+        type="button"
+        class="card-remove"
+        title="Remove bundle"
+        @click="emit('remove')"
+      >✕</button>
     </div>
 
     <!-- Discussions -->
-    <div class="bundle-field">
-      <label class="bundle-label">Discussions</label>
+    <div class="field">
+      <label class="field-label">Discussions</label>
       <DiscussionSelector
         v-model="discussions"
         :available="availableDiscussions"
@@ -113,10 +118,10 @@ const pollingPreview = computed(() => {
     </div>
 
     <!-- Format — options depend on whether the input source is polling. -->
-    <div class="bundle-field">
-      <label class="bundle-label">Message Format</label>
+    <div class="field">
+      <label class="field-label">Message Format</label>
       <div class="format-row">
-        <select v-model="formating" @change="onFormatChange" class="bundle-select">
+        <select v-model="formating" @change="onFormatChange" class="field-input format-select">
           <template v-if="isPolling">
             <option :value="Formatting.PollingDefault">Default (watched fields)</option>
             <option :value="Formatting.PollingCustom">Custom (Handlebars)</option>
@@ -130,7 +135,7 @@ const pollingPreview = computed(() => {
         <button
           v-if="formating === Formatting.Custom || formating === Formatting.PollingCustom"
           type="button"
-          class="btn-edit-script"
+          class="btn btn-secondary btn-sm"
           @click="isEditorOpen = true"
         >
           ✏️ Script
@@ -154,87 +159,26 @@ const pollingPreview = computed(() => {
 </template>
 
 <style scoped>
-.bundle-card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  background: #0f172a;
-  border: 1px solid #1e293b;
-  border-radius: 8px;
-  padding: 16px;
-}
+/* All structural surfaces (card frame, head, tag, remove button, field
+ * label/input, secondary button) come from the global stylesheet. Only the
+ * pieces specific to BundleCard (format-row composition, polling-preview
+ * box, script-hint) live here.
+ */
 
-.bundle-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.bundle-tag {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: #64748b;
-  font-family: ui-monospace, monospace;
-}
-.bundle-remove {
-  background: transparent;
-  border: 1px solid #1e293b;
-  color: #ef4444;
-  width: 24px;
-  height: 24px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 12px;
-  line-height: 1;
-  transition: all 0.15s;
-}
-.bundle-remove:hover { background: #1e293b; border-color: #ef4444; }
+.format-row { display: flex; gap: var(--space-3); }
+.format-select { flex: 1; }
 
-.bundle-field { display: flex; flex-direction: column; gap: 6px; }
-.bundle-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.format-row { display: flex; gap: 8px; }
-.bundle-select {
-  flex: 1;
-  padding: 9px 12px;
-  background: #090d16;
-  color: #f1f5f9;
-  border: 1px solid #1e293b;
-  border-radius: 5px;
-  font-size: 13px;
-}
-.bundle-select:focus { outline: none; border-color: #3b82f6; }
-
-.btn-edit-script {
-  background: #1e293b;
-  color: #cbd5e1;
-  border: 1px solid #334155;
-  padding: 7px 16px;
-  border-radius: 5px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.btn-edit-script:hover { background: #334155; border-color: #475569; }
-
-.script-hint { font-size: 11px; color: #22c55e; }
+.script-hint { font-size: var(--text-sm); color: var(--color-success); }
 
 .poll-preview {
   margin: 0;
-  padding: 8px 10px;
-  background: #0a1322;
-  border: 1px dashed #1e40af;
-  border-radius: 5px;
-  color: #93c5fd;
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-input);
+  border: 1px dashed var(--color-accent-border);
+  border-radius: var(--radius-md);
+  color: var(--color-accent-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;

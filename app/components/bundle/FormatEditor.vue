@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import Handlebars from 'handlebars'
-import XmlTreeNode from './XmlTreeNode.vue'
 import {
   sampleData,
   Source,
@@ -208,7 +207,7 @@ const close = () => emit('close')
           <!-- Script editor -->
           <div class="code-block">
             <div class="code-header">
-              <span class="dot red" /><span class="dot yellow" /><span class="dot green" />
+              <span class="dot dot-red" /><span class="dot dot-yellow" /><span class="dot dot-green" />
               <span class="code-title">script.hbs (Handlebars)</span>
             </div>
 
@@ -241,7 +240,7 @@ const close = () => emit('close')
           <!-- Source pane: XML tree (polling) OR JSON payload (webhook). -->
           <div class="code-block">
             <div class="code-header">
-              <span class="dot red" /><span class="dot yellow" /><span class="dot green" />
+              <span class="dot dot-red" /><span class="dot dot-yellow" /><span class="dot dot-green" />
               <span class="code-title">
                 {{ isPolling ? `source.${(triggerParams?.format ?? 'xml').toLowerCase()}` : 'payload.json (Test Data)' }}
               </span>
@@ -344,6 +343,12 @@ const close = () => emit('close')
 </template>
 
 <style scoped>
+/* The FormatEditor modal is INTENTIONALLY light — it sits over a dimmed
+ * dark backdrop so the user feels they've focused into a dedicated editor.
+ * Its shell colors stay hard-coded (they don't theme with the app) — only
+ * the accent and the dark code-blocks inside use design tokens.
+ */
+
 .editor-overlay {
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100vh;
@@ -351,7 +356,7 @@ const close = () => emit('close')
   backdrop-filter: blur(5px);
   display: flex; justify-content: center; align-items: center;
   z-index: 10500;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
 }
 
 .editor-window {
@@ -360,24 +365,25 @@ const close = () => emit('close')
   max-width: 1600px;
   height: 96vh;
   border-radius: 12px;
-  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+  box-shadow: var(--shadow-overlay);
   display: flex; flex-direction: column;
   overflow: hidden;
 }
 
 .window-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 20px 30px;
+  padding: var(--space-7) 30px;
   border-bottom: 1px solid #e2e8f0;
 }
-.header-titles h3 { margin: 0; color: #0f172a; font-size: 20px; font-weight: 700; }
-.header-titles p { margin: 4px 0 0 0; color: #64748b; font-size: 14px; max-width: 720px; }
+.header-titles h3 { margin: 0; color: #0f172a; font-size: var(--text-xl); font-weight: 700; }
+.header-titles p  { margin: 4px 0 0 0; color: #64748b; font-size: 14px; max-width: 720px; }
 
 .btn-close-icon {
-  background: transparent; border: none; color: #94a3b8; font-size: 20px;
+  background: transparent; border: none; color: #94a3b8;
+  font-size: var(--text-xl);
   cursor: pointer; transition: color 0.2s;
 }
-.btn-close-icon:hover { color: #ef4444; }
+.btn-close-icon:hover { color: var(--color-danger); }
 
 .window-body {
   display: grid;
@@ -388,62 +394,74 @@ const close = () => emit('close')
 }
 
 .code-column {
-  padding: 20px;
-  display: flex; flex-direction: column; gap: 20px;
+  padding: var(--space-7);
+  display: flex; flex-direction: column; gap: var(--space-7);
   overflow-y: auto;
   border-right: 1px solid #e2e8f0;
 }
 
+/* Code-blocks here override the global min/max-height — they live inside
+ * the fixed-height modal and need to size to their content. */
 .code-block {
-  background: #1e1e1e;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-  display: flex; flex-direction: column;
+  min-height: 0;
+  max-height: none;
+  box-shadow: var(--shadow-card);
   flex-shrink: 0;
 }
 
-.code-header {
-  background: #2d2d2d;
-  padding: 10px 15px;
-  display: flex; align-items: center; gap: 8px;
-}
-.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
-.red { background: #ff5f56; } .yellow { background: #ffbd2e; } .green { background: #27c93f; }
-.code-title { color: #a3a3a3; font-size: 13px; font-family: monospace; margin-left: 10px; flex: 1; }
-
-.payload-toggle { display: flex; gap: 4px; margin-left: auto; }
+/* Toggle pills + refresh button live in the code-block header. They're
+ * dark-on-dark like the rest of the IDE chrome. */
+.payload-toggle { display: flex; gap: var(--space-1); margin-left: auto; }
 .toggle-btn {
   background: #3a3a3a; color: #a3a3a3;
-  border: 1px solid #555; border-radius: 4px;
-  padding: 3px 10px; font-size: 12px; cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
+  border: 1px solid #555; border-radius: var(--radius-sm);
+  padding: 3px var(--space-4); font-size: var(--text-md); cursor: pointer;
+  transition: background-color .15s, color .15s;
 }
-.toggle-btn:hover { background: #4a4a4a; color: #d4d4d4; }
-.toggle-btn.active { background: #2563eb; color: #ffffff; border-color: #2563eb; }
+.toggle-btn:hover { background: #4a4a4a; color: var(--color-text-code); }
+.toggle-btn.active {
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  border-color: var(--color-accent);
+}
 
 .payload-refresh {
   background: #3a3a3a;
   color: #a3a3a3;
   border: 1px solid #555;
   width: 28px; height: 24px;
-  border-radius: 4px;
-  font-size: 14px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-lg);
   cursor: pointer;
   margin-left: auto;
 }
-.payload-refresh:hover:not(:disabled) { background: #4a4a4a; color: #fff; }
+.payload-refresh:hover:not(:disabled) { background: #4a4a4a; color: var(--color-text-on-accent); }
 .payload-refresh:disabled { opacity: 0.4; cursor: wait; }
 
-.payload-notice { background: #2d2d2d; color: #f59e0b; font-size: 12px; font-family: monospace; padding: 10px 15px; border-top: 1px solid #3a3a3a; }
-.payload-empty  { background: #1e1e1e; color: #6b7280; font-size: 13px; font-family: monospace; padding: 30px 15px; text-align: center; flex: 1; }
+.payload-notice {
+  background: var(--color-bg-code-header);
+  color: var(--color-warning);
+  font-size: var(--text-md);
+  font-family: var(--font-mono);
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid #3a3a3a;
+}
+.payload-empty {
+  background: var(--color-bg-code);
+  color: var(--color-text-dim);
+  font-size: var(--text-base);
+  font-family: var(--font-mono);
+  padding: 30px var(--space-5);
+  text-align: center;
+  flex: 1;
+}
 
 .editor-textarea {
   width: 100%;
-  padding: 15px;
-  background: #1e1e1e;
+  padding: var(--space-6);
+  background: var(--color-bg-code);
   border: none; outline: none;
-  font-family: 'Consolas', 'Courier New', monospace;
+  font-family: var(--font-mono);
   font-size: 14px; line-height: 1.5;
   resize: vertical;
   box-sizing: border-box;
@@ -452,97 +470,102 @@ const close = () => emit('close')
 .json-color { color: #9cdcfe; min-height: 250px; }
 
 .editor-textarea::-webkit-scrollbar { width: 8px; }
-.editor-textarea::-webkit-scrollbar-thumb { background: #4b4b4b; border-radius: 4px; }
+.editor-textarea::-webkit-scrollbar-thumb { background: #4b4b4b; border-radius: var(--radius-sm); }
 
-/* ── Watched-path shortcuts ─────────────────────────────────────── */
+/* ── Watched-path shortcuts (polling only) ──────────────────────── */
 .shortcuts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: #252525;
-  border-bottom: 1px solid #1e1e1e;
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-code-soft);
+  border-bottom: 1px solid var(--color-bg-code);
 }
 .shortcuts-label {
-  color: #6b7280;
-  font-size: 10px;
+  color: var(--color-text-dim);
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   font-weight: 700;
-  margin-right: 4px;
+  margin-right: var(--space-1);
 }
 .shortcut-chip {
-  background: #0f2744;
-  border: 1px solid #1e40af;
-  color: #93c5fd;
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 4px;
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent-border);
+  color: var(--color-accent-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color .15s, color .15s;
 }
-.shortcut-chip:hover { background: #1e3a8a; color: #fff; }
+.shortcut-chip:hover { background: #1e3a8a; color: var(--color-text-on-accent); }
 
-/* ── XML tree pane ───────────────────────────────────────────────── */
+/* ── XML tree pane (polling only) ───────────────────────────────── */
 .tree-pane {
-  padding: 12px;
-  background: #1e1e1e;
+  padding: var(--space-4);
+  background: var(--color-bg-code);
   overflow-y: auto;
   min-height: 250px;
   max-height: 360px;
 }
 .tree-pane-hint {
-  margin: 0 0 10px;
-  padding: 6px 10px;
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-4);
   background: #0a0a0a;
-  border-left: 3px solid #3b82f6;
-  border-radius: 4px;
-  color: #93c5fd;
-  font-size: 11px;
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent-text);
+  font-size: var(--text-sm);
 }
 
-/* Preview column */
+/* ── Preview column (chat bubble — light by design) ─────────────── */
 .preview-column { display: flex; flex-direction: column; background: #e5e5ea; }
-.chat-header { background: #f8fafc; padding: 15px; text-align: center; font-weight: bold; color: #475569; border-bottom: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-.chat-background { padding: 20px; flex-grow: 1; overflow-y: auto; }
+.chat-header {
+  background: #f8fafc; padding: var(--space-6);
+  text-align: center; font-weight: bold; color: #475569;
+  border-bottom: 1px solid #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.chat-background { padding: var(--space-7); flex-grow: 1; overflow-y: auto; }
 .chat-bubble {
   background: #ffffff;
   max-width: 85%;
-  padding: 12px 16px;
+  padding: var(--space-4) var(--space-6);
   border-radius: 0 16px 16px 16px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  margin-bottom: 15px;
+  margin-bottom: var(--space-6);
 }
-.bubble-sender { color: #2563eb; font-weight: 700; font-size: 13px; margin-bottom: 5px; }
-.bubble-text   { margin: 0; font-family: inherit; font-size: 15px; color: #111827; white-space: pre-wrap; line-height: 1.4; }
-.bubble-time   { text-align: right; color: #9ca3af; font-size: 11px; margin-top: 5px; }
+.bubble-sender { color: var(--color-accent); font-weight: 700; font-size: var(--text-base); margin-bottom: 5px; }
+.bubble-text   { margin: 0; font-family: inherit; font-size: var(--text-lg); color: #111827; white-space: pre-wrap; line-height: 1.4; }
+.bubble-time   { text-align: right; color: #9ca3af; font-size: var(--text-sm); margin-top: 5px; }
 
 .error-bubble {
   background: #fef2f2; color: #991b1b;
-  max-width: 85%; padding: 12px 16px;
+  max-width: 85%;
+  padding: var(--space-4) var(--space-6);
   border-radius: 16px; border: 1px solid #f87171;
-  font-family: monospace; font-size: 13px; white-space: pre-wrap;
+  font-family: var(--font-mono); font-size: var(--text-base);
+  white-space: pre-wrap;
 }
 
 .window-footer {
-  padding: 15px 30px;
+  padding: var(--space-6) 30px;
   background: #ffffff;
   border-top: 1px solid #e2e8f0;
-  display: flex; justify-content: flex-end; gap: 15px;
+  display: flex; justify-content: flex-end; gap: var(--space-6);
 }
 .btn-cancel {
   background: #f1f5f9; color: #475569;
-  border: none; padding: 10px 20px; border-radius: 8px;
+  border: none; padding: var(--space-4) var(--space-7); border-radius: var(--radius-xl);
   font-weight: 600; cursor: pointer; transition: background-color 0.2s;
 }
 .btn-cancel:hover { background: #e2e8f0; }
 
 .btn-save {
-  background: #2563eb; color: white;
-  border: none; padding: 10px 24px; border-radius: 8px;
+  background: var(--color-accent); color: var(--color-text-on-accent);
+  border: none; padding: var(--space-4) var(--space-8); border-radius: var(--radius-xl);
   font-weight: 600; cursor: pointer; transition: background-color 0.2s;
 }
-.btn-save:hover { background: #1d4ed8; }
+.btn-save:hover { background: var(--color-accent-hover); }
 </style>

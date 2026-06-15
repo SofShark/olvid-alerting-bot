@@ -86,80 +86,82 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 </template>
 
 <style scoped>
-.selector { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.selector { display: flex; flex-direction: column; gap: var(--space-3); width: 100%; }
 
-/* ── Chips ── */
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-
+/* Chip layout overrides the global chip's tight padding — discussion chips
+ * carry a wider title + a × button so a touch more breathing room helps. */
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #0f2744;
-  border: 1px solid #1e40af;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 12px;
+  display: flex; align-items: center;
+  gap: var(--space-2);
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-md);
 }
-.chip-title { color: #93c5fd; font-weight: 500; }
-.chip-id { color: #475569; font-family: monospace; font-size: 11px; }
+.chip-title { color: var(--color-accent-text); font-weight: 500; }
+.chip-id    { color: var(--color-text-faint); font-family: var(--font-mono); font-size: var(--text-sm); }
 .chip-remove {
-  background: none;
-  border: none;
-  color: #ef4444;
+  background: none; border: none;
+  color: var(--color-danger);
   cursor: pointer;
   padding: 0;
-  font-size: 11px;
+  font-size: var(--text-sm);
   line-height: 1;
-  transition: color 0.15s;
+  transition: color .15s;
 }
-.chip-remove:hover { color: #fca5a5; }
+.chip-remove:hover { color: var(--color-danger-text); }
 
-/* ── Search ── */
+/* ── Search input ─────────────────────────────────────────────────── */
 .search-wrap { position: relative; width: 100%; }
-
 .search-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 9px 12px;
-  background: #090d16;
-  color: #f1f5f9;
-  border: 1px solid #1e293b;
-  border-radius: 5px;
+  width: 100%; box-sizing: border-box;
+  padding: 9px var(--space-4);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--text-base);
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color .15s, box-shadow .15s;
 }
-.search-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
-.search-input::placeholder { color: #334155; }
+.search-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
+}
+.search-input::placeholder { color: var(--color-border-default); }
 .search-input:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* ── Dropdown ── */
+/* ── Dropdown ─────────────────────────────────────────────────────── */
 .dropdown {
   position: absolute;
   top: calc(100% + 4px);
   left: 0; right: 0;
-  background: #0f172a;
-  border: 1px solid #1e293b;
-  border-radius: 5px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   box-shadow: 0 8px 16px rgba(0,0,0,0.4);
   max-height: 200px;
   overflow-y: auto;
   z-index: 50;
 }
 .dropdown-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 9px 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px var(--space-4);
   cursor: pointer;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 .dropdown-item:last-child { border-bottom: none; }
-.dropdown-item:hover { background: #1e293b; }
+.dropdown-item:hover { background: var(--color-border-subtle); }
 
-.item-title { color: #cbd5e1; font-size: 13px; }
-.item-id { color: #475569; font-family: monospace; font-size: 11px; }
-.dropdown-empty { padding: 10px 12px; color: #475569; font-size: 13px; font-style: italic; }
+.item-title { color: var(--color-text-secondary); font-size: var(--text-base); }
+.item-id    { color: var(--color-text-faint); font-family: var(--font-mono); font-size: var(--text-sm); }
+.dropdown-empty {
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-faint);
+  font-size: var(--text-base);
+  font-style: italic;
+}
 </style>

@@ -85,7 +85,17 @@ function onLeafClick() {
 </template>
 
 <style scoped>
-.tree-node { font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.55; }
+/* Syntax-highlighting-style colors for the parsed-XML tree. Element names
+ * sit in the accent color, attribute names in pink (only used here so it
+ * doesn't earn a global token), leaf values in normal code color. Hover and
+ * selected states tint via the accent / success tokens.
+ */
+
+.tree-node {
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  line-height: 1.55;
+}
 
 .branch-line { color: #60a5fa; }
 .branch-name { font-weight: 600; }
@@ -93,19 +103,22 @@ function onLeafClick() {
 .leaf-line {
   display: grid;
   grid-template-columns: minmax(60px, auto) 1fr auto;
-  gap: 8px;
+  gap: var(--space-3);
   align-items: center;
-  padding: 2px 6px;
+  padding: 2px var(--space-2);
   margin: 1px 0;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   border: 1px solid transparent;
-  transition: background-color 0.12s, border-color 0.12s;
+  transition: background-color .12s, border-color .12s;
 }
-.leaf-line:hover { background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.35); }
+.leaf-line:hover {
+  background:    color-mix(in srgb, var(--color-accent) 12%, transparent);
+  border-color:  color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
 .leaf-line.selected {
-  background: rgba(34, 197, 94, 0.16);
-  border-color: rgba(34, 197, 94, 0.5);
+  background:    color-mix(in srgb, var(--color-success) 16%, transparent);
+  border-color:  color-mix(in srgb, var(--color-success) 50%, transparent);
 }
 
 .leaf-name  { color: #c4b5fd; font-weight: 600; white-space: nowrap; }
@@ -113,20 +126,20 @@ function onLeafClick() {
 .attr-sigil { color: #f472b6; margin-right: 1px; }
 
 .leaf-value {
-  color: #e2e8f0;
+  color: var(--color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .leaf-path {
-  color: #475569;
-  font-size: 10px;
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
   white-space: nowrap;
   text-align: right;
   opacity: 0;
-  transition: opacity 0.12s;
+  transition: opacity .12s;
 }
-.leaf-line:hover .leaf-path,
+.leaf-line:hover    .leaf-path,
 .leaf-line.selected .leaf-path { opacity: 1; }
 </style>

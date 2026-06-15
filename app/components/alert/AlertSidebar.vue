@@ -60,36 +60,34 @@ const statusLabel = (status: string) => {
   display: flex;
   flex-direction: column;
   background: #0b1120;
-  border: 1px solid #1e293b;
-  border-radius: 8px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
   overflow: hidden;
   height: 100%;
   min-height: 0;
 }
 
 .sidebar-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: #0f172a;
-  border-bottom: 1px solid #1e293b;
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
-.sidebar-title { font-size: 13px; font-weight: 600; color: #f1f5f9; }
+.sidebar-title { font-size: var(--text-base); font-weight: 600; color: var(--color-text-primary); }
 .sidebar-count {
   margin-left: auto;
-  background: #1e293b;
-  color: #cbd5e1;
-  font-size: 11px;
+  background: var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
   font-weight: 600;
-  padding: 1px 8px;
+  padding: 1px var(--space-3);
   border-radius: 10px;
 }
 
 .sidebar-body {
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
+  padding: var(--space-3);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -97,67 +95,64 @@ const statusLabel = (status: string) => {
 }
 
 .alert-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: flex; align-items: center; gap: var(--space-3);
   width: 100%;
   text-align: left;
   background: transparent;
   border: none;
-  
   border-left: 1px solid transparent;
-  color: #cbd5e1;
-  padding: 9px 12px;
-  border-radius: 5px;
+  color: var(--color-text-secondary);
+  padding: 9px var(--space-4);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 13px;
-  transition: background-color 0.15s;
+  font-size: var(--text-base);
+  transition: background-color .15s;
 }
 .alert-row:hover { background: #151f32; }
 .alert-row.selected {
   background: #151f32;
-  border-left-color: #3b82f6;
-  color: #f1f5f9;
+  border-left-color: var(--color-accent);
+  color: var(--color-text-primary);
 }
-
 .row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Status circles */
+/* ── Status dots ─────────────────────────────────────────────────── */
 .status-dot {
-  width: 13px;
-  height: 13px;
+  width: 13px; height: 13px;
   border-radius: 50%;
   flex-shrink: 0;
   box-sizing: border-box;
 }
-.st-active { background: #3b82f6; border: 1px solid #3b82f6; }
-.st-inactive { background: transparent; border: 1px solid #64748b; }
-.st-draft { background: transparent; border: 1px dashed #64748b; }
+.st-active   { background: var(--color-accent); border: 1px solid var(--color-accent); }
+.st-inactive { background: transparent; border: 1px solid var(--color-text-dim); }
+.st-draft    { background: transparent; border: 1px dashed var(--color-text-dim); }
 
 .sidebar-empty {
-  color: #475569;
-  font-size: 12px;
+  color: var(--color-text-faint);
+  font-size: var(--text-md);
   text-align: center;
-  padding: 24px 12px;
+  padding: var(--space-8) var(--space-4);
   font-style: italic;
 }
 
 .btn-new-bottom {
-  margin: 8px;
+  margin: var(--space-3);
   padding: 9px;
-  background: #1e293b;
-  color: #cbd5e1;
-  border: 1px dashed #334155;
-  border-radius: 6px;
+  background: var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  border: 1px dashed var(--color-border-default);
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--text-base);
   font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+  gap: var(--space-2);
+  transition: background-color .15s, border-color .15s, color .15s;
 }
-.btn-new-bottom:hover { background: #334155; color: #f1f5f9; border-color: #475569; }
-.plus { font-size: 16px; line-height: 1; }
+.btn-new-bottom:hover {
+  background: var(--color-border-default);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
+}
+.plus { font-size: var(--text-xl); line-height: 1; }
 </style>

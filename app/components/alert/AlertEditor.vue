@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import BundleCard from './BundleCard.vue'
 import { Formatting, AlertStatus, Trigger, type DiscussionModel, type BundleModel, type AlertModel } from '#shared/constants'
+import { alertService } from '~/utils/alertService'
 
 const props = withDefaults(defineProps<{
   alertaInicial?: AlertModel | null
@@ -246,27 +246,27 @@ const runTestPoll = async () => {
 </script>
 
 <template>
-  <div class="editor">
+  <div class="panel editor">
 
     <!-- ── Overlays ─────────────────────────────────────────── -->
-    <div v-if="showDiscardWarning" class="confirm-overlay">
-      <div class="confirm-box">
+    <div v-if="showDiscardWarning" class="overlay">
+      <div class="overlay-box">
         <h4>Unsaved changes</h4>
         <p>You have unsaved changes. If you go back now, they will be lost.</p>
-        <div class="confirm-actions">
-          <button type="button" class="btn-ghost" @click="showDiscardWarning = false">Continue editing</button>
-          <button type="button" class="btn-danger" @click="cancelEdit">Discard changes</button>
+        <div class="overlay-actions">
+          <button type="button" class="btn btn-ghost" @click="showDiscardWarning = false">Continue editing</button>
+          <button type="button" class="btn btn-danger" @click="cancelEdit">Discard changes</button>
         </div>
       </div>
     </div>
 
-    <div v-if="confirmingDelete" class="confirm-overlay">
-      <div class="confirm-box">
+    <div v-if="confirmingDelete" class="overlay">
+      <div class="overlay-box">
         <h4>Delete this alert?</h4>
         <p>This removes the alert and all its bundles. This cannot be undone.</p>
-        <div class="confirm-actions">
-          <button type="button" class="btn-ghost" @click="confirmingDelete = false">Cancel</button>
-          <button type="button" class="btn-danger" @click="doDelete">Delete</button>
+        <div class="overlay-actions">
+          <button type="button" class="btn btn-ghost" @click="confirmingDelete = false">Cancel</button>
+          <button type="button" class="btn btn-danger" @click="doDelete">Delete</button>
         </div>
       </div>
     </div>
@@ -275,13 +275,13 @@ const runTestPoll = async () => {
     <template v-if="!editing">
 
       <!-- Header (view) -->
-      <div class="editor-head">
+      <div class="panel-head">
         <div class="head-left">
           <span class="head-tag">#{{ form.id }}</span>
           <h2 class="view-title">{{ form.title || 'Untitled' }}</h2>
         </div>
         <div class="head-right">
-          <div v-if="isExisting" class="toggle-wrap" :title="canActivate ? '' : 
+          <div v-if="isExisting" class="toggle-wrap" :title="canActivate ? '' :
                 (form.status == AlertStatus.Draft ? 'Complete necessary fields and add a bundle to activate' : 'Add a bundle to activate')">
             <button
               type="button" class="toggle" :class="{ on: form.status === AlertStatus.Active }"
@@ -293,7 +293,7 @@ const runTestPoll = async () => {
       </div>
 
       <!-- Body (view) -->
-      <div class="editor-body">
+      <div class="panel-body">
 
         <div v-if="form.description" class="detail-row">
           <span class="detail-label">Description</span>
@@ -332,7 +332,7 @@ const runTestPoll = async () => {
           </p>
           <button
             type="button"
-            class="btn-test"
+            class="btn btn-secondary"
             :disabled="testing"
             @click="runTestPoll"
           >
@@ -398,8 +398,8 @@ const runTestPoll = async () => {
       </div>
 
       <!-- Footer (view) -->
-      <div class="editor-foot">
-        <button type="button" class="btn-danger-ghost" @click="confirmingDelete = true">Delete</button>
+      <div class="panel-foot">
+        <button type="button" class="btn btn-danger-ghost" @click="confirmingDelete = true">Delete</button>
         <div class="foot-spacer"></div>
         <ButtonPrimary @click="startEditing">Edit Alert </ButtonPrimary>
        </div>
@@ -410,25 +410,25 @@ const runTestPoll = async () => {
     <template v-else>
 
       <!-- Header (edit) -->
-      <div class="editor-head">
+      <div class="panel-head">
         <div class="head-left">
           <span class="head-tag">{{ form.id ? `#${form.id}` : 'NEW' }}</span>
           <input v-model="form.title" type="text" placeholder="Alert title…" class="title-input" />
         </div>
         <div class="head-right">
-          <button type="button" class="btn-ghost" @click="requestBack">← Back</button>
+          <button type="button" class="btn btn-ghost" @click="requestBack">← Back</button>
         </div>
       </div>
 
       <!-- Body (edit) -->
-      <div class="editor-body">
+      <div class="panel-body">
         <div class="field">
           <label class="field-label">Description</label>
           <textarea v-model="form.description" rows="2" placeholder="What does this alert do?" class="field-input"></textarea>
         </div>
 
         <div class="field">
-          <label class="field-label">Input Source <span class="req">*</span></label>
+          <label class="field-label">Input Source <span class="field-required">*</span></label>
           <InputSourceSelector v-model="form.input" :locked="form.bundles.length > 0" @update:modelValue="onInputChange" />
         </div>
 
@@ -469,8 +469,8 @@ const runTestPoll = async () => {
               @remove="removeBundle(i)"
             />
 
-            <button type="button" class="new-bundle" @click="addBundle">
-              <span class="nb-plus">+</span>
+            <button type="button" class="card-add" @click="addBundle">
+              <span class="plus">+</span>
               <span>New Bundle</span>
             </button>
           </div>
@@ -478,9 +478,9 @@ const runTestPoll = async () => {
       </div>
 
       <!-- Footer (edit) -->
-      <div class="editor-foot">
+      <div class="panel-foot">
         <div class="foot-spacer"></div>
-        <ButtonPrimary :disabled="!form.title || saving" @click="save" > 
+        <ButtonPrimary :disabled="!form.title || saving" @click="save" >
           {{ saving ? 'Saving…' : saveLabel }}
         </ButtonPrimary>
       </div>
@@ -491,393 +491,245 @@ const runTestPoll = async () => {
 </template>
 
 <style scoped>
-.editor {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  background: #1d242e;
-  border: 1px solid #1e293b;
-  border-radius: 8px;
-  overflow: hidden;
-  height: 100%;
-  min-height: 0;
-}
+/* Surfaces (.panel / .panel-head / .panel-body / .panel-foot / .field* /
+ * .btn* / .overlay* / .card-add) come from the global stylesheet. Only
+ * editor-specific patterns live here: the active/inactive toggle, view-mode
+ * detail rows, bundle summary cards, the webhook box, the test-poll panel,
+ * and the divider.
+ */
 
-/* ── Header ─────────────────────────────────────── */
-.editor-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 20px;
-  background: #0f172a;
-  border-bottom: 1px solid #1e293b;
-}
-.head-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+/* Header composition — same recipe as the wizard. */
+.head-left  { display: flex; align-items: center; gap: var(--space-3); flex: 1; min-width: 0; }
+.head-right { display: flex; align-items: center; gap: var(--space-5); flex-shrink: 0; }
 .head-tag {
-  background: #1e293b;
-  color: #64748b;
-  font-size: 11px;
+  background: var(--color-border-subtle);
+  color: var(--color-text-dim);
+  font-size: var(--text-sm);
   font-weight: 700;
-  font-family: ui-monospace, monospace;
-  padding: 2px 8px;
-  border-radius: 4px;
+  font-family: var(--font-mono);
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
-.head-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
-
-/* Edit-mode title input */
 .title-input {
   flex: 1;
   min-width: 0;
   background: transparent;
   border: none;
   border-bottom: 1px solid transparent;
-  color: #f1f5f9;
-  font-size: 18px;
+  color: var(--color-text-primary);
+  font-size: var(--text-xl);
   font-weight: 600;
-  padding: 4px 2px;
+  padding: var(--space-1) 2px;
 }
-.title-input:focus { outline: none; border-bottom-color: #3b82f6; }
-.title-input::placeholder { color: #475569; }
+.title-input:focus { outline: none; border-bottom-color: var(--color-accent); }
+.title-input::placeholder { color: var(--color-text-faint); }
 
-/* View-mode title */
 .view-title {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--text-xl);
   font-weight: 600;
-  color: #f1f5f9;
+  color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* ── Toggle ─────────────────────────────────────── */
-.toggle-wrap { display: flex; align-items: center; gap: 8px; }
+/* ── Active/inactive toggle ─────────────────────── */
+.toggle-wrap { display: flex; align-items: center; gap: var(--space-3); }
 .toggle {
   width: 42px;
   height: 22px;
   border-radius: 11px;
-  background: #334155;
+  background: var(--color-border-default);
   border: none;
   position: relative;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color .2s;
   padding: 0;
 }
-.toggle.on { background: #2563eb; }
-.toggle:disabled { opacity: 0.4; cursor: not-allowed; }
+.toggle.on { background: var(--color-accent); }
+.toggle:disabled { opacity: .4; cursor: not-allowed; }
 .knob {
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 18px;
-  height: 18px;
+  top: 2px; left: 2px;
+  width: 18px; height: 18px;
   border-radius: 50%;
-  background: #fff;
-  transition: transform 0.2s;
+  background: var(--color-text-on-accent);
+  transition: transform .2s;
 }
 .toggle.on .knob { transform: translateX(20px); }
-.toggle-label { font-size: 12px; color: #94a3b8; font-weight: 600; min-width: 54px; }
-
-/* ── Body ───────────────────────────────────────── */
-.editor-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  min-height: 0;
+.toggle-label {
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  min-width: 54px;
 }
 
 /* ── View-mode detail rows ──────────────────────── */
-.detail-row { display: flex; flex-direction: column; gap: 4px; }
+.detail-row    { display: flex; flex-direction: column; gap: var(--space-1); }
+.detail-cols   { display: flex; gap: var(--space-8); flex-wrap: wrap; }
 .detail-label {
-  font-size: 11px;
+  font-size: var(--text-sm);
   font-weight: 600;
-  color: #64748b;
+  color: var(--color-text-dim);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-.detail-text { margin: 0; color: #cbd5e1; font-size: 13px; line-height: 1.5; }
+.detail-text { margin: 0; color: var(--color-text-secondary); font-size: var(--text-base); line-height: 1.5; }
 .detail-badge {
   display: inline-flex;
   align-items: center;
-  background: #0f2744;
-  border: 1px solid #1e40af;
-  color: #93c5fd;
-  font-size: 13px;
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent-border);
+  color: var(--color-accent-text);
+  font-size: var(--text-base);
   font-weight: 500;
-  padding: 5px 12px;
-  border-radius: 5px;
+  padding: 5px var(--space-4);
+  border-radius: var(--radius-md);
   width: fit-content;
 }
-.detail-cols { display: flex; gap: 24px; flex-wrap: wrap; }
 .trigger-inline {
-  color: #64748b;
-  font-size: 11px;
+  color: var(--color-text-dim);
+  font-size: var(--text-sm);
   font-weight: 400;
-  margin-left: 6px;
+  margin-left: var(--space-2);
 }
 
 /* ── Bundle summary cards (view mode) ───────────── */
 .bundle-summary {
-  background: #0f172a;
-  border: 1px solid #1e293b;
-  border-radius: 6px;
-  padding: 12px 14px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-3);
 }
 .bs-head { display: flex; align-items: center; justify-content: space-between; }
 .bs-tag {
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 1px;
-  color: #64748b;
-  font-family: ui-monospace, monospace;
+  color: var(--color-text-dim);
+  font-family: var(--font-mono);
 }
-.bs-format { font-size: 12px; color: #94a3b8; }
-.bs-discussions { display: flex; flex-wrap: wrap; gap: 6px; }
+.bs-format { font-size: var(--text-md); color: var(--color-text-muted); }
+.bs-discussions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .bs-chip {
-  background: #0f2744;
-  border: 1px solid #1e40af;
-  color: #93c5fd;
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 4px;
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent-border);
+  color: var(--color-accent-text);
+  font-size: var(--text-sm);
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-sm);
 }
-.bs-none { color: #475569; font-size: 12px; font-style: italic; }
-.bs-script-hint { color: #22c55e; font-size: 11px; }
-
-/* ── Edit-mode fields ───────────────────────────── */
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.req { color: #ef4444; }
-.field-input {
-  padding: 9px 12px;
-  background: #090d16;
-  color: #f1f5f9;
-  border: 1px solid #1e293b;
-  border-radius: 5px;
-  font-family: inherit;
-  font-size: 13px;
-  width: 100%;
-  box-sizing: border-box;
-  resize: vertical;
-}
-.field-input:focus { outline: none; border-color: #3b82f6; }
-.field-input::placeholder { color: #334155; }
+.bs-none { color: var(--color-text-faint); font-size: var(--text-md); font-style: italic; }
+.bs-script-hint { color: var(--color-success); font-size: var(--text-sm); }
 
 /* ── Webhook box ────────────────────────────────── */
 .webhook-box {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #090d16;
-  border: 1px solid #1e293b;
-  border-radius: 5px;
-  padding: 8px 12px;
+  gap: var(--space-3);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
 }
 .webhook-box code {
   color: #38bdf8;
-  font-size: 12px;
-  font-family: ui-monospace, monospace;
+  font-size: var(--text-md);
+  font-family: var(--font-mono);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
 }
-.btn-copy { background: transparent; border: none; cursor: pointer; font-size: 14px; }
+.btn-copy { background: transparent; border: none; cursor: pointer; font-size: var(--text-lg); }
 
-/* ── Test poll panel (view mode) ────────────────── */
-.test-panel { display: flex; flex-direction: column; gap: 10px; }
-.test-intro { margin: 0; color: #94a3b8; font-size: 12px; line-height: 1.5; }
-.btn-test {
-  align-self: flex-start;
-  background: #1e293b;
-  color: #f1f5f9;
-  border: 1px solid #334155;
-  padding: 7px 14px;
-  border-radius: 5px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.btn-test:hover:not(:disabled) { background: #334155; border-color: #475569; }
-.btn-test:disabled { opacity: 0.55; cursor: not-allowed; }
+/* ── Test poll panel ────────────────────────────── */
+.test-panel { display: flex; flex-direction: column; gap: var(--space-3); }
+.test-intro { margin: 0; color: var(--color-text-muted); font-size: var(--text-md); line-height: 1.5; }
 
 .test-result {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
-  background: #0f172a;
-  border: 1px solid #1e293b;
-  border-radius: 6px;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
 }
-.test-error { color: #fecaca; font-size: 12px; font-family: ui-monospace, monospace; }
+.test-error { color: var(--color-danger-bright); font-size: var(--text-md); font-family: var(--font-mono); }
 .test-verdict {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: var(--space-3);
+  font-size: var(--text-base);
   font-weight: 600;
 }
-.test-verdict .bullet { font-size: 14px; }
-.test-verdict.fired      { color: #4ade80; }
-.test-verdict.fired      .bullet { color: #22c55e; }
-.test-verdict.not-fired  { color: #cbd5e1; }
-.test-verdict.not-fired  .bullet { color: #64748b; }
-.test-reason { margin: 0; color: #94a3b8; font-size: 12px; }
+.test-verdict .bullet { font-size: var(--text-lg); }
+.test-verdict.fired              { color: var(--color-success-text); }
+.test-verdict.fired     .bullet  { color: var(--color-success); }
+.test-verdict.not-fired          { color: var(--color-text-secondary); }
+.test-verdict.not-fired .bullet  { color: var(--color-text-dim); }
+.test-reason { margin: 0; color: var(--color-text-muted); font-size: var(--text-md); }
 
-.test-value-block { display: flex; flex-direction: column; gap: 4px; }
+.test-value-block { display: flex; flex-direction: column; gap: var(--space-1); }
 .test-value-label {
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--color-text-dim);
 }
 .test-value {
   margin: 0;
-  padding: 8px 10px;
-  background: #1e1e1e;
-  border-radius: 4px;
-  color: #e2e8f0;
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-code);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-code);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
   white-space: pre-wrap;
   max-height: 160px;
   overflow-y: auto;
 }
 
-.test-raw { color: #64748b; font-size: 12px; }
+.test-raw { color: var(--color-text-dim); font-size: var(--text-md); }
 .test-raw summary { cursor: pointer; user-select: none; padding: 2px 0; }
-.test-raw summary:hover { color: #93c5fd; }
+.test-raw summary:hover { color: var(--color-accent-text); }
 .test-raw pre {
-  margin: 6px 0 0;
-  padding: 10px;
-  background: #1e1e1e;
-  border-radius: 4px;
-  color: #e2e8f0;
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-4);
+  background: var(--color-bg-code);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-code);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
   max-height: 240px;
   overflow: auto;
 }
 
 /* ── Divider ────────────────────────────────────── */
-.divider { display: flex; align-items: center; gap: 10px; margin: 2px 0; }
-.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #1e293b; }
+.divider { display: flex; align-items: center; gap: var(--space-3); margin: 2px 0; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--color-border-subtle); }
 .divider span {
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: #475569;
+  color: var(--color-text-faint);
 }
 
-.bundles-hint { color: #64748b; font-size: 12px; font-style: italic; margin: 0; }
+.bundles-hint { color: var(--color-text-dim); font-size: var(--text-md); font-style: italic; margin: 0; }
 
 .bundles-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
+  gap: var(--space-5);
 }
 
-.new-bundle {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 160px;
-  background: transparent;
-  border: 1px dashed #334155;
-  border-radius: 8px;
-  color: #64748b;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  transition: all 0.15s;
-}
-.new-bundle:hover { border-color: #3b82f6; color: #93c5fd; background: #0f172a; }
-.nb-plus { font-size: 28px; line-height: 1; }
-
-/* ── Footer ─────────────────────────────────────── */
-.editor-foot {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 20px;
-  background: #1e293b;
-  border-top: 1px solid #1e293b;
-}
 .foot-spacer { flex: 1; }
-
-.btn-ghost {
-  background: transparent;
-  border: 1px solid #334155;
-  color: #94a3b8;
-  padding: 6px 10px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.15s;
-}
-.btn-ghost:hover { background: #1e293b; color: #f1f5f9; }
-
-.btn-danger-ghost {
-  background: transparent;
-  border: 1px solid #7f1d1d;
-  color: #ef4444;
-  padding: 8px 16px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.15s;
-}
-.btn-danger-ghost:hover { background: #7f1d1d; color: #fff; }
-
-/* ── Confirm overlays ───────────────────────────── */
-.confirm-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-}
-.confirm-box {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  padding: 24px;
-  max-width: 360px;
-}
-.confirm-box h4 { margin: 0 0 8px; color: #f1f5f9; font-size: 16px; }
-.confirm-box p { margin: 0 0 18px; color: #94a3b8; font-size: 13px; }
-.confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
-.btn-danger {
-  background: #dc2626;
-  color: #fff;
-  border: 1px solid #b91c1c;
-  padding: 8px 18px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 13px;
-}
-.btn-danger:hover { background: #b91c1c; }
 </style>

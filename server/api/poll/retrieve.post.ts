@@ -9,8 +9,8 @@ export default defineEventHandler(async (event) => {
     const url    = (body?.url    ?? '').trim()
     const format = (body?.format ?? '').trim()
     return await pollingEngine.retrieve(url, format)
-  } catch (e: any) {
-    // Never surface as a raw 500 — the UI can render the message inline.
+  
+  } catch (e: any) { 
     console.error('[POST /api/poll/retrieve] unexpected:', e)
     return {
       ok: false,

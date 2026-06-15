@@ -1,4 +1,5 @@
 import type { AlertModel, DiscussionModel } from '#shared/constants'
+import { alertService } from '~/utils/alertService'
 
 export const useAlerts = () => {
   const alerts               = useState<AlertModel[]>('alerts',              () => [])

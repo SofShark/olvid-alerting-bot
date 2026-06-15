@@ -1,0 +1,14 @@
+/* Global reset. Used to live inside layouts/default.vue's unscoped <style>
+ * block — moved here so it's loaded before anything else and so layouts
+ * stay focused on layout.
+ */
+
+body {
+  background-color: var(--color-bg-app);
+  color: var(--color-text-secondary);
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+}
+
+* { box-sizing: border-box; }

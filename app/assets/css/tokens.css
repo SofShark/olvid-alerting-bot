@@ -1,0 +1,118 @@
+/* Design tokens — single source of truth for colors, spacing, type, radii.
+ * Switch [data-theme="light"] on the <html> element to flip palettes; the
+ * accent + status colors are intentionally shared because they read well on
+ * both surfaces.
+ */
+
+:root {
+  /* ── Brand & accent ───────────────────────────── */
+  --color-accent:         #2563eb;
+  --color-accent-hover:   #1d4ed8;
+  --color-accent-soft:    #0f2744;
+  --color-accent-border:  #1e40af;
+  --color-accent-text:    #93c5fd;
+
+  /* ── Surfaces ─────────────────────────────────── */
+  --color-bg-app:         #0f172a;
+  --color-bg-nav:         #0e1327;
+  --color-bg-panel:       #1d242e;
+  --color-bg-card:        #0f172a;
+  --color-bg-card-soft:   #131a24;
+  --color-bg-input:       #090d16;
+  --color-bg-code:        #1e1e1e;
+  --color-bg-code-header: #2d2d2d;
+  --color-bg-code-soft:   #262626;
+
+  /* ── Borders ──────────────────────────────────── */
+  --color-border-subtle:  #1e293b;
+  --color-border-default: #334155;
+  --color-border-strong:  #475569;
+  --color-border-code:    #2d2d2d;
+
+  /* ── Text ─────────────────────────────────────── */
+  --color-text-primary:   #f1f5f9;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted:     #94a3b8;
+  --color-text-dim:       #64748b;
+  --color-text-faint:     #475569;
+  --color-text-code:      #d4d4d4;
+  --color-text-on-accent: #ffffff;
+
+  /* ── Status ───────────────────────────────────── */
+  --color-success:        #22c55e;
+  --color-success-text:   #4ade80;
+  --color-success-soft:   #06270f;
+  --color-success-border: #166534;
+  --color-success-bright: #bbf7d0;
+
+  --color-warning:        #f59e0b;
+  --color-warning-text:   #fbbf24;
+  --color-warning-soft:   #422006;
+  --color-warning-border: #92400e;
+  --color-warning-bright: #fde68a;
+
+  --color-danger:         #ef4444;
+  --color-danger-text:    #fca5a5;
+  --color-danger-soft:    #1a0a0a;
+  --color-danger-border:  #7f1d1d;
+  --color-danger-bright:  #fecaca;
+  --color-danger-strong:  #dc2626;
+
+  /* ── Overlays ─────────────────────────────────── */
+  --color-overlay:        rgba(15, 23, 42, 0.85);
+
+  /* ── Radii ────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 5px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-pill: 999px;
+
+  /* ── Spacing scale ────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 14px;
+  --space-6: 16px;
+  --space-7: 20px;
+  --space-8: 24px;
+
+  /* ── Type ─────────────────────────────────────── */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, 'Consolas', 'Courier New', monospace;
+
+  --text-xs:  10px;
+  --text-sm:  11px;
+  --text-md:  12px;
+  --text-base:13px;
+  --text-lg:  15px;
+  --text-xl:  18px;
+
+  /* ── Shadow ───────────────────────────────────── */
+  --shadow-overlay: 0 25px 50px -12px rgba(0,0,0,0.5);
+  --shadow-card:    0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+[data-theme='light'] {
+  --color-bg-app:         #f8fafc;
+  --color-bg-nav:         #ffffff;
+  --color-bg-panel:       #ffffff;
+  --color-bg-card:        #f1f5f9;
+  --color-bg-card-soft:   #e2e8f0;
+  --color-bg-input:       #ffffff;
+
+  --color-border-subtle:  #e2e8f0;
+  --color-border-default: #cbd5e1;
+  --color-border-strong:  #94a3b8;
+
+  --color-text-primary:   #0f172a;
+  --color-text-secondary: #1e293b;
+  --color-text-muted:     #475569;
+  --color-text-dim:       #64748b;
+  --color-text-faint:     #94a3b8;
+
+  --color-overlay:        rgba(15, 23, 42, 0.4);
+
+  /* Code blocks stay dark — they read as embedded IDE panels. */
+}

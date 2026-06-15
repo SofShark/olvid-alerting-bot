@@ -65,36 +65,36 @@ const select = (t: string) => emit('update:modelValue', t)
 .trigger-locked {
   margin: 0;
   padding: 2px 0;
-  font-size: 12px;
+  font-size: var(--text-md);
   line-height: 1.4;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
-.trigger-name { color: #93c5fd; font-weight: 600; }
-.locked-hint { color: #64748b; font-size: 11px; margin-left: 4px; }
+.trigger-name { color: var(--color-accent-text); font-weight: 600; }
+.locked-hint  { color: var(--color-text-dim); font-size: var(--text-sm); margin-left: var(--space-1); }
 
-.trigger-options { display: flex; gap: 8px; flex-wrap: wrap; }
+.trigger-options { display: flex; gap: var(--space-3); flex-wrap: wrap; }
 .trigger-pill {
-  background: #090d16;
-  color: #94a3b8;
-  border: 1px solid #1e293b;
-  border-radius: 5px;
-  padding: 8px 16px;
-  font-size: 13px;
+  background: var(--color-bg-input);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-base);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color .15s, border-color .15s, color .15s;
 }
-.trigger-pill:hover { border-color: #334155; color: #cbd5e1; }
+.trigger-pill:hover { border-color: var(--color-border-default); color: var(--color-text-secondary); }
 .trigger-pill.active {
-  background: #0f2744;
-  border-color: #1e40af;
-  color: #93c5fd;
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-border);
+  color: var(--color-accent-text);
 }
 
 .trigger-empty {
-  color: #475569;
-  font-size: 12px;
+  color: var(--color-text-faint);
+  font-size: var(--text-md);
   font-style: italic;
-  padding: 6px 0;
+  padding: var(--space-2) 0;
 }
 </style>

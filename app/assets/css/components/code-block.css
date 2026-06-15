@@ -1,0 +1,45 @@
+/* Mac-style code block — used by the format / condition editors.
+ * The .dot trio mimics window controls. Title is monospaced.
+ */
+
+.code-block {
+  background: var(--color-bg-code);
+  border: 1px solid var(--color-border-code);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+  max-height: 520px;
+}
+
+.code-header {
+  background: var(--color-bg-code-header);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--color-bg-code);
+  flex-shrink: 0;
+}
+.code-title {
+  color: #a3a3a3;
+  font-size: var(--text-md);
+  font-family: var(--font-mono);
+  margin-left: var(--space-3);
+}
+
+.code-body {
+  padding: var(--space-4);
+  overflow-y: auto;
+  flex: 1;
+  color: var(--color-text-code);
+}
+
+.dot {
+  width: 11px; height: 11px; border-radius: 50%; display: inline-block;
+  flex-shrink: 0;
+}
+.dot-red    { background: #ff5f56; }
+.dot-yellow { background: #ffbd2e; }
+.dot-green  { background: #27c93f; }

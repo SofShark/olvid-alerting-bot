@@ -51,21 +51,6 @@ const selectedId = computed(() => {
   </div>
 </template>
 
-<style>
-/* Global reset — applied once here instead of in app.vue */
-body {
-  background-color: #0f172a;
-  color: #e2e8f0;
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
-
-* {
-  box-sizing: border-box;
-}
-</style>
-
 <style scoped>
 .layout-dark { min-height: 100vh; display: flex; flex-direction: column; }
 
