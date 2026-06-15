@@ -8,15 +8,56 @@ export enum Source {
   GenericWebhook    = 'Generic Webhook',
 
   // ── Polling sources ──────────────────────────────────────
-  RSSFeed           = 'RSS Feed',
-  GenericAPI        = 'Generic API',
+  Polling           = 'Polling Source',
 }
 
-export enum Formatting {
-  Unformatted = 'Unformatted',
-  Simple      = 'Simple',
-  Custom      = 'Custom',
+export enum PollingFormat {
+  XML  = 'XML',
+  JSON = 'JSON',
+  HTML = 'HTML',
 }
+
+export enum ConditionKind {
+  None = 'none',
+  Rule = 'rule',
+}
+
+export enum ConditionOperator {
+  Changed     = 'changed',        // value differs from previous poll's snapshot
+  Equals      = 'equals',         // value === literal
+  GreaterThan = 'greater_than',   // numeric comparison
+  LessThan    = 'less_than',
+  Contains    = 'contains',       // substring match on string value
+}
+
+// How to combine the per-path verdicts when a rule watches more than one path.
+export enum ConditionAggregation {
+  All = 'all',   // every path must verify   (logical AND)
+  Any = 'any',   // at least one path        (logical OR)
+}
+
+// Operators that need a literal value to compare against. `Changed` doesn't —
+// it's always compared to the previous poll's snapshot.
+export const OPERATORS_NEEDING_VALUE: ReadonlySet<ConditionOperator> = new Set([
+  ConditionOperator.Equals,
+  ConditionOperator.GreaterThan,
+  ConditionOperator.LessThan,
+  ConditionOperator.Contains,
+])
+
+export enum Formatting {
+  // Webhook-oriented options — work on the raw posted payload.
+  Unformatted    = 'Unformatted',
+  Simple         = 'Simple',
+  Custom         = 'Custom',
+  // Polling-oriented options — work on the parsed source + the alert's condition.
+  PollingDefault = 'PollingDefault',
+  PollingCustom  = 'PollingCustom',
+}
+
+// Default formats expected for each trigger family.
+export const DEFAULT_FORMAT_FOR_POLLING = Formatting.PollingDefault
+export const DEFAULT_FORMAT_FOR_WEBHOOK = Formatting.Unformatted
 
 export enum Trigger{
   Webhook = 'Webhook',
@@ -38,27 +79,68 @@ export const sourceTriggers: Record<Source, Trigger[]> = {
   [Source.GrafanaAlert]:      [Trigger.Webhook],
   [Source.GitLabPipeline]:    [Trigger.Webhook],
   [Source.GenericWebhook]:    [Trigger.Webhook],
-  [Source.RSSFeed]:           [Trigger.Polling],
-  [Source.GenericAPI]:        [Trigger.Polling],
+  [Source.Polling]:           [Trigger.Polling],
 }
+
+// Sources whose trigger is polling-based (require URL/format/interval + condition).
+export const POLLING_SOURCES: ReadonlySet<Source> = new Set([Source.Polling])
+export const isPollingSource = (s: string): boolean =>
+  POLLING_SOURCES.has(s as Source)
 
 // ── TriggerParams shapes ────────────────────────────────────────────────────
 // Stored as JSON in AlertTable.triggerParams.
 // _-prefixed keys are runtime state managed by the polling engine.
 
-export type RSSParams = {
-  url:             string
-  intervalSeconds: number    // always 86400 when dailyAt is set
-  dailyAt?:        string    // "HH:MM" — only present when intervalSeconds === 86400
-  keyword?:        string    // optional filter on item title/description
-  _lastSeenId?:    string    // guid/id of the last item that fired an alert
+// Condition that decides whether a poll cycle actually fires the alert.
+//
+// Excel-style: pick 1+ leaf paths in the parsed source, choose an operator,
+// optionally provide a literal value, and (when watching >1 path) decide
+// whether ALL paths must verify or ANY of them is enough.
+export type PollingCondition =
+  | { kind: ConditionKind.None }
+  | {
+      kind:        ConditionKind.Rule
+      paths:       string[]                // dot-paths into the parsed object
+      operator:    ConditionOperator
+      value?:      string                  // unused for `changed`
+      aggregation: ConditionAggregation    // ignored when paths.length === 1
+    }
+
+// Migrate legacy shape `{ kind: 'field_changed', field: 'x' }` (pre-rule)
+// to the new rule shape, so saved drafts keep working. Returns the input
+// unchanged when it already matches the new shape.
+export function migrateCondition(c: any): PollingCondition {
+  if (!c || typeof c !== 'object') return { kind: ConditionKind.None }
+  if (c.kind === ConditionKind.None) return { kind: ConditionKind.None }
+  if (c.kind === ConditionKind.Rule) {
+    return {
+      kind:        ConditionKind.Rule,
+      paths:       Array.isArray(c.paths) ? c.paths.filter(Boolean) : [],
+      operator:    (c.operator    ?? ConditionOperator.Changed) as ConditionOperator,
+      value:       typeof c.value === 'string' ? c.value : undefined,
+      aggregation: (c.aggregation ?? ConditionAggregation.All) as ConditionAggregation,
+    }
+  }
+  // Legacy: { kind: 'field_changed', field: 'x.y.z' } → single-path Changed.
+  if (c.kind === 'field_changed' && typeof c.field === 'string') {
+    return {
+      kind:        ConditionKind.Rule,
+      paths:       c.field ? [c.field] : [],
+      operator:    ConditionOperator.Changed,
+      aggregation: ConditionAggregation.All,
+    }
+  }
+  return { kind: ConditionKind.None }
 }
 
-export type GenericAPIParams = {
+// Unified shape stored in AlertTable.triggerParams for polling alerts.
+export type PollingParams = {
   url:             string
+  format:          PollingFormat
   intervalSeconds: number
-  dailyAt?:        string    // "HH:MM" — only present when intervalSeconds === 86400
-  _lastHash?:      string    // SHA-256 of last response body
+  dailyAt?:        string
+  condition:       PollingCondition
+  _lastHash?:      string          // runtime state, managed by the polling engine
 }
 
 // Lightweight model used in the frontend (JSON-safe, id as string)
@@ -181,7 +263,23 @@ Event type: {{event}}
 Primary key: {{data.key}}`
   },
 
-  [Source.RSSFeed]: {
+  [Source.Polling]: {
+    payload: {
+      // Sample XML entry, parsed into a generic JSON shape at poll time.
+      entry: {
+        title:   'New release: v2.4.0',
+        link:    'https://example.com/blog/release-v2-4-0',
+        updated: '2026-06-11T10:00:00Z',
+        summary: 'This release includes performance improvements and bug fixes.',
+      },
+    },
+    script: `📡 **Polling update**
+{{entry.title}}
+{{entry.updated}}
+{{entry.link}}`
+  },
+
+  /*[Source.RSSFeed]: {
     payload: {
       item: {
         title:       'New release: v2.4.0',
@@ -211,5 +309,5 @@ Primary key: {{data.key}}`
 Updated: {{updatedAt}}
 {{#each components}}• {{name}}: {{status}}
 {{/each}}`
-  },
+  },*/
 }

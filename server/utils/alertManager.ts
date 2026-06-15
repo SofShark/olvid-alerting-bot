@@ -1,4 +1,5 @@
 import { Formatting, AlertStatus } from "#shared/constants"
+import { buildPollingDefaultMessage } from "#shared/pollingMessage"
 import Handlebars from 'handlebars'
 
 export const alertManager = {
@@ -46,15 +47,17 @@ export const alertManager = {
     const jsonString = JSON.stringify(payload, null, 2)
 
     switch (bundle.formating) {
-      case Formatting.Simple:
-        return `🚨 ${alert.title}\n${alert.description ?? ''}\n`
+      case Formatting.PollingDefault:
+        return buildPollingDefaultMessage(alert, payload)
 
-      case Formatting.Custom:
-        // Check there's a non-empty custom script before trying to execute it
+      case Formatting.PollingCustom:
+      case Formatting.Custom: {
+        // Both run a user-provided Handlebars template against the payload.
+        // For polling, the payload is the parsed source tree; for webhook,
+        // it's the raw posted JSON.
         if (bundle.custom_script && bundle.custom_script.trim() !== '') {
           try {
-            const template = Handlebars.compile(bundle.custom_script);
-            console.log("template compiled")
+            const template = Handlebars.compile(bundle.custom_script)
             return template(payload)
           } catch (error) {
             console.error(`❌ [Alert Manager] Error running script for bundle #${bundle.id} (alert #${alert.id}):`, error)
@@ -62,6 +65,10 @@ export const alertManager = {
           }
         }
         return `🚨 **${alert.title}**\n_${alert.description ?? ''}_\n\n\`\`\`json\n${jsonString}\n\`\`\``
+      }
+
+      case Formatting.Simple:
+        return `🚨 ${alert.title}\n${alert.description ?? ''}\n`
 
       default:
         return `🚨 **${alert.title}**\n${alert.description ?? ''}\n\nTechnical data:\n${jsonString}`

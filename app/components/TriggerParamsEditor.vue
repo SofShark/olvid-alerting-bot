@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Source, Trigger } from '#shared/constants'
+import { PollingFormat, Trigger } from '#shared/constants'
 
 const props = defineProps<{
   source:      string
@@ -22,7 +22,6 @@ function setMany(patch: Record<string, any>) {
 }
 
 const isPolling = computed(() => props.triggerType === Trigger.Polling)
-const isRSS     = computed(() => props.source === Source.RSSFeed)
 
 // ── Poll interval ───────────────────────────────────────────────────────────
 
@@ -62,16 +61,17 @@ function onValueInput(raw: string) {
 function onUnitChange(unit: UnitLabel) {
   intervalUnit.value = unit
   if (unit === 'daily') {
-    // Switch to daily: store 86400 s and default time if none set.
     setMany({ intervalSeconds: 86400, dailyAt: p.value.dailyAt ?? '08:00' })
   } else {
-    // Switch away from daily: keep current display value in new unit.
     const m = UNITS.find(u => u.label === unit)!.multiplier
     setMany({ intervalSeconds: intervalValue.value * m, dailyAt: undefined })
   }
 }
 
 const minValue = computed(() => UNITS.find(u => u.label === intervalUnit.value)!.min)
+
+const FORMATS = Object.values(PollingFormat)
+const selectedFormat = computed(() => (p.value.format as PollingFormat) ?? PollingFormat.XML)
 </script>
 
 <template>
@@ -83,12 +83,24 @@ const minValue = computed(() => UNITS.find(u => u.label === intervalUnit.value)!
       <input
         type="url"
         :value="p.url ?? ''"
-        :placeholder="isRSS ? 'https://example.com/feed.xml' : 'https://api.example.com/status'"
+        placeholder="https://example.com/feed.xml"
         class="param-input"
         @input="set('url', ($event.target as HTMLInputElement).value)"
       />
-      <span v-if="isRSS" class="param-hint">RSS or Atom feed URL</span>
-      <span v-else class="param-hint">JSON endpoint — alert fires when the response changes</span>
+      <span class="param-hint">Endpoint the alert system will poll.</span>
+    </div>
+
+    <!-- Format -->
+    <div class="param-field">
+      <label class="param-label">Format <span class="req">*</span></label>
+      <select
+        :value="selectedFormat"
+        class="param-input"
+        @change="set('format', ($event.target as HTMLSelectElement).value)"
+      >
+        <option v-for="f in FORMATS" :key="f" :value="f">{{ f }}</option>
+      </select>
+      <span class="param-hint">Content type returned by the URL.</span>
     </div>
 
     <!-- Interval -->
@@ -96,7 +108,6 @@ const minValue = computed(() => UNITS.find(u => u.label === intervalUnit.value)!
       <label class="param-label">Poll interval <span class="req">*</span></label>
       <div class="interval-row">
 
-        <!-- "every N" — hidden for daily -->
         <template v-if="!isDaily">
           <span class="interval-label">every</span>
           <input
@@ -108,7 +119,6 @@ const minValue = computed(() => UNITS.find(u => u.label === intervalUnit.value)!
           />
         </template>
 
-        <!-- "at HH:MM" — daily only -->
         <template v-else>
           <span class="interval-label">at</span>
           <input
@@ -119,7 +129,6 @@ const minValue = computed(() => UNITS.find(u => u.label === intervalUnit.value)!
           />
         </template>
 
-        <!-- Unit selector — always visible -->
         <select
           :value="intervalUnit"
           class="param-input interval-unit"
@@ -129,19 +138,6 @@ const minValue = computed(() => UNITS.find(u => u.label === intervalUnit.value)!
         </select>
 
       </div>
-    </div>
-
-    <!-- Keyword filter — RSS only -->
-    <div v-if="isRSS" class="param-field">
-      <label class="param-label">Keyword filter <span class="param-optional">(optional)</span></label>
-      <input
-        type="text"
-        :value="p.keyword ?? ''"
-        placeholder="e.g. security, release, critical"
-        class="param-input"
-        @input="set('keyword', ($event.target as HTMLInputElement).value)"
-      />
-      <span class="param-hint">Only fire if the item title or description contains this word</span>
     </div>
 
   </div>
@@ -163,7 +159,6 @@ const minValue = computed(() => UNITS.find(u => u.label === intervalUnit.value)!
   text-transform: uppercase; letter-spacing: 0.5px;
 }
 .req { color: #ef4444; }
-.param-optional { color: #475569; font-weight: 400; text-transform: none; letter-spacing: 0; }
 
 .param-input {
   padding: 8px 12px;
@@ -175,7 +170,6 @@ const minValue = computed(() => UNITS.find(u => u.label === intervalUnit.value)!
 .param-input:focus { outline: none; border-color: #3b82f6; }
 .param-input::placeholder { color: #334155; }
 
-/* Interval row */
 .interval-row { display: flex; align-items: center; gap: 8px; }
 .interval-label { font-size: 13px; color: #64748b; white-space: nowrap; flex-shrink: 0; }
 .interval-number { width: 80px;  flex-shrink: 0; }

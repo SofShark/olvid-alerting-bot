@@ -34,12 +34,11 @@ const select = (t: string) => emit('update:modelValue', t)
 
 <template>
   <div class="trigger-selector">
-    <!-- Single supported trigger → locked badge -->
-    <div v-if="isLocked" class="trigger-locked">
-      <span class="lock">🔒</span>
+    <!-- Single supported trigger → small informative text -->
+    <p v-if="isLocked" class="trigger-locked">
       <span class="trigger-name">{{ triggers[0] }}</span>
-      <span class="locked-hint">only option for this source</span>
-    </div>
+      <span class="locked-hint">— how this source communicates with the alert system</span>
+    </p>
 
     <!-- Multiple triggers → selectable pills -->
     <div v-else-if="triggers.length > 1" class="trigger-options">
@@ -64,17 +63,14 @@ const select = (t: string) => emit('update:modelValue', t)
 .trigger-selector { width: 100%; }
 
 .trigger-locked {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #0f2744;
-  border: 1px solid #1e40af;
-  border-radius: 5px;
-  padding: 9px 12px;
+  margin: 0;
+  padding: 2px 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #94a3b8;
 }
-.lock { font-size: 14px; }
-.trigger-name { color: #93c5fd; font-weight: 600; font-size: 13px; }
-.locked-hint { color: #475569; font-size: 11px; margin-left: auto; }
+.trigger-name { color: #93c5fd; font-weight: 600; }
+.locked-hint { color: #64748b; font-size: 11px; margin-left: 4px; }
 
 .trigger-options { display: flex; gap: 8px; flex-wrap: wrap; }
 .trigger-pill {

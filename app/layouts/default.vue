@@ -76,7 +76,7 @@ body {
   position: sticky; top: 0; z-index: 100;
 }
 .nav-content {
-  max-width: 1400px; margin: 0 auto; padding: 0 24px;
+  width: 100%; margin: 0 auto; padding: 0 24px;
   display: flex; justify-content: space-between; align-items: center;
 }
 .brand { display: flex; align-items: center; gap: 12px; }
@@ -87,13 +87,13 @@ body {
 .olvid-logo-img { margin-left: 40px; width: 200px; height: auto; object-fit: contain; }
 
 .main-content {
-  max-width: 1400px; width: 100%;
+  width: 100%;
   margin: 24px auto; padding: 0 24px;
   flex-grow: 1; box-sizing: border-box;
 }
 .split {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 200px 1fr;
   gap: 20px;
   height: calc(100vh - 140px);
 }

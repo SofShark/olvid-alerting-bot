@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { AlertStatus } from '#shared/constants'
+
 const route  = useRoute()
 const { alerts, alertsLoading, fetchAlerts } = useAlerts()
 
@@ -10,6 +12,8 @@ onMounted(() => {
 const alert = computed(() =>
   alerts.value.find(a => a.id === Number(route.params.id)) ?? null
 )
+
+const isDraft = computed(() => alert.value?.status === AlertStatus.Draft)
 </script>
 
 <template>
@@ -17,7 +21,16 @@ const alert = computed(() =>
     <span v-if="alertsLoading">Loading…</span>
     <span v-else>Alert not found.</span>
   </div>
-  <AlertEditor v-else :key="alert.id?.toString()" :alerta-inicial="alert" />
+  <AlertWizard
+    v-else-if="isDraft"
+    :key="`wizard-${alert.id?.toString()}`"
+    :alerta-inicial="alert"
+  />
+  <AlertEditor
+    v-else
+    :key="`editor-${alert.id?.toString()}`"
+    :alerta-inicial="alert"
+  />
 </template>
 
 <style scoped>

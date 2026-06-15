@@ -58,10 +58,11 @@ function serializeAlert(alert: any) {
 }
 
 // Rules:
-// - draft     : input or trigger missing
+// - draft     : explicit client request OR input/trigger missing
 // - active    : complete, has >=1 bundle and caller asked for active
 // - inactive  : complete but not active (or no bundles)
-function computeStatus(input: any, triggerType: any, bundleCount: number, wantActive: boolean): AlertStatus {
+function computeStatus(input: any, triggerType: any, bundleCount: number, wantActive: boolean, wantDraft: boolean): AlertStatus {
+  if (wantDraft) return AlertStatus.Draft
   if (!input || !triggerType) return AlertStatus.Draft
   if (wantActive && bundleCount > 0) return AlertStatus.Active
   return AlertStatus.Inactive
@@ -84,7 +85,8 @@ export const bdManager = {
   async createAlert(data: any) {
     const incomingBundles: any[] = Array.isArray(data.bundles) ? data.bundles : []
     const wantActive = data.status === AlertStatus.Active
-    const aStatus = computeStatus(data.input, data.triggerType, incomingBundles.length, wantActive)
+    const wantDraft  = data.status === AlertStatus.Draft
+    const aStatus = computeStatus(data.input, data.triggerType, incomingBundles.length, wantActive, wantDraft)
 
     const newAlert = await prisma.alertTable.create({
       data: {
@@ -108,7 +110,8 @@ export const bdManager = {
   async updateAlert(id: number, data: any) {
     const incomingBundles: any[] = Array.isArray(data.bundles) ? data.bundles : []
     const wantActive = data.status === AlertStatus.Active
-    const status = computeStatus(data.input, data.triggerType, incomingBundles.length, wantActive)
+    const wantDraft  = data.status === AlertStatus.Draft
+    const status = computeStatus(data.input, data.triggerType, incomingBundles.length, wantActive, wantDraft)
 
     // Replace the bundle set entirely (simplest correct strategy).
     await prisma.bundle.deleteMany({ where: { alertId: id } })

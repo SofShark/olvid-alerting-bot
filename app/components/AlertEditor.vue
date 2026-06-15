@@ -224,6 +224,25 @@ const doDelete = async () => {
 const copyWebhook = () => {
   if (webhookUrl.value) navigator.clipboard?.writeText(webhookUrl.value)
 }
+
+// ── Manual test poll (polling alerts, inactive only) ────────────────────────
+const testing    = ref(false)
+const testResult = ref<any>(null)
+
+const runTestPoll = async () => {
+  if (!form.value.id) return
+  testing.value = true
+  try {
+    testResult.value = await $fetch('/api/poll/test', {
+      method: 'POST',
+      body: { alertId: form.value.id },
+    })
+  } catch (error: any) {
+    testResult.value = { ok: false, error: error?.data?.statusMessage ?? error?.message ?? 'Test failed' }
+  } finally {
+    testing.value = false
+  }
+}
 </script>
 
 <template>
@@ -284,11 +303,10 @@ const copyWebhook = () => {
         <div class="detail-cols">
           <div v-if="form.input" class="detail-row">
             <span class="detail-label">Input Source</span>
-            <span class="detail-badge">{{ form.input }}</span>
-          </div>
-          <div v-if="form.triggerType && form.input" class="detail-row">
-            <span class="detail-label">Trigger</span>
-            <span class="detail-badge">{{ form.triggerType }}</span>
+            <span class="detail-badge">
+              {{ form.input }}
+              <span v-if="form.triggerType" class="trigger-inline">via {{ form.triggerType }}</span>
+            </span>
           </div>
         </div>
 
@@ -298,6 +316,61 @@ const copyWebhook = () => {
           <div class="webhook-box">
             <code>{{ webhookUrl }}</code>
             <button type="button" class="btn-copy" @click="copyWebhook">📋</button>
+          </div>
+        </div>
+
+        <!-- Test poll — polling alerts only, while inactive -->
+        <div
+          v-if="form.triggerType === Trigger.Polling && form.status === AlertStatus.Inactive"
+          class="test-panel"
+        >
+          <div class="divider"><span>Test polling</span></div>
+          <p class="test-intro">
+            Trigger the polling pipeline once manually. The alert won't be
+            activated and no bundles will be fired — this just shows what would
+            happen on the next scheduled poll.
+          </p>
+          <button
+            type="button"
+            class="btn-test"
+            :disabled="testing"
+            @click="runTestPoll"
+          >
+            {{ testing ? 'Polling…' : 'Run test poll' }}
+          </button>
+
+          <div v-if="testResult" class="test-result">
+            <div v-if="testResult.error" class="test-error">
+              ⚠ {{ testResult.error }}
+            </div>
+            <template v-else>
+              <div
+                class="test-verdict"
+                :class="testResult.condition?.fired ? 'fired' : 'not-fired'"
+              >
+                <span class="bullet">●</span>
+                <span v-if="testResult.condition?.fired">
+                  Condition met — alert would fire.
+                </span>
+                <span v-else>
+                  Condition not met — alert would not fire.
+                </span>
+              </div>
+              <p class="test-reason">{{ testResult.condition?.reason }}</p>
+
+              <div
+                v-if="testResult.condition?.observedValue !== undefined"
+                class="test-value-block"
+              >
+                <span class="test-value-label">Observed value</span>
+                <pre class="test-value">{{ JSON.stringify(testResult.condition.observedValue, null, 2) }}</pre>
+              </div>
+
+              <details class="test-raw">
+                <summary>Parsed document</summary>
+                <pre>{{ JSON.stringify(testResult.parsed, null, 2) }}</pre>
+              </details>
+            </template>
           </div>
         </div>
 
@@ -541,6 +614,12 @@ const copyWebhook = () => {
   width: fit-content;
 }
 .detail-cols { display: flex; gap: 24px; flex-wrap: wrap; }
+.trigger-inline {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 400;
+  margin-left: 6px;
+}
 
 /* ── Bundle summary cards (view mode) ───────────── */
 .bundle-summary {
@@ -618,6 +697,84 @@ const copyWebhook = () => {
   flex: 1;
 }
 .btn-copy { background: transparent; border: none; cursor: pointer; font-size: 14px; }
+
+/* ── Test poll panel (view mode) ────────────────── */
+.test-panel { display: flex; flex-direction: column; gap: 10px; }
+.test-intro { margin: 0; color: #94a3b8; font-size: 12px; line-height: 1.5; }
+.btn-test {
+  align-self: flex-start;
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  padding: 7px 14px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-test:hover:not(:disabled) { background: #334155; border-color: #475569; }
+.btn-test:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.test-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+}
+.test-error { color: #fecaca; font-size: 12px; font-family: ui-monospace, monospace; }
+.test-verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.test-verdict .bullet { font-size: 14px; }
+.test-verdict.fired      { color: #4ade80; }
+.test-verdict.fired      .bullet { color: #22c55e; }
+.test-verdict.not-fired  { color: #cbd5e1; }
+.test-verdict.not-fired  .bullet { color: #64748b; }
+.test-reason { margin: 0; color: #94a3b8; font-size: 12px; }
+
+.test-value-block { display: flex; flex-direction: column; gap: 4px; }
+.test-value-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.test-value {
+  margin: 0;
+  padding: 8px 10px;
+  background: #1e1e1e;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  white-space: pre-wrap;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.test-raw { color: #64748b; font-size: 12px; }
+.test-raw summary { cursor: pointer; user-select: none; padding: 2px 0; }
+.test-raw summary:hover { color: #93c5fd; }
+.test-raw pre {
+  margin: 6px 0 0;
+  padding: 10px;
+  background: #1e1e1e;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  max-height: 240px;
+  overflow: auto;
+}
 
 /* ── Divider ────────────────────────────────────── */
 .divider { display: flex; align-items: center; gap: 10px; margin: 2px 0; }
