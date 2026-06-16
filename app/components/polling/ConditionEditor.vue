@@ -14,7 +14,7 @@ const props = defineProps<{
   modelValue?: PollingCondition
   url?:        string
   format?:     string
-}>()
+}>() 
 
 const emit = defineEmits<{
   (e: 'update:modelValue', v: PollingCondition): void
@@ -30,6 +30,7 @@ const kind = computed(() => current.value.kind)
 
 // Cached rule state — preserved across mode switches so the user doesn't
 // lose their selections when toggling to "Fire every poll cycle" by accident.
+// TODO Better preserve all fiels in Polling Condition and then erase if at save kind results to be none?
 const savedRule = ref({
   paths:       [] as string[],
   operator:    ConditionOperator.Changed,
@@ -98,6 +99,7 @@ function pickRule() {
   }
 }
 
+// TODO?
 function toggleTreePath(path: string) {
   const set = new Set(paths.value)
   if (set.has(path)) set.delete(path)
@@ -109,7 +111,16 @@ function removePath(path: string) {
   patchRule({ paths: paths.value.filter(p => p !== path) })
 }
 
-// ── Manual "+ add path" input ───────────────────────────────────────────────
+// ── Source-tree picker modal ───────────────────────────────────────────────
+// Live mutation: clicks inside the modal toggle paths on the parent state
+// directly (via toggleTreePath), so already-watched fields are highlighted
+// the moment the modal re-opens. Closing the modal is a no-op for state —
+// it's just a UI dismiss.
+const isPickerOpen = ref(false)
+function openPicker() { isPickerOpen.value = true }
+function closePicker() { isPickerOpen.value = false }
+
+// ── Manual "+ type path" input ─────────────────────────────────────────────
 const isAdding    = ref(false)
 const newPath     = ref('')
 const addError    = ref('')
@@ -326,7 +337,7 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
     <div class="cond-panel">
       <div class="cond-panel-head">Condition</div>
       <div class="cond-panel-body">
-
+      
         <div class="cond-modes">
           <label class="mode" :class="{ active: kind === ConditionKind.None }">
             <input type="radio" :checked="kind === ConditionKind.None" @change="pickNone" />
@@ -340,19 +351,43 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
 
         <div v-if="kind === ConditionKind.Rule" class="rule-block">
 
-          <!-- Watched fields (chips) -->
+          <!-- Watched fields — header, action row (anchored, not floating
+               with the chips), then the chip list below. Buttons stay in a
+               fixed spot so they're discoverable regardless of chip count. -->
           <div class="rule-row">
-            <span class="rule-label">
-              Watched fields
-              <span class="rule-count">({{ paths.length }})</span>
-            </span>
-            <p class="rule-hint">
-              Add by clicking values in the source tree above, or paste a path
-              by hand with the <strong>+ add path</strong> button — handy to
-              build variants like <code>dia.0</code>, <code>dia.1</code>,
-              <code>dia.2</code>.
-            </p>
-            <div class="chips">
+            <!-- Split header: label + hint on the left, action buttons on the
+                 right. Anchors the buttons away from the chips so they don't
+                 visually blend with path badges, and keeps them in a fixed
+                 spot regardless of chip count. -->
+            <div class="watched-head">
+              <div class="watched-meta">
+                <span class="rule-label">
+                  Watched fields
+                  <span class="rule-count">({{ paths.length }})</span>
+                </span>
+                <p class="rule-hint">
+                  Type a path like <code>root.production.origin.code</code>, or open the picker to choose visually.
+                </p>
+              </div>
+
+              <!-- Action buttons stay visible at all times — clicking
+                   "Type path" doesn't replace them, it just spawns an inline
+                   input next to the existing path chips below. -->
+              <div class="watched-actions">
+                <button type="button" class="add-btn" :class="{ active: isAdding }" @click="startAdding">
+                  <span class="add-icon">✎</span> Type path
+                </button>
+                <button type="button" class="add-btn" @click="openPicker">
+                  <span class="add-icon">⊞</span> Pick from source
+                </button>
+              </div>
+            </div>
+
+            <p v-if="addError" class="add-error">⚠ {{ addError }}</p>
+
+            <!-- Chips row hosts the watched paths AND the typing input when
+                 active — the input behaves like a "chip in progress". -->
+            <div v-if="paths.length > 0 || isAdding" class="chips">
               <span
                 v-for="p in paths"
                 :key="p"
@@ -362,15 +397,8 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
                 <button type="button" class="chip-x" @click="removePath(p)">×</button>
               </span>
 
-              <!-- Manual entry: + add path / input -->
-              <button
-                v-if="!isAdding"
-                type="button"
-                class="chip-add"
-                @click="startAdding"
-              >+ add path</button>
               <span
-                v-else
+                v-if="isAdding"
                 class="chip-input-wrap"
                 :class="{ 'has-error': addError }"
               >
@@ -391,20 +419,14 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
                   @mousedown.prevent="commitAdd"
                 >✓</button>
                 <button
-                  v-if="addError"
                   type="button"
                   class="chip-input-cancel"
                   title="Cancel"
                   @mousedown.prevent="cancelAdd"
                 >✕</button>
               </span>
-
-              <span v-if="paths.length === 0 && !isAdding" class="chips-hint">
-                — none yet —
-              </span>
             </div>
-
-            <p v-if="addError" class="add-error">⚠ {{ addError }}</p>
+            <p v-else class="chips-empty">— no watched fields yet —</p>
           </div>
 
           <!-- Operator + value + aggregation, on one line when it fits -->
@@ -446,53 +468,71 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
       </div>
     </div>
 
-        <!-- ── Source XML (the only code-block) ──────────────────────────────── -->
-    <div class="code-block source-block">
-      <div class="code-header">
-        <span class="dot dot-red" /><span class="dot dot-yellow" /><span class="dot dot-green" />
-        <span class="code-title">source.{{ (format ?? 'xml').toLowerCase() }}</span>
-        <span class="code-url" :title="props.url">{{ props.url }}</span>
-        <button
-          type="button"
-          class="btn-refresh"
-          :disabled="loading"
-          title="Re-fetch the source"
-          @click="retrieve"
-        >
-          {{ loading ? '…' : '⟳' }}
-        </button>
-      </div>
-      <div class="code-body tree-body">
-        <div v-if="loading" class="muted">Fetching {{ props.url }}…</div>
-
-        <div v-else-if="error" class="source-error">
-          <div class="error-head">⚠ Could not retrieve source</div>
-          <pre class="error-body">{{ error }}</pre>
-          <p class="error-hint">
-            Check the URL in the input-config step, then click ⟳ above to retry.
-          </p>
+    <!-- ── Source picker modal ─────────────────────────────────────────────
+         Opens via "⊞ pick from source". Clicks on leaf values toggle the
+         path on the parent state immediately (live mutation), so on next
+         open already-watched fields are still highlighted in green. Closing
+         the modal is just a UI dismiss. -->
+    <div v-if="isPickerOpen" class="overlay" @click.self="closePicker">
+      <div class="overlay-box picker-modal" @click.stop>
+        <div class="picker-head">
+          <h4>Pick watched fields from source</h4>
+          <button type="button" class="picker-close" title="Close" @click="closePicker">✕</button>
         </div>
 
-        <div v-else-if="!retrieved" class="muted">Waiting for source data…</div>
-        <div v-else-if="rootEntries.length === 0" class="muted">Empty document.</div>
+        <div class="picker-body">
+          <div class="code-block source-block">
+            <div class="code-header">
+              <span class="dot dot-red" /><span class="dot dot-yellow" /><span class="dot dot-green" />
+              <span class="code-title">source.{{ (format ?? 'xml').toLowerCase() }}</span>
+              <span class="code-url" :title="props.url">{{ props.url }}</span>
+              <button
+                type="button"
+                class="btn-refresh"
+                :disabled="loading"
+                title="Re-fetch the source"
+                @click="retrieve"
+              >
+                {{ loading ? '…' : '⟳' }}
+              </button>
+            </div>
+            <div class="code-body tree-body">
+              <div v-if="loading" class="muted">Fetching {{ props.url }}…</div>
 
-        <p
-          v-else-if="kind === ConditionKind.Rule"
-          class="tree-hint"
-        >
-          Click any value below to add it to the watched fields. Click again to
-          remove. Selected paths show with a green outline.
-        </p>
+              <div v-else-if="error" class="source-error">
+                <div class="error-head">⚠ Could not retrieve source</div>
+                <pre class="error-body">{{ error }}</pre>
+                <p class="error-hint">
+                  Check the URL in the input-config step, then click ⟳ above to retry.
+                </p>
+              </div>
 
-        <XmlTreeNode
-          v-for="([k, v]) in rootEntries"
-          :key="k"
-          :node-name="k"
-          :node-value="v"
-          :path="k"
-          :selected="paths"
-          @select="toggleTreePath"
-        />
+              <div v-else-if="!retrieved" class="muted">Waiting for source data…</div>
+              <div v-else-if="rootEntries.length === 0" class="muted">Empty document.</div>
+
+              <template v-else>
+                <p class="tree-hint">
+                  Click any value to toggle it as a watched field. Already-selected
+                  paths show with a green outline — click again to remove.
+                </p>
+                <XmlTreeNode
+                  v-for="([k, v]) in rootEntries"
+                  :key="k"
+                  :node-name="k"
+                  :node-value="v"
+                  :path="k"
+                  :selected="paths"
+                  @select="toggleTreePath"
+                />
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <div class="picker-foot">
+          <span class="picker-count">{{ paths.length }} field{{ paths.length === 1 ? '' : 's' }} selected</span>
+          <ButtonPrimary @click="closePicker">Done</ButtonPrimary>
+        </div>
       </div>
     </div>
 
@@ -660,19 +700,86 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
 
 .rule-hint {
   margin: 0;
-  color: var(--color-text-dim);
-  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
   line-height: 1.5;
 }
 .rule-hint code {
   color: var(--color-accent-text);
-  background: #0a0a0a;
+  background: var(--color-border-subtle); /* theme-aware: dark slate / light gray */
   padding: 1px 5px;
   border-radius: 3px;
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 .rule-hint strong { color: var(--color-text-secondary); font-weight: 600; }
+
+/* Split header for the Watched-fields row: label + hint on the left, the
+ * two add buttons on the right. Wraps on narrow viewports so the buttons
+ * drop below instead of squashing the input/hint. */
+.watched-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.watched-meta {
+  flex: 1 1 280px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.watched-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  flex-shrink: 0;
+}
+/* Solid-accent buttons — visually distinct from the soft-accent chips so
+ * "add an entry" is unmistakeable next to "an entry that exists". Filled
+ * surface + on-accent text reads as a CTA in both themes. */
+.add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  color: var(--color-text-on-accent);
+  padding: 6px var(--space-4);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--text-md);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  transition: background-color .15s, border-color .15s, transform .05s, box-shadow .15s;
+}
+.add-btn:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+.add-btn:active { transform: translateY(1px); box-shadow: none; }
+/* Pressed-in look while the inline input is open — signals "this button is
+ * the one driving the input that just appeared in the chips row below". */
+.add-btn.active {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.add-icon { font-size: var(--text-base); line-height: 1; }
+
+.chips-empty {
+  margin: 0;
+  color: var(--color-text-faint);
+  font-size: var(--text-md);
+  font-style: italic;
+}
 
 /* Watched-path chips. Use the global .chip / .chip-add base + scoped
  * tweaks for the path-flavored display (asymmetric padding to make room
@@ -795,7 +902,7 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
   color: var(--color-success-bright);
 }
 .preview-strip.no {
-  background: #1a1a1a;
+  background: var(--color-bg-card-soft);
   border-color: var(--color-border-default);
   color: var(--color-text-secondary);
 }
@@ -811,7 +918,8 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
   margin: var(--space-2) 0 0;
   padding: var(--space-3) var(--space-4);
   list-style: none;
-  background: #0a0a0a;
+  background: var(--color-bg-input); /* deeper than the strip, theme-aware */
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   display: flex; flex-direction: column; gap: var(--space-1);
   max-height: 200px;
@@ -822,8 +930,84 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
 .preview-detail li.no { color: var(--color-text-secondary); }
 .preview-detail code {
   color: var(--color-accent-text);
-  background: var(--color-bg-code);
+  background: var(--color-border-subtle); /* theme-aware so accent-text stays legible */
   padding: 1px 4px;
   border-radius: 3px;
+}
+/* Per-field breakdown text colors — dim defaults are too pale on the new
+ * light-mode preview surface, so use the regular text tokens. */
+.preview-detail li.ok { color: var(--color-success); }
+.preview-detail li.no { color: var(--color-text-secondary); }
+
+/* ── Source picker modal ──────────────────────────────────────────────
+ * Overrides the small overlay-box default (max-width: 360px, padded
+ * everywhere) so the modal can host the full XML tree comfortably and
+ * scroll internally instead of pushing the whole page. */
+.picker-modal {
+  width: 90vw;
+  max-width: 760px;
+  max-height: 85vh;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.picker-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.picker-head h4 {
+  margin: 0;
+  flex: 1;
+  font-size: var(--text-lg);
+  color: var(--color-text-primary);
+}
+.picker-close {
+  background: transparent;
+  border: none;
+  color: var(--color-text-dim);
+  font-size: var(--text-lg);
+  line-height: 1;
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+.picker-close:hover { color: var(--color-text-primary); background: var(--color-border-subtle); }
+
+.picker-body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  flex-direction: column;
+}
+/* The code-block inside the picker should fill the body and let its own
+ * code-body scroll — keeps the modal as a single scrollable region. */
+.picker-body .code-block {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.picker-body .code-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.picker-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border-subtle);
+}
+.picker-count {
+  flex: 1;
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
 }
 </style>

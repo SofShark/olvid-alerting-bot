@@ -65,7 +65,7 @@
   --color-danger-strong:  #dc2626;
 
   /* ── Overlays ─────────────────────────────────── */
-  --color-overlay:        rgba(15, 23, 42, 0.85);
+  --color-overlay:        rgba(0, 0, 0, 0.55);
 
   /* ── Radii ────────────────────────────────────── */
   --radius-sm: 4px;
@@ -93,7 +93,7 @@
   --text-md:  12px;
   --text-base:13px;
   --text-lg:  15px;
-  --text-xl:  18px;
+  --text-xl:  20px;
 
   /* ── Shadow ───────────────────────────────────── */
   --shadow-overlay: 0 25px 50px -12px rgba(0,0,0,0.5);
@@ -127,7 +127,7 @@
   --color-text-on-accent: #ffffff;
   --color-text-webhook:#019443;
 
-  --color-overlay:        rgba(15, 23, 42, 0.4);
+  --color-overlay:        rgba(0, 0, 0, 0.35);
 
   /* Accent surfaces need to re-tint for light mode — the dark-mode values
    * are too saturated/dark to use over white panels. */
@@ -140,6 +140,16 @@
   --color-success-soft:   #dcfce7;
   --color-warning-soft:   #fef3c7;
   --color-danger-soft:    #fee2e2;
+
+  /* Status text colors flip dark-on-light for legibility on the soft
+   * backgrounds above (the dark-mode -text and -bright tokens are pale
+   * shades that vanish on white). */
+  --color-success-text:   #15803d;
+  --color-success-bright: #166534;
+  --color-warning-text:   #b45309;
+  --color-warning-bright: #92400e;
+  --color-danger-text:    #b91c1c;
+  --color-danger-bright:  #991b1b;
 
   /* Code blocks stay dark — they read as embedded IDE panels. */
 }

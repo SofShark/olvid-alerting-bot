@@ -19,6 +19,7 @@ model AlertTable {
   triggerType String?                        // Trigger enum value (e.g. "Webhook")
   token         String?  @unique @default(uuid())
   triggerParams Json?                        // source-specific config; _-prefixed keys are runtime state
+  // ??? guardar atributo aparte con la frecuencia o hora de polling
   createdAt     DateTime @default(now())
   bundles       Bundle[]
 }

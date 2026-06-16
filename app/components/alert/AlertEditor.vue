@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { onBeforeRouteLeave, type RouteLocationNormalized } from 'vue-router'
 import { Formatting, AlertStatus, Trigger, type DiscussionModel, type BundleModel, type AlertModel } from '#shared/constants'
 import { alertService } from '~/utils/alertService'
 
@@ -18,6 +19,30 @@ const formSnapshot = ref('')         // JSON snapshot taken when entering edit m
 const showDiscardWarning = ref(false)
 const confirmingDelete = ref(false)
 const saving = ref(false)
+
+// Route guard plumbing — see AlertWizard for the full rationale.
+const pendingLeave = ref<RouteLocationNormalized | null>(null)
+// One-shot escape hatch: set to true right before a navigation that the
+// guard should let through (confirmed discard, save, delete). The guard
+// reads-and-resets it so it can't suppress a later leave by accident.
+const bypassGuard = ref(false)
+
+onBeforeRouteLeave((to) => {
+  if (bypassGuard.value) { bypassGuard.value = false; return true }
+  if (!isDirty.value) return true
+  pendingLeave.value = to
+  showDiscardWarning.value = true
+  return false
+})
+
+// Browser-level: tab close, hard refresh, address bar nav. preventDefault is
+// the modern trigger for the "Leave site?" confirmation; returnValue is
+// deprecated and no longer needed.
+const onBeforeUnload = (e: BeforeUnloadEvent) => {
+  if (isDirty.value) e.preventDefault()
+}
+onMounted(() => window.addEventListener('beforeunload', onBeforeUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload))
 
 const blankForm = (): AlertModel => ({
   id: null,
@@ -106,10 +131,12 @@ const statusLabel = computed(() => {
 
 // ── Edit mode management ─────────────────────────────────────
 const startEditing = () => {
+  // Save pre-edition values of the form
   formSnapshot.value = JSON.stringify(form.value)
   editing.value = true
 }
 
+// Detect if modifications have been made when selected "edit alert"
 const isDirty = computed(() => {
   if (!editing.value) return false
   return JSON.stringify(form.value) !== formSnapshot.value
@@ -126,13 +153,51 @@ const requestBack = () => {
 
 const cancelEdit = () => {
   showDiscardWarning.value = false
+  const target = pendingLeave.value
+  pendingLeave.value = null
+
+  // Always restore the form from props so isDirty falls to false — that lets
+  // both the pending nav (sidebar) and a future user action through cleanly.
   if (isExisting.value) {
-    // Restore from props and go back to view mode.
     fillFrom(props.alertaInicial)
     editing.value = false
-  } else {
-    // New alert with nothing saved — go back to the list.
+  }
+
+  if (target) {
+    // The discard was triggered by the route guard (sidebar / address bar).
+    // Skip the guard for this one navigation and continue to where the user
+    // was actually trying to go.
+    bypassGuard.value = true
+    navigateTo(target)
+  } else if (!isExisting.value) {
+    // "Back" pressed on a never-saved new alert — fall back to the list.
+    bypassGuard.value = true
     navigateTo('/')
+  }
+  // Existing alert + no pending target: just stay here in view mode.
+}
+
+const dismissDiscard = () => {
+  showDiscardWarning.value = false
+  pendingLeave.value = null
+}
+
+// Modal "Save Changes": persist, then continue to wherever the user was
+// actually trying to go (sidebar target), or fall back to view mode in place.
+const saveAndLeave = async () => {
+  await save()
+  if (saving.value) return // mid-flight — shouldn't happen because save awaits, defensive only
+  showDiscardWarning.value = false
+  const target = pendingLeave.value
+  pendingLeave.value = null
+  if (target) {
+    bypassGuard.value = true
+    navigateTo(target)
+  } else {
+    // No pending target: drop back to view mode in place. The form was
+    // updated server-side; the props watcher will re-sync once fetchAlerts
+    // finishes.
+    editing.value = false
   }
 }
 
@@ -187,6 +252,9 @@ const save = async () => {
       const res: any = await alertService.saveAlert(payload)
       const newId = res?.data?.id
       await fetchAlerts()
+      // Alert is now persisted; isDirty is technically still true because the
+      // snapshot is stale, so we bypass the guard for this nav.
+      bypassGuard.value = true
       await navigateTo('/alerts/' + newId)
     }
   } catch (error: any) {
@@ -215,6 +283,9 @@ const doDelete = async () => {
     await alertService.delete(form.value.id as number)
     confirmingDelete.value = false
     await fetchAlerts()
+    // The alert is gone — no dirty state to warn about, but isDirty's snapshot
+    // is irrelevant now. Bypass to be safe.
+    bypassGuard.value = true
     navigateTo('/')
   } catch (error: any) {
     console.error('Error deleting:', error)
@@ -252,9 +323,18 @@ const runTestPoll = async () => {
     <div v-if="showDiscardWarning" class="overlay">
       <div class="overlay-box">
         <h4>Unsaved changes</h4>
-        <p>You have unsaved changes. If you go back now, they will be lost.</p>
+        <p>You have unsaved changes. If you leave now, they will be lost.</p>
         <div class="overlay-actions">
-          <button type="button" class="btn btn-ghost" @click="showDiscardWarning = false">Continue editing</button>
+          <button
+            v-if="form.title"
+            type="button"
+            class="btn btn-secondary"
+            :disabled="saving"
+            @click="saveAndLeave"
+          >
+            {{ saving ? 'Saving…' : 'Save changes' }}
+          </button>
+          <button type="button" class="btn btn-ghost" @click="dismissDiscard">Continue editing</button>
           <button type="button" class="btn btn-danger" @click="cancelEdit">Discard changes</button>
         </div>
       </div>
@@ -417,7 +497,7 @@ const runTestPoll = async () => {
       <!-- Header (edit) -->
       <div class="panel-head">
         <div class="head-left">
-          <span class="head-tag">{{ form.id ? `#${form.id}` : 'NEW' }}</span>
+          <span class="head-tag" >{{ form.id ? `#${form.id}` : 'NEW' }}</span>
           <input v-model="form.title" type="text" placeholder="Alert title…" class="title-input" />
         </div>
         <div class="head-right">
@@ -509,7 +589,7 @@ const runTestPoll = async () => {
 .head-tag {
   background: var(--color-border-subtle);
   color: var(--color-text-dim);
-  font-size: var(--text-sm);
+  font-size: var(--text-md);
   font-weight: 700;
   font-family: var(--font-mono);
   padding: 2px var(--space-3);

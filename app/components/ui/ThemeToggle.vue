@@ -9,7 +9,7 @@ const current = ref<'dark' | 'light'>('dark')
 
 onMounted(() => {
   const attr = document.documentElement.getAttribute('data-theme')
-  current.value = attr === 'light' ? 'light' : 'dark'
+  current.value = (attr === 'light' ? 'light' : 'dark')
 })
 
 function toggle() {
@@ -26,9 +26,10 @@ function toggle() {
       type="button"
       class="theme-toggle"
       :title="`Switch to ${current === 'dark' ? 'light' : 'dark'} mode`"
-      :aria-label="`Switch to ${current === 'dark' ? 'light' : 'dark'} mode`"
+      
       @click="toggle"
     >
+    <!--:aria-label="`Switch to ${current === 'dark' ? 'light' : 'dark'} mode`"-->
       {{ current === 'dark' ? '☀' : '☾' }}
     </button>
   </ClientOnly>

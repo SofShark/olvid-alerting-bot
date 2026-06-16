@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import {onBeforeRouteLeave, type RouteLocationNormalized} from 'vue-router'
 import {
   Formatting,
   AlertStatus,
@@ -22,9 +23,37 @@ const props = withDefaults(defineProps<{
 
 const { availableDiscussions, discussionsLoading, fetchAlerts } = useAlerts()
 
+
+const pendingLeave = ref<RouteLocationNormalized | null>(null)
+// One-shot escape hatch: when the user confirms Discard or Save-as-draft, set
+// this to true so the next navigation slips past the guard. The guard resets
+// it on read so it can't accidentally suppress a future leave.
+const bypassGuard = ref(false)
+
 const currentStep = ref(1)
 const saving = ref(false)
 const showDiscardWarning = ref(false)
+
+
+// Intercept ANY route change (sidebar click, programmatic navigateTo, back button).
+onBeforeRouteLeave((to) => {
+  if (bypassGuard.value) { bypassGuard.value = false; return true }
+  // If form is still empty we can leave directly
+  if (!hasAnyInput.value) return true
+  pendingLeave.value = to
+  showDiscardWarning.value = true
+  return false
+})
+
+// Browser-level: tab close, hard refresh, address bar nav. preventDefault is
+// the modern trigger for the "Leave site?" confirmation; returnValue is
+// deprecated and no longer needed.
+const onBeforeUnload = (e: BeforeUnloadEvent) => {
+  if (hasAnyInput.value) e.preventDefault()
+}
+onMounted(() => window.addEventListener('beforeunload', onBeforeUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload))
+
 
 const blankForm = (): AlertModel => ({
   id: null,
@@ -121,6 +150,7 @@ const isWebhook = computed(
 
 // Auto-derive triggerType from the chosen input source.
 watch(() => form.value.input, (src) => {
+  // TODO Should really be erasing trigger*? Maybe we can wait to saving before erasing (error-proof)
   if (!src) {
     form.value.triggerType = ''
     form.value.triggerParams = {}
@@ -219,9 +249,6 @@ const canAdvance = computed(() => {
   }
 })
 
-const canSaveWithoutBundle = computed(
-  () => isStep1Complete.value && isConditionComplete.value,
-)
 
 // ── Navigation ────────────────────────────────────────────────────────────
 const hasAnyInput = computed(
@@ -239,7 +266,29 @@ const requestBack = () => {
 
 const discardAndExit = () => {
   showDiscardWarning.value = false
-  navigateTo('/')
+  const target = pendingLeave.value
+  pendingLeave.value = null
+  // Tell the guard to let the next navigation through, otherwise it would
+  // re-open this same modal because hasAnyInput is still true.
+  bypassGuard.value = true
+  navigateTo(target ?? '/')
+}
+
+const dismissDiscard = () => {
+  showDiscardWarning.value = false
+  pendingLeave.value = null
+}
+
+// Modal "Save as draft": persist, then continue to wherever the user was
+// actually trying to go (sidebar target, or fallback to the alert's own page).
+const saveDraftAndLeave = async () => {
+  await save(true, false)
+  if (!form.value.id) return // save failed — keep the modal up so user can retry/discard
+  showDiscardWarning.value = false
+  const target = pendingLeave.value
+  pendingLeave.value = null
+  bypassGuard.value = true
+  navigateTo(target ?? '/alerts/' + form.value.id)
 }
 
 const next = () => {
@@ -306,6 +355,9 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
     }
     await fetchAlerts()
     if (navigateAfter && form.value.id) {
+      // Bypass the unsaved-changes guard: the alert is now persisted, so
+      // hasAnyInput == true should not be treated as "dirty".
+      bypassGuard.value = true
       await navigateTo('/alerts/' + form.value.id)
     }
   } catch (error: any) {
@@ -323,10 +375,13 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
 
     <div v-if="showDiscardWarning" class="overlay">
       <div class="overlay-box">
-        <h4>Discard new alert?</h4>
-        <p>You have unsaved input. Leaving now will lose it.</p>
+        <h4>Unsaved changes</h4>
+        <p>If you leave now, your progress will be lost. Would you like to save this alert as a draft before leaving?</p>
         <div class="overlay-actions">
-          <button type="button" class="btn btn-ghost" @click="showDiscardWarning = false">Continue editing</button>
+          <button type="button" class="btn btn-secondary" v-if="canSaveDraft" :disabled="saving" @click="saveDraftAndLeave">
+            {{ saving ? 'Saving…' : 'Save as draft' }}
+          </button>
+          <button type="button" class="btn btn-ghost" @click="dismissDiscard">Continue editing</button>
           <button type="button" class="btn btn-danger" @click="discardAndExit">Discard</button>
         </div>
       </div>
