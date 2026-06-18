@@ -17,8 +17,12 @@ defineEmits<{ (e: 'update:modelValue', v: number): void }>()
 </script>
 
 <template>
+  <!-- :linear="false" — non-sequential. Each step's per-item `disabled`
+       flag is now the gate, so a complete alert in edit mode lets the
+       user jump straight to step 3 without walking through 1 and 2. -->
   <StepperRoot
     :model-value="modelValue"
+    :linear="false"
     class="stepper"
     @update:model-value="$emit('update:modelValue', $event ?? 1)"
   >

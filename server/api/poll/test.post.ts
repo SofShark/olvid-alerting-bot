@@ -1,6 +1,7 @@
 // Test-run an alert's polling configuration end-to-end (fetch + parse +
-// evaluate condition) without firing bundles or updating any baseline.
-// Used by the "Run test poll" button in the alert view.
+// evaluate condition + format each bundle's outgoing message) WITHOUT firing
+// bundles or updating any baseline. Used by the "Run test poll" button in
+// the alert view.
 
 import { pollingEngine } from '../../utils/polling/engine'
 
@@ -10,9 +11,42 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: 'alertId is required' })
   }
+
   const alert = await bdManager.getAlertById(id)
   if (!alert) {
     throw createError({ statusCode: 404, statusMessage: `Alert #${id} not found` })
   }
-  return await pollingEngine.test(alert)
+
+  const result = await pollingEngine.test(alert)
+
+  // Render each bundle's outgoing message so the test panel can show
+  // exactly what would land in each discussion list. Runs whether or not
+  // the condition fired — the user wants to preview the formatting too.
+  // Errors per bundle are isolated so one broken Handlebars script doesn't
+  // wipe out the rest of the breakdown.
+  const bundles = (alert.bundles ?? []) as any[]
+  const bundleMessages = bundles.map((bundle, index) => {
+    try {
+      const message = alertManager.formatMessage(alert, bundle, result.parsed)
+      return {
+        index,
+        bundleId:        bundle.id ?? null,
+        formating:       bundle.formating,
+        discussionCount: Array.isArray(bundle.discussion_list) ? bundle.discussion_list.length : 0,
+        message,
+        error:           null,
+      }
+    } catch (e: any) {
+      return {
+        index,
+        bundleId:        bundle.id ?? null,
+        formating:       bundle.formating,
+        discussionCount: Array.isArray(bundle.discussion_list) ? bundle.discussion_list.length : 0,
+        message:         '',
+        error:           e?.message ?? 'Failed to format message',
+      }
+    }
+  })
+
+  return { ...result, bundleMessages }
 })

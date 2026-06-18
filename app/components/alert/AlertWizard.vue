@@ -490,39 +490,43 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
 
     <div class="panel wizard">
 
+    <!-- Header mirrors the view-mode layout: tag + title-block (with status
+         badge inline at the title row) + back button. The title-block stacks
+         title and description so they sit in the same place in BOTH modes —
+         user just sees the same surface transition from read-only to inputs. -->
     <div class="panel-head">
       <div class="head-left">
-        <span class="head-tag">{{ isExisting ? `#${form.id}` : 'NEW' }}</span>
-        <input
-          v-model="form.title"
-          type="text"
-          placeholder="Alert title…"
-          class="title-input"
-        />
-        <!-- Status badge reflects the actual saved status — DRAFT only when
-             we're editing an alert that's actually a draft on the server.
-             Editing an Active alert shouldn't read as "DRAFT". -->
-        <span v-if="isExisting && form.status === AlertStatus.Draft" class="status-badge draft">DRAFT</span>
-        <span v-else-if="isExisting && form.status === AlertStatus.Inactive" class="status-badge inactive">INACTIVE</span>
-        <span v-else-if="isExisting && form.status === AlertStatus.Active" class="status-badge active">ACTIVE</span>
+        <div class="head-title-block">
+          <div class="title-row">
+            <input
+              v-model="form.title"
+              type="text"
+              placeholder="Untitled alert..."
+              class="title-input"
+              aria-label="Alert title"
+            />
+            <span v-if="isExisting && form.status === AlertStatus.Draft" class="status-badge draft">DRAFT</span>
+            <span v-else-if="isExisting && form.status === AlertStatus.Inactive" class="status-badge inactive">INACTIVE</span>
+            <span v-else-if="isExisting && form.status === AlertStatus.Active" class="status-badge active">ACTIVE</span>
+          </div>
+          <input
+            v-model="form.description"
+            type="text"
+            placeholder="Add a brief description…"
+            class="description-input"
+            aria-label="Alert description"
+          />
+        </div>
       </div>
       <button type="button" class="btn btn-ghost" @click="requestBack">← Back to list</button>
     </div>
 
     <div class="panel-body">
 
-      <!-- ── STEP 1 ─ General (title + description + source + inline polling cfg) ── -->
+      <!-- ── STEP 1 ─ General (source + inline polling cfg) ──────────────
+           Title + description moved to the panel-head so editing them is
+           visible and reachable from any step, not just this one. -->
       <template v-if="currentStepKey === 'general'">
-        <div class="field">
-          <label class="field-label">Description</label>
-          <textarea
-            v-model="form.description"
-            rows="2"
-            placeholder="What does this alert do?"
-            class="field-input"
-          />
-        </div>
-
         <div class="field">
           <label class="field-label">Input Source <span class="field-required">*</span></label>
           <InputSourceSelector v-model="form.input" />
@@ -579,8 +583,7 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
       <template v-else-if="currentStepKey === 'bundle'">
         <p class="step-intro">
           A <strong>bundle</strong> is one notification target: a set of discussions
-          plus a message format. Add one or more — bundles without any
-          discussions keep the alert in draft state.
+          plus a message format. 
         </p>
 
         <div class="bundles-grid">
@@ -671,8 +674,8 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
           type="button"
           class="btn btn-secondary"
           :disabled="!canSaveDraft || saving"
-          :title="canSaveDraft ? 'Save the alert as a draft and stay here' : 'Add a title to save'"
-          @click="save(true, false)"
+          :title="canSaveDraft ? 'Save as draft and return to view mode' : 'Add a title to save'"
+          @click="save(true, true)"
         >
           {{ saving ? 'Saving…' : 'Save as draft' }}
         </button>
@@ -733,19 +736,93 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
   border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
+/* Title block — stacks the title and description so the layout matches
+ * view mode exactly. The visible difference between view and edit is now
+ * just the inputs themselves: same position, same size, same flow. */
+.head-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+/* Title row — title input expands, status badge sits to its right. */
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* Title input — matches the view-mode .view-title at rest (same size,
+ * weight, color, line-height). The interactive affordances appear only
+ * on hover/focus: a faint background tint signals "click me", and a
+ * dashed under-line signals "this is editable text". On focus, the
+ * underline solidifies to the accent color. */
 .title-input {
   flex: 1;
   min-width: 0;
+  margin: 0;
   background: transparent;
   border: none;
-  border-bottom: 1px solid transparent;
+  outline: none;
+  border-bottom: 1px dashed transparent;
   color: var(--color-text-primary);
   font-size: var(--text-xl);
   font-weight: 600;
-  padding: var(--space-1) 2px;
+  line-height: 1.2;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background-color .15s ease, border-bottom-color .15s ease;
 }
-.title-input:focus { outline: none; border-bottom-color: var(--color-accent); }
-.title-input::placeholder { color: var(--color-text-faint); }
+.title-input::placeholder {
+  color: var(--color-text-faint);
+  font-weight: 600;
+}
+.title-input:hover:not(:focus) {
+  background: var(--color-bg-card-soft);
+  border-bottom-color: var(--color-border-default);
+}
+.title-input:focus {
+  background: var(--color-bg-card-soft);
+  border-bottom-color: var(--color-accent);
+  border-bottom-style: solid;
+}
+
+/* Description input — sits under the title in the same block. Visually
+ * matches view-mode .view-subtitle (muted, smaller, lighter weight) at
+ * rest, with the same hover/focus affordances as the title. */
+.description-input {
+  margin: 0;
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  border-bottom: 1px dashed transparent;
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  font-weight: 400;
+  line-height: 1.4;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  transition: background-color .15s ease, border-bottom-color .15s ease, color .15s ease;
+}
+.description-input::placeholder {
+  color: var(--color-text-faint);
+  font-style: italic;
+}
+.description-input:hover:not(:focus) {
+  background: var(--color-bg-card-soft);
+  border-bottom-color: var(--color-border-subtle);
+  color: var(--color-text-secondary);
+}
+.description-input:focus {
+  background: var(--color-bg-card-soft);
+  border-bottom-color: var(--color-accent);
+  border-bottom-style: solid;
+  color: var(--color-text-primary);
+}
 
 /* Status badge — colour reflects the alert's current saved status. The
  * .draft variant keeps the original draft-badge styling. */

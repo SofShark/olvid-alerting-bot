@@ -54,6 +54,8 @@ export const pollingEngine = {
     const format = params.format
     const r = await this.retrieve(url, format)
 
+    
+
     // Persist BOTH outcomes (success vs failure) keyed by alert id. Failures
     // go into a separate table so a subsequent success doesn't erase the
     // diagnostic trail — admins always see the last failure even if the
@@ -62,6 +64,7 @@ export const pollingEngine = {
     // `r.raw === undefined` ⇒ fetch never produced bytes (network/HTTP),
     // `r.raw !== undefined && !r.parsed` ⇒ bytes arrived but parsing broke.
     if (alert?.id != null) {
+      
       if (!r.ok) {
         try {
           await bdManager.upsertLastFailedPayload(alert.id, {
@@ -76,6 +79,7 @@ export const pollingEngine = {
         return r
       }
       if (r.parsed !== undefined) {
+        
         try {
           await bdManager.upsertLastAlertPayload(alert.id, r.parsed)
         } catch (e: any) {

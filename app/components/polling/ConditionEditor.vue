@@ -10,6 +10,7 @@ import {
   type PollingCondition,
 } from '#shared/constants'
 import { expandPath, hasWildcard } from '#shared/pathExpand'
+import { evaluateCondition } from '#shared/conditionEval'
 
 const props = defineProps<{
   modelValue?: PollingCondition
@@ -26,25 +27,18 @@ const emit = defineEmits<{
 const current = computed<PollingCondition>(
   () => migrateCondition(props.modelValue),
 )
-
+// Shortcut to condition parameters
 const kind = computed(() => current.value.kind)
-
-// PollingCondition is now homogeneous — every field is always present, so
-// the rule controls just read from `current` regardless of kind. Flipping
-// to None doesn't wipe paths/operator/value/aggregation; they're preserved
-// in the parent state and re-shown if the user flips back to Rule.
 const paths       = computed(() => current.value.paths)
 const operator    = computed(() => current.value.operator)
 const literal     = computed(() => current.value.value ?? '')
 const aggregation = computed(() => current.value.aggregation)
+// Determine if the condition needs an external value to evaluate 
+const needsValue = computed(() => OPERATORS_NEEDING_VALUE.has(operator.value))
 
-// `paths`         = what the user typed (chips). May contain wildcards.
-// `effectivePaths` = the concrete set those chips resolve to in the current
-//                   snapshot. Drives the picker's green-highlighting and the
-//                   "Watched fields (N)" count so the UI reflects what will
-//                   actually be evaluated at poll time, not just chip count.
-// Falls back to the concrete subset of `paths` when no snapshot is loaded
-// (wildcards have nothing to expand against yet).
+// `paths`         = what the user typed (chips). May contain wildcards. This is what is visible in "watched fields" panel
+// `effectivePaths` = the concrete set tose previous chips resolve to in the current snapshot and system.
+//                     all effective Paths are internally displayed na evaluated at poll time
 const effectivePaths = computed<string[]>(() => {
   if (!parsed.value) {
     return [...new Set(paths.value.filter(p => !hasWildcard(p)))]
@@ -60,18 +54,16 @@ const effectivePaths = computed<string[]>(() => {
   return [...set]
 })
 
-const needsValue = computed(() => OPERATORS_NEEDING_VALUE.has(operator.value))
+
 
 // Emit a new condition, merging only the changed bits onto the current
-// shape. Modifying any rule control auto-switches `kind` to Rule (clicking
-// a chip, picking an operator, etc. — clearly rule-mode intent). We KEEP
-// `value` even when the operator doesn't use it; compaction at save time
+// shape. We KEEP `value` even when the operator doesn't use it; compaction at save time
 // drops it. Same for all other fields when kind is None.
 function patchRule(patch: Partial<PollingCondition>) {
   emit('update:modelValue', {
     ...current.value,
     ...patch,
-    kind: ConditionKind.Rule,
+    kind: ConditionKind.Rule, // is this line necessary?? TODO
   })
 }
 
@@ -89,17 +81,17 @@ function pickRule() {
 }
 
 // Picker clicks. Three cases:
-//   (a) The clicked leaf is already a concrete chip → remove it.
-//   (b) Not a chip but covered by a wildcard chip → silent no-op. Removing
-//       the leaf would have to remove the wildcard (too destructive), so
-//       we leave it green and direct the user to the chips list instead.
-//   (c) Not on the list at all → add as a concrete chip.
 function toggleTreePath(path: string) {
-  if (paths.value.includes(path)) {
+  //  (a) The clicked leaf is already a concrete chip → remove it.
+  if (paths.value.includes(path)) {  
     patchRule({ paths: paths.value.filter(p => p !== path) })
     return
   }
+  //  (b) Not a chip but covered by a wildcard chip → silent no-op. Removing
+  //  the leaf would have to remove the wildcard (too destructive), so
+  //  we leave it green and direct the user to the chips list instead.
   if (effectivePaths.value.includes(path)) return // covered by a wildcard
+  //   (c) Not on the list at all → add as a concrete chip.
   patchRule({ paths: [...paths.value, path] })
 }
 
@@ -229,71 +221,13 @@ onMounted(retrieve)
 watch(() => [props.url, props.format], retrieve)
 
 // ── Preview (per-path verdicts evaluated on the retrieved snapshot) ────────
-function resolvePath(obj: any, path: string): any {
-  if (!path) return undefined
-  const parts = path.split('.').filter(Boolean)
-  let cur: any = obj
-  for (const p of parts) {
-    if (cur == null) return undefined
-    cur = cur[p]
-  }
-  return cur
-}
-
-function evalPath(observed: any): { ok: boolean; detail: string } {
-  switch (operator.value) {
-    case ConditionOperator.Changed:
-      return { ok: false, detail: 'change can only be evaluated across consecutive polls' }
-    case ConditionOperator.Equals: {
-      const ok = String(observed ?? '') === literal.value
-      return { ok, detail: ok ? `= "${literal.value}"` : `current "${observed}" ≠ "${literal.value}"` }
-    }
-    case ConditionOperator.GreaterThan: {
-      const a = Number(observed), b = Number(literal.value)
-      if (Number.isNaN(a) || Number.isNaN(b)) return { ok: false, detail: 'non-numeric' }
-      return { ok: a > b, detail: a > b ? `${a} > ${b}` : `${a} ≤ ${b}` }
-    }
-    case ConditionOperator.LessThan: {
-      const a = Number(observed), b = Number(literal.value)
-      if (Number.isNaN(a) || Number.isNaN(b)) return { ok: false, detail: 'non-numeric' }
-      return { ok: a < b, detail: a < b ? `${a} < ${b}` : `${a} ≥ ${b}` }
-    }
-    case ConditionOperator.Contains: {
-      const hay = String(observed ?? '')
-      const ok = literal.value.length > 0 && hay.includes(literal.value)
-      return { ok, detail: ok ? `contains "${literal.value}"` : `does not contain "${literal.value}"` }
-    }
-  }
-  return { ok: false, detail: '' }
-}
-
-// Mirror the server-side evaluator: expand wildcards into concrete paths so
-// the per-field breakdown lists each match individually, while the user's
-// chip list stays compact (one chip per pattern). A pattern that matches
-// nothing surfaces as a single non-firing entry.
+// All evaluation logic lives in `#shared/conditionEval` — used identically
+// by the server engine, the polling-default message builder, and this
+// preview. No baseline is available client-side, so `Changed` operators
+// show as "would fire on next change" (the evaluator's preview default).
 const verdicts = computed(() => {
   if (!retrieved.value || paths.value.length === 0) return []
-  return paths.value.flatMap((pathOrPattern) => {
-    if (!hasWildcard(pathOrPattern)) {
-      const observed = resolvePath(parsed.value, pathOrPattern)
-      const { ok, detail } = evalPath(observed)
-      return [{ path: pathOrPattern, observed, ok, detail }]
-    }
-    const concretes = expandPath(pathOrPattern, parsed.value)
-    if (concretes.length === 0) {
-      return [{
-        path:     pathOrPattern,
-        observed: undefined,
-        ok:       false,
-        detail:   'pattern matched no paths in the current source',
-      }]
-    }
-    return concretes.map((concretePath) => {
-      const observed = resolvePath(parsed.value, concretePath)
-      const { ok, detail } = evalPath(observed)
-      return { path: concretePath, observed, ok, detail }
-    })
-  })
+  return evaluateCondition(current.value, parsed.value).verdicts
 })
 
 const verdictSummary = computed(() => {
@@ -323,16 +257,16 @@ const verdictSummary = computed(() => {
     return { ok: false, label: 'Waiting for source data…' }
   }
   const fired = aggregation.value === ConditionAggregation.All
-    ? verdicts.value.every(v => v.ok)
-    : verdicts.value.some (v => v.ok)
-  const passing = verdicts.value.filter(v => v.ok).length
+    ? verdicts.value.every(v => v.fired)
+    : verdicts.value.some (v => v.fired)
+  const passing = verdicts.value.filter(v => v.fired).length
   const total   = verdicts.value.length
-  const word    = aggregation.value === ConditionAggregation.All ? 'all' : 'any'
+  const word    = aggregation.value === ConditionAggregation.All ? 'all' : 'more than one'
   return {
     ok:    fired,
     label: fired
       ? `Would fire — ${word} of ${total} field${total === 1 ? '' : 's'} verified (${passing}/${total}).`
-      : `Would not fire — ${passing}/${total} field${total === 1 ? '' : 's'} verified, "${word}" requires ${aggregation.value === ConditionAggregation.All ? 'all' : 'at least one'}.`,
+      : `Would not fire — ${passing} of ${total} field${total === 1 ? '' : 's'} verified, this condition requires ${aggregation.value === ConditionAggregation.All ? 'all' : 'at least one'}.`,
   }
 })
 
@@ -538,10 +472,10 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
               <div v-else-if="rootEntries.length === 0" class="muted">Empty document.</div>
 
               <template v-else>
-                <p class="tree-hint">
+                <!--p>
                   Click any value to toggle it as a watched field. Already-selected
                   paths show with a green outline — click again to remove.
-                </p>
+                </p-->
                 <XmlTreeNode
                   v-for="([k, v]) in rootEntries"
                   :key="k"
@@ -575,7 +509,7 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
       <details v-if="kind === ConditionKind.Rule && verdicts.length > 0" class="preview-detail">
         <summary>per-field breakdown</summary>
         <ul>
-          <li v-for="v in verdicts" :key="v.path" :class="v.ok ? 'ok' : 'no'">
+          <li v-for="v in verdicts" :key="v.path" :class="v.fired ? 'ok' : 'no'">
             <code>{{ v.path }}</code> — {{ v.detail }}
           </li>
         </ul>
@@ -631,17 +565,6 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
 .tree-body { background: var(--color-bg-code); }
 .muted { color: var(--color-text-dim); font-size: var(--text-md); line-height: 1.5; }
 .muted strong { color: var(--color-accent-text); }
-
-.tree-hint {
-  margin: 0 0 var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: #0a0a0a;
-  border-left: 3px solid var(--color-accent);
-  border-radius: var(--radius-sm);
-  color: var(--color-accent-text);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-}
 
 .source-error {
   display: flex; flex-direction: column; gap: var(--space-3);
@@ -911,59 +834,7 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
 .rule-select.op  { min-width: 200px; flex: 1 1 auto; }
 .rule-input      { min-width: 120px; flex: 1 1 120px; }
 
-/* ── Preview strip ──────────────────────────────────────────────────── */
-.preview-strip {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  padding: var(--space-3) var(--space-5);
-  border-radius: var(--radius-xl);
-  border: 1px solid;
-  font-size: var(--text-md);
-}
-.preview-strip.ok {
-  background: var(--color-success-soft);
-  border-color: var(--color-success-border);
-  color: var(--color-success-bright);
-}
-.preview-strip.no {
-  background: var(--color-bg-card-soft);
-  border-color: var(--color-border-default);
-  color: var(--color-text-secondary);
-}
-.preview-strip .bullet { font-size: var(--text-xl); line-height: 1; }
-.preview-strip.ok .bullet { color: var(--color-success); }
-.preview-strip.no .bullet { color: var(--color-text-dim); }
-.preview-label { flex: 1; min-width: 0; }
 
-.preview-detail { margin-left: auto; color: var(--color-text-muted); font-size: var(--text-sm); max-width: 100%; }
-.preview-detail summary { cursor: pointer; user-select: none; }
-.preview-detail summary:hover { color: var(--color-accent-text); }
-.preview-detail ul {
-  margin: var(--space-2) 0 0;
-  padding: var(--space-3) var(--space-4);
-  list-style: none;
-  background: var(--color-bg-input); /* deeper than the strip, theme-aware */
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  display: flex; flex-direction: column; gap: var(--space-1);
-  max-height: 200px;
-  overflow-y: auto;
-}
-.preview-detail li { font-family: var(--font-mono); font-size: var(--text-sm); }
-.preview-detail li.ok { color: var(--color-success-bright); }
-.preview-detail li.no { color: var(--color-text-secondary); }
-.preview-detail code {
-  color: var(--color-accent-text);
-  background: var(--color-border-subtle); /* theme-aware so accent-text stays legible */
-  padding: 1px 4px;
-  border-radius: 3px;
-}
-/* Per-field breakdown text colors — dim defaults are too pale on the new
- * light-mode preview surface, so use the regular text tokens. */
-.preview-detail li.ok { color: var(--color-success); }
-.preview-detail li.no { color: var(--color-text-secondary); }
 
 /* ── Source picker modal ──────────────────────────────────────────────
  * Overrides the small overlay-box default (max-width: 360px, padded

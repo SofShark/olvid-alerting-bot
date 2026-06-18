@@ -28,7 +28,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   availableDiscussions: () => [],
   discussionsLoading: false,
-  inputSource: '',
+  inputSource: '', 
   hideRemove: false,
   readonly: false,
   editable: false,
@@ -169,7 +169,9 @@ const pollingPreview = computed(() => {
           class="btn btn-secondary btn-sm"
           @click="isEditorOpen = true"
         >
-          ✏️ Script
+          <FontAwesomeIcon :icon="['fas', 'pencil']" />
+
+          <!--✏️--> Script
         </button>
       </div>
 

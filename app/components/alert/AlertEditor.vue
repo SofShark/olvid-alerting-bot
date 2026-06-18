@@ -15,6 +15,7 @@ import {
   type AlertModel,
 } from '#shared/constants'
 import { alertService } from '~/utils/alertService'
+import { pollingService } from '~/utils/pollingService'
 
 // AlertEditor is now PURE VIEW MODE. Edits go through the wizard
 // (`/alerts/[id]?edit=1`) or — for a single bundle — through the in-place
@@ -27,10 +28,9 @@ const props = withDefaults(defineProps<{
   alertaInicial: null,
 })
 
-const { availableDiscussions, discussionsLoading, fetchAlerts } = useAlerts()
+const { alerts, availableDiscussions, discussionsLoading, fetchAlerts } = useAlerts()
 
 const confirmingDelete = ref(false)
-const saving           = ref(false)
 
 const blankForm = (): AlertModel => ({
   id: null,
@@ -102,13 +102,6 @@ const webhookUrl = computed(() => {
   return `${origin}/api/webhooks/${form.value.token}`
 })
 
-// TODO Move somewhere else
-const statusLabel = computed(() => {
-  if (form.value.status === AlertStatus.Active)   return 'Active'
-  if (form.value.status === AlertStatus.Inactive) return 'Inactive'
-  return 'Draft'
-})
-
 // Human-readable label for a Formatting enum value — used in the compact
 // bundle rows in view mode.
 // TODO move somewhere else
@@ -166,13 +159,26 @@ const openEditAlert = () => {
 }
 
 const toggleStatus = async () => {
-  console.log("toggling")
   if (!isExisting.value || !canActivate.value) return
   const next = form.value.status === AlertStatus.Active ? AlertStatus.Inactive : AlertStatus.Active
   try {
     const res: any = await alertService.setStatus(form.value.id as number, next)
-    if (res?.data?.status) form.value.status = res.data.status
-    await fetchAlerts()
+    const newStatus = res?.data?.status ?? next
+
+    // Optimistic local update. DO NOT call fetchAlerts() — that replaces
+    // alerts.value with a fresh array, which cascades through `alert`
+    // computed → `alertaInicial` prop → the watcher → fillFrom() and
+    // resets form.value. That cascade is what causes the visible flash.
+    form.value.status = newStatus
+
+    // Sync the sidebar in-place. Direct property mutation on a reactive
+    // proxy from useState updates anything reading `.status` (sidebar dot)
+    // without changing the array reference — so the computed `alert` on the
+    // page doesn't re-evaluate and AlertEditor stays mounted untouched.
+    const idx = alerts.value.findIndex(a => a.id === form.value.id)
+    if (idx >= 0 && alerts.value[idx]) {
+      alerts.value[idx].status = newStatus
+    }
   } catch (error: any) {
     console.error('Error toggling:', error)
   }
@@ -278,10 +284,9 @@ const runTestPoll = async () => {
   if (!form.value.id) return
   testing.value = true
   try {
-    testResult.value = await $fetch('/api/poll/test', {
-      method: 'POST',
-      body: { alertId: form.value.id },
-    })
+    // `await` is critical — without it testResult holds the Promise, not
+    // the resolved RunResult, and the template renders nothing useful.
+    testResult.value = await pollingService.testOnScreen(form.value.id)
   } catch (error: any) {
     testResult.value = { ok: false, error: error?.data?.statusMessage ?? error?.message ?? 'Test failed' }
   } finally {
@@ -349,11 +354,131 @@ const runTestPoll = async () => {
       </div>
     </div>
 
+    <!-- ── Test-poll result modal ──────────────────────────────── -->
+    <!-- Auto-opens when `testResult` is set by runTestPoll. Backdrop click /
+         × / Close button all clear testResult to dismiss. No "dirty" state
+         here — the data is a snapshot from the server, nothing to lose. -->
+    <div
+      v-if="testResult"
+      class="overlay"
+      @click.self="testResult = null"
+    >
+      <div class="overlay-box test-modal">
+        <div class="modal-head">
+          <h4>Test poll result</h4>
+          <button type="button" class="modal-close" title="Close" @click="testResult = null">✕</button>
+        </div>
+        <div class="modal-body">
+
+          <!-- Top-level error envelope (fetch/parse failure, etc.) -->
+          <div v-if="testResult.error" class="test-error">
+            ⚠ {{ testResult.error }}
+          </div>
+
+          <template v-else>
+            <!-- Overall verdict -->
+            <!--div class="test-verdict" :class="testResult.condition?.fired ? 'fired' : 'not-fired'">
+              <span class="bullet">●</span>
+              <span v-if="testResult.condition?.fired">Condition met — alert would fire.</span>
+              <span v-else>Condition not met — alert would not fire.</span>
+            </div>
+            <p class="test-reason">{{ testResult.condition?.reason }}</p-->
+
+            <div
+              class="preview-strip"
+              :class="testResult.condition?.fired ? 'ok' : 'no'"
+            >
+              <span class="bullet">●</span>
+              <span v-if="testResult.condition?.fired">Condition met — alert would fire.</span>
+              <span v-else>Condition not met — alert would not fire.</span>
+              <p class="test-reason">{{ testResult.condition?.reason }}</p>
+
+              <details v-if="testResult.condition?.baselineValue?.length" class="preview-detail">
+                <summary>per-field breakdown</summary>
+                <ul>
+
+                  <li
+                      v-for="(v, i) in testResult.condition.baselineValue"
+                      :key="i"
+                      :class="v.fired ? 'fired' : 'not-fired'"
+                    >
+                      <span class="verdict-icon">{{ v.fired ? '✓' : '✗' }}</span>
+                      <code class="verdict-path">{{ v.path }}</code>
+                      <span class="verdict-detail">{{ v.detail }}</span>
+                    </li>
+  
+                </ul>
+              </details>
+            </div>
+
+
+            <!-- Per-field breakdown (reads from the verdict array we now
+                 ride on `baselineValue` per the EvalResult contract) -->
+            <template v-if="testResult.condition?.baselineValue?.length">
+
+              
+              <!--details class="preview-detail">
+                <summary>Per-field breakdown</summary>
+                  <ul class="verdict-list">
+                    <li
+                      v-for="(v, i) in testResult.condition.baselineValue"
+                      :key="i"
+                      :class="v.fired ? 'fired' : 'not-fired'"
+                    >
+                      <span class="verdict-icon">{{ v.fired ? '✓' : '✗' }}</span>
+                      <code class="verdict-path">{{ v.path }}</code>
+                      <span class="verdict-detail">{{ v.detail }}</span>
+                    </li>
+                  </ul>
+              </details-->
+              
+            </template>
+
+            <!-- Per-bundle messages — exactly what each bundle would send -->
+            <template v-if="testResult.bundleMessages?.length">
+              <div class="divider"><span>Messages per bundle</span></div>
+              <div class="bundle-messages">
+                <div
+                  v-for="bm in testResult.bundleMessages"
+                  :key="bm.index"
+                  class="bundle-message"
+                >
+                  <div class="bundle-message-head">
+                    <span class="bundle-tag">BUNDLE {{ bm.index + 1 }}</span>
+                    <span class="bundle-message-meta">
+                      {{ bm.discussionCount }} discussion{{ bm.discussionCount === 1 ? '' : 's' }}
+                      · {{ formatLabel(bm.formating) }}
+                    </span>
+                  </div>
+                  <pre v-if="!bm.error" class="bundle-message-body">{{ bm.message }}</pre>
+                  <pre v-else class="bundle-message-error">⚠ {{ bm.error }}</pre>
+                </div>
+              </div>
+            </template>
+
+            <!-- Raw parsed payload — collapsed by default, opt-in debug -->
+            <details class="test-raw">
+              <summary>Parsed source (raw)</summary>
+              <pre>{{ JSON.stringify(testResult.parsed, null, 2) }}</pre>
+            </details>
+          </template>
+        </div>
+        <div class="modal-foot">
+          <ButtonPrimary @click="testResult = null">Close</ButtonPrimary>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Header ─────────────────────────────────────────────── -->
+    <!-- Title + description form an "identity block": what is this alert,
+         what does it do. Status toggle stays on the right. Configuration
+         details (source, URL, etc.) live in the body, not here. -->
     <div class="panel-head">
       <div class="head-left">
-        <!--span class="head-tag">#{{ form.id }}</span-->
-        <h2 class="view-title"> {{form.title || 'Untitled' }}</h2>
+        <div class="head-title-block">
+          <h2 class="view-title">{{ form.title || 'Untitled' }}</h2>
+          <p v-if="form.description" class="view-subtitle">{{ form.description }}</p>
+      </div>
       </div>
       <div class="head-right">
         <Toggle v-if="isExisting" 
@@ -362,6 +487,7 @@ const runTestPoll = async () => {
           @update:state="toggleStatus"
         /> 
       </div>
+      
     </div>
 
     <!-- ── Body ──────────────────────────────────────────────── -->
@@ -371,10 +497,10 @@ const runTestPoll = async () => {
     <div class="panel-body">
 
       <dl class="info-list">
-        <div v-if="form.description" class="info-row">
+        <!--div v-if="form.description" class="info-row">
           <dt class="field-label">Description</dt>
           <dd class="info-value">{{ form.description }}</dd>
-      </div>
+      </div-->
 
         <div v-if="form.input" class="info-row">
           <dt class="field-label">Source</dt>
@@ -437,7 +563,7 @@ const runTestPoll = async () => {
       <div v-else class="bundle-list">
         <div v-for="(b, i) in form.bundles" :key="i" class="bundle-card">
           <div class="bundle-card-head">
-            <span class="bundle-tag">BUNDLE {{ i + 1 }}</span>
+            <span class="field-label">BUNDLE {{ i + 1 }}</span>
             <button type="button" class="btn-mini" @click="openBundleEditor(i)">
               <span class="btn-mini-icon">✎</span> Edit
             </button>
@@ -461,62 +587,33 @@ const runTestPoll = async () => {
       </div>
 
 
-      <!-- ── Test poll — polling alerts only, while inactive ── -->
-      <div v-if="form.triggerType === Trigger.Polling && form.status === AlertStatus.Inactive" 
-          class="divider"><span>Test polling</span>
-      </div>
-      <div
-        v-if="form.triggerType === Trigger.Polling && form.status === AlertStatus.Inactive"
-        class="test-panel"
-      >
-        
-        <p class="test-intro">
-          Trigger the polling pipeline once manually. The alert won't be
-          activated and no bundles will be fired.
-        </p>
-        <button
-          type="button"
-          class="btn btn-secondary btn-sm test-btn"
-          :disabled="testing"
-          @click="runTestPoll"
-        >
-          {{ testing ? 'Polling…' : 'Run test poll' }}
-        </button>
-
-        <div v-if="testResult" class="test-result">
-          <div v-if="testResult.error" class="test-error">
-            ⚠ {{ testResult.error }}
-          </div>
-          <template v-else>
-            <div
-              class="test-verdict"
-              :class="testResult.condition?.fired ? 'fired' : 'not-fired'"
-            >
-              <span class="bullet">●</span>
-              <span v-if="testResult.condition?.fired">Condition met — alert would fire.</span>
-              <span v-else>Condition not met — alert would not fire.</span>
-            </div>
-            <p class="test-reason">{{ testResult.condition?.reason }}</p>
-
-            <div
-              v-if="testResult.condition?.observedValue !== undefined"
-              class="test-value-block"
-            >
-              <span class="test-value-label">Observed value</span>
-              <pre class="test-value">{{ JSON.stringify(testResult.condition.observedValue, null, 2) }}</pre>
-            </div>
-
-            <details class="test-raw">
-              <summary>Parsed document</summary>
-              <pre>{{ JSON.stringify(testResult.parsed, null, 2) }}</pre>
-            </details>
-          </template>
+      <!-- ── Test poll — polling alerts only, while inactive ──
+           Inline panel kept minimal: intro + button. The rich result
+           (verdict, per-field breakdown, per-bundle messages, raw payload)
+           lives in a modal that auto-opens when testResult arrives. -->
+      <template v-if="form.triggerType === Trigger.Polling && form.status === AlertStatus.Inactive">
+        <div class="divider"><span>Test polling</span></div>
+        <div class="test-panel">
+          <p class="test-intro">
+            Trigger the polling pipeline once manually. The alert won't be
+            activated and no bundles will be fired — the result will open in
+            a panel showing the per-field breakdown and the message each
+            bundle would send.
+          </p>
+          <button
+            type="button"
+            class="btn btn-secondary btn-sm test-btn"
+            :disabled="testing"
+            @click="runTestPoll"
+          >
+            {{ testing ? 'Polling…' : 'Run test poll' }}
+          </button>
         </div>
-      </div>
+      </template>
 
 
     </div>
-
+    
 
     
 
@@ -538,7 +635,7 @@ const runTestPoll = async () => {
  */
 
 /* Header composition — same recipe as the wizard. */
-.head-left  { display: flex; align-items: center; gap: var(--space-3); flex: 1; min-width: 0; }
+.head-left  { display: flex; align-items: center; gap: var(--space-3); flex: 1; min-width: 0;}
 .head-right { display: flex; align-items: center; gap: var(--space-5); flex-shrink: 0; }
 .head-tag {
   background: var(--color-border-subtle);
@@ -550,19 +647,58 @@ const runTestPoll = async () => {
   border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
+.head-subtitle{
+  display: flex;
+  align-self: flex-start;
+  margin-left: var(--space-1);
+  color: var(--color-text-dim);
+  font-size: var(--text-md);
 
+}
+/* Title block — stacks the title and (when present) a muted subtitle
+ * representing the description. Gives the header an "article masthead"
+ * feel without growing when there's no description. */
+.head-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;            /* allow ellipsis on the title */
+  padding-left: var(--space-4);
+}
 .view-title {
   margin: 0;
-  padding-left: 12px; /* !!!!!!!!!!!!!!!!!!!!! */
   font-size: var(--text-xl);
   font-weight: 600;
   color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.2;
+}
+.view-subtitle {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 400;
+  font-style: italic;
+  color: var(--color-text-faint);
+  line-height: 1.4;
+  /* Allow up to 2 lines, ellipsize after — keeps the header compact
+   * even with long descriptions, while still showing more than one line
+   * of context. */
+  display: -webkit-box;
+  /* Standard property for line clamping (when supported) */
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-/* ── Active/inactive toggle ─────────────────────── */
+/* ── Active/inactive toggle ─────────────────────────────────
+ * Track + thumb animate together with a spring-out easing
+ * (cubic-bezier with slight overshoot near the end). On activation, the
+ * track adds an accent glow and the thumb's shadow deepens for a sense
+ * of "lifted". Hover slightly enlarges the thumb shadow for feedback. */
 .toggle-wrap { display: flex; align-items: center; gap: var(--space-3); }
 .toggle {
   width: 42px;
@@ -572,20 +708,39 @@ const runTestPoll = async () => {
   border: none;
   position: relative;
   cursor: pointer;
-  transition: background-color .2s;
   padding: 0;
+  /* Smooth ease-out — the colour fades faster than the thumb travels,
+   * so the eye reads the track changing first, then the thumb settling. */
+  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow      0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.toggle.on { background: var(--color-accent); }
+.toggle.on {
+  background: var(--color-accent);
+  /* Soft glow ring — only visible on activation, fades cleanly on toggle off. */
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
 .toggle:disabled { opacity: .4; cursor: not-allowed; }
+.toggle:disabled.on { box-shadow: none; }
+
 .knob {
   position: absolute;
   top: 2px; left: 2px;
   width: 18px; height: 18px;
   border-radius: 50%;
   background: var(--color-text-on-accent);
-  transition: transform .2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  /* Spring-out: ease past the target slightly, then settle. Makes the
+   * toggle feel physical without being bouncy. */
+  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.2s ease-out;
 }
-.toggle.on .knob { transform: translateX(20px); }
+.toggle.on .knob {
+  transform: translateX(20px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.toggle:hover:not(:disabled) .knob {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.40);
+}
 .toggle-label {
   font-size: var(--text-md);
   color: var(--color-text-muted);
@@ -706,7 +861,8 @@ const runTestPoll = async () => {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  align-items: flex-start;
+  align-items: center;
+
 }
 .test-intro { margin: 0; color: var(--color-text-muted); font-size: var(--text-md); line-height: 1.5; }
 .test-btn   { align-self: flex-start; }
@@ -858,6 +1014,114 @@ const runTestPoll = async () => {
 }
 
 .foot-spacer { flex: 1; }
+
+/* ── Test-poll result modal ─────────────────────────────────
+ * Wider than the bundle-edit modal because it stacks: verdict header,
+ * per-field breakdown, per-bundle message previews, and the raw payload
+ * debug. Internally-scrolling so a 10-bundle alert with long messages
+ * doesn't blow past the viewport. */
+.test-modal {
+  width: 92vw;
+  max-width: 760px;
+  max-height: 88vh;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.test-modal .modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* Per-field breakdown — checkmark / cross + path + detail */
+.verdict-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.verdict-list li {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+}
+.verdict-icon {
+  font-weight: 700;
+  font-size: var(--text-base);
+  width: 1ch;
+}
+.verdict-list li.fired      .verdict-icon { color: var(--color-success); }
+.verdict-list li.not-fired  .verdict-icon { color: var(--color-text-dim); }
+.verdict-path {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-accent-text);
+  background: var(--color-border-subtle);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.verdict-detail {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+/* Per-bundle messages — boxed code-like preview of the rendered string */
+.bundle-messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.bundle-message {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-bg-card);
+}
+.bundle-message-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-bg-card-soft);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.bundle-message-meta {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.bundle-message-body {
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-bg-code);
+  color: var(--color-text-code);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.bundle-message-error {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-danger-soft);
+  color: var(--color-danger-bright);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+}
 
 /* ── Per-bundle edit modal ──────────────────────── */
 .bundle-edit-modal {

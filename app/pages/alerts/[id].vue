@@ -17,7 +17,6 @@ const isDraft = computed(() => alert.value?.status === AlertStatus.Draft)
 // Explicit edit request via query (?edit=1) puts a non-draft alert into the
 // wizard for full reconfiguration. Drafts always open in the wizard.
 const isEditing = computed(() => route.value.query.edit === '1')
-const useWizard = computed(() => /*isDraft.value ||*/ isEditing.value)
 </script>
 
 <template>
@@ -26,7 +25,7 @@ const useWizard = computed(() => /*isDraft.value ||*/ isEditing.value)
     <span v-else>Alert not found.</span>
   </div>
   <AlertWizard
-    v-else-if="useWizard"
+    v-else-if="isEditing"
     :key="`wizard-${alert.id?.toString()}`"
     :alerta-inicial="alert"
   />

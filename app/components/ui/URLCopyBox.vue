@@ -37,6 +37,8 @@ const copyWebhook = () => {
 .url-box {
   display: flex;
   align-items: center;
+  min-width: 30%;
+  width:fit-content ;
   gap: var(--space-3);
   background: var(--color-bg-code);
   border: 1px solid var(--color-border-subtle);

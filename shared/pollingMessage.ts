@@ -3,59 +3,16 @@
 //   - alertManager     (actual message generation on the server)
 //
 // Pure: no IO, no DOM. Safe in both Nuxt server and browser contexts.
+// All evaluation logic lives in `./conditionEval` — this module only formats.
 
-import {
-  ConditionKind,
-  ConditionOperator,
-  migrateCondition,
-} from './constants'
-
-// Same dot-path resolver as the server-side evaluator. Duplicated here to
-// keep this module dependency-free.
-function resolvePath(obj: any, path: string): any {
-  if (!path) return undefined
-  const parts = path.split('.').filter(Boolean)
-  let cur: any = obj
-  for (const part of parts) {
-    if (cur == null) return undefined
-    cur = cur[part]
-  }
-  return cur
-}
+import { ConditionKind, ConditionOperator } from './constants'
+import { evaluateCondition } from './conditionEval'
 
 function asText(v: any): string {
   if (v === null || v === undefined) return '(no value)'
   if (typeof v === 'string')          return v
   if (typeof v === 'number' || typeof v === 'boolean') return String(v)
   try { return JSON.stringify(v) } catch { return String(v) }
-}
-
-// "Live" per-path evaluation — used during preview when there's no baseline
-// available. The scheduled engine bypasses this by passing pre-computed
-// verdicts.
-function liveEval(operator: ConditionOperator, threshold: string | undefined, observed: any): boolean {
-  switch (operator) {
-    case ConditionOperator.Changed:
-      // Can't decide change without a baseline. We surface the path anyway
-      // so the user can preview the path/value shape, marking everything as
-      // "would fire on next change".
-      return true
-    case ConditionOperator.Equals:
-      return String(observed ?? '') === String(threshold ?? '')
-    case ConditionOperator.GreaterThan: {
-      const a = Number(observed), b = Number(threshold)
-      return !Number.isNaN(a) && !Number.isNaN(b) && a > b
-    }
-    case ConditionOperator.LessThan: {
-      const a = Number(observed), b = Number(threshold)
-      return !Number.isNaN(a) && !Number.isNaN(b) && a < b
-    }
-    case ConditionOperator.Contains: {
-      const t = String(threshold ?? '')
-      return t.length > 0 && String(observed ?? '').includes(t)
-    }
-  }
-  return false
 }
 
 function lineFor(
@@ -80,51 +37,40 @@ function lineFor(
   }
 }
 
-export type Verdict = { path: string; observed: any; fired: boolean }
-
 /**
  * Build the polling-default message for an alert + observed payload.
  *
  * @param alert    Has at least { title, description, triggerParams.condition }
  * @param payload  The parsed source object (for XML this is the parsed tree)
- * @param verdicts Optional per-path verdicts from the live engine. When
- *                 provided, only the fired ones are listed. When omitted,
- *                 the formatter live-evaluates the non-`changed` operators.
+ * @param baseline Optional previous-poll snapshot — pass on the server for
+ *                 accurate `changed` evaluation. Omit in previews; the
+ *                 evaluator treats no-baseline as "fires on next change".
  */
 export function buildPollingDefaultMessage(
   alert:    any,
   payload:  any,
-  verdicts?: Verdict[],
-): string {
+  baseline?: any,
+): string { 
   const title = alert?.title ?? 'Polling alert'
-  const cond  = migrateCondition(alert?.triggerParams?.condition)
+  const result = evaluateCondition(alert?.triggerParams?.condition, payload, baseline)
 
-  if (cond.kind === ConditionKind.None) {
+  if (result.kind === ConditionKind.None) {
     return `📡 ${title}\nPolled successfully (no condition — fires every cycle).`
   }
-  if (cond.paths.length === 0) {
-    return `📡 ${title}\nPolled successfully.`
+  if (result.verdicts.length === 0) {
+    // Empty paths / missing value / etc. — evaluator already encoded the why.
+    return `📡 ${title}\n${result.reason}`
   }
 
-  // Determine which paths fired.
-  let fired: Verdict[]
-  if (verdicts && verdicts.length > 0) {
-    fired = verdicts.filter(v => v.fired)
-  } else {
-    fired = cond.paths
-      .map((path) => {
-        const observed = resolvePath(payload, path)
-        return { path, observed, fired: liveEval(cond.operator, cond.value, observed) }
-      })
-      .filter(v => v.fired)
-  }
-
+  const fired = result.verdicts.filter(v => v.fired)
   if (fired.length === 0) {
     // Could happen during preview if no field currently passes — useful to
     // tell the user "your rule would not fire on the current snapshot".
     return `📡 ${title}\nNo watched fields currently verify the condition on this snapshot.`
   }
 
-  const lines = fired.map(v => `• ${lineFor(cond.operator, v.path, cond.value, v.observed)}`)
+  const lines = fired.map(v =>
+    `• ${lineFor(result.condition.operator, v.path, result.condition.value, v.observed)}`,
+  )
   return `📡 ${title}\n${lines.join('\n')}`
 }
