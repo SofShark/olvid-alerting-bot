@@ -1,3 +1,4 @@
+// Library with parser for XML-JSON conversion
 import { XMLParser } from 'fast-xml-parser'
 import { PollingFormat } from '#shared/constants'
 import type { Parser, ParserContext, ParseResult } from '../types'

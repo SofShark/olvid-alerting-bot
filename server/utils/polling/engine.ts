@@ -53,7 +53,39 @@ export const pollingEngine = {
     const url    = params.url
     const format = params.format
     const r = await this.retrieve(url, format)
-    if (!r.ok) return r
+
+    // Persist BOTH outcomes (success vs failure) keyed by alert id. Failures
+    // go into a separate table so a subsequent success doesn't erase the
+    // diagnostic trail — admins always see the last failure even if the
+    // alert is currently healthy.
+    //
+    // `r.raw === undefined` ⇒ fetch never produced bytes (network/HTTP),
+    // `r.raw !== undefined && !r.parsed` ⇒ bytes arrived but parsing broke.
+    if (alert?.id != null) {
+      if (!r.ok) {
+        try {
+          await bdManager.upsertLastFailedPayload(alert.id, {
+            raw:    r.raw ?? null,
+            parsed: r.parsed ?? null,
+            error:  r.error ?? 'Unknown error',
+            stage:  r.raw === undefined ? 'fetch' : 'parse',
+          })
+        } catch (e: any) {
+          console.error('[pollingEngine] failed to persist failure:', e?.message ?? e)
+        }
+        return r
+      }
+      if (r.parsed !== undefined) {
+        try {
+          await bdManager.upsertLastAlertPayload(alert.id, r.parsed)
+        } catch (e: any) {
+          console.error('[pollingEngine] failed to persist last payload:', e?.message ?? e)
+        }
+      }
+    } else if (!r.ok) {
+      return r
+    }
+
     const baseline   = params._baseline   // present once the live engine has run
     const condResult = evaluate(params.condition, r.parsed, baseline)
     return { ...r, condition: condResult }

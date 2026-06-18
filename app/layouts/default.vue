@@ -42,7 +42,8 @@ const selectedId = computed(() => {
         </div>
 
         <div class="split-right">
-          <slot />
+          <slot 
+          :key="route.path"/>
           <!-- :key="route.path"-->
         </div>
 
@@ -58,7 +59,7 @@ const selectedId = computed(() => {
 .top-nav {
   background-color: var(--color-bg-nav);
   border-bottom: 1px solid var(--color-border-subtle);
-  padding: 15px 0;
+  padding: 14px 0;
   position: sticky; top: 0; z-index: 100;
 }
 .nav-content {
@@ -74,14 +75,14 @@ const selectedId = computed(() => {
 
 .main-content {
   width: 100%;
-  margin: 24px auto; padding: 0 24px;
+  margin: 18px auto; padding: 0 18px;
   flex-grow: 1; box-sizing: border-box;
 }
 .split {
   display: grid;
   grid-template-columns: 200px 1fr;
-  gap: 20px;
-  height: calc(100vh - 140px);
+  gap: 18px;
+  height: calc(100vh - 120px);
 }
 .split-left  { 
   min-height: 0;

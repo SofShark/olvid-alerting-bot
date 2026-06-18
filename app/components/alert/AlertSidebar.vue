@@ -70,7 +70,7 @@ const statusLabel = (status: string) => {
 .sidebar-head {
   display: flex; align-items: center; gap: var(--space-3);
   padding: var(--space-4) var(--space-6);
-  background: var(--color-bg-card);
+  background: var(--color-border-subtle);
   border-bottom: 1px solid var(--color-border-subtle);
 }
 .sidebar-title { font-size: var(--text-base); font-weight: 600; color: var(--color-text-primary); }

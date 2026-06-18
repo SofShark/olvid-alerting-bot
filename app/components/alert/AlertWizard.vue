@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import {onBeforeRouteLeave, type RouteLocationNormalized} from 'vue-router'
+import {onBeforeRouteLeave, onBeforeRouteUpdate, type RouteLocationNormalized} from 'vue-router'
 import {
   Formatting,
   AlertStatus,
@@ -9,11 +9,14 @@ import {
   PollingFormat,
   isPollingSource,
   sourceTriggers,
+  compactCondition,
+  migrateCondition,
   type AlertModel,
   type BundleModel,
   type DiscussionModel,
 } from '#shared/constants'
 import { alertService } from '~/utils/alertService';
+import { snapshot } from 'node:test';
 
 const props = withDefaults(defineProps<{
   alertaInicial?: AlertModel | null
@@ -23,35 +26,67 @@ const props = withDefaults(defineProps<{
 
 const { availableDiscussions, discussionsLoading, fetchAlerts } = useAlerts()
 
-
+//  JSON snapshot taken when entering edit mode
+const formSnapshot = ref('') 
+// Saves route destination when trying to leave the page
 const pendingLeave = ref<RouteLocationNormalized | null>(null)
 // One-shot escape hatch: when the user confirms Discard or Save-as-draft, set
 // this to true so the next navigation slips past the guard. The guard resets
 // it on read so it can't accidentally suppress a future leave.
 const bypassGuard = ref(false)
-
+// Current step in the alert configuration
 const currentStep = ref(1)
 const saving = ref(false)
 const showDiscardWarning = ref(false)
+const confirmingDelete = ref(false)
+const deleting = ref(false)
 
 
-// Intercept ANY route change (sidebar click, programmatic navigateTo, back button).
-onBeforeRouteLeave((to) => {
+const isDirty = computed(() => {
+  //if (!editing.value) return false
+  return JSON.stringify(form.value) !== formSnapshot.value
+})
+
+
+// Intercept ANY route change. Two hooks are needed: Leave fires when the
+// route DEFINITION changes (e.g. /alerts/[id] → /, /alerts/new), Update fires
+// when the same definition is reused with different params/query
+// (e.g. /alerts/123?edit=1 → /alerts/456 — sidebar click — or the post-save
+// nav stripping ?edit=1). Without Update, leaving edit mode for ANOTHER
+// alert in the sidebar would slip through silently.
+const guardNavigation = (to: RouteLocationNormalized) => {
   if (bypassGuard.value) { bypassGuard.value = false; return true }
-  // If form is still empty we can leave directly
-  if (!hasAnyInput.value) return true
+  if (!isDirty.value) return true
+  //if (!hasAnyInput.value) return true
   pendingLeave.value = to
   showDiscardWarning.value = true
   return false
-})
-
-// Browser-level: tab close, hard refresh, address bar nav. preventDefault is
-// the modern trigger for the "Leave site?" confirmation; returnValue is
-// deprecated and no longer needed.
-const onBeforeUnload = (e: BeforeUnloadEvent) => {
-  if (hasAnyInput.value) e.preventDefault()
 }
-onMounted(() => window.addEventListener('beforeunload', onBeforeUnload))
+
+// Call guard Navigation whenever route is about to be changed from outside of the wizard
+onBeforeRouteLeave(guardNavigation)
+onBeforeRouteUpdate(guardNavigation)
+
+// Browser-level: tab close, hard refresh, address bar nav. We set BOTH
+// preventDefault AND returnValue — preventDefault is the modern trigger but
+// older browsers (and some current Safari builds) still require returnValue
+// to be truthy for the native "Leave site?" dialog to actually show. The
+// `returnValue` setter is marked @deprecated, but every browser still honors
+// it; skipping it costs reliability for no real gain.
+const onBeforeUnload = (e: BeforeUnloadEvent) => {
+  //if (!hasAnyInput.value) return
+  if (isDirty.value) e.preventDefault()
+  e.preventDefault()
+}
+
+const snapform = () =>{
+  formSnapshot.value = JSON.stringify(form.value)
+}
+
+onMounted(() => {
+  window.addEventListener('beforeunload', onBeforeUnload)
+  snapform()
+})
 onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload))
 
 
@@ -260,7 +295,8 @@ const hasAnyInput = computed(
 )
 
 const requestBack = () => {
-  if (hasAnyInput.value) showDiscardWarning.value = true
+  //if (hasAnyInput.value) showDiscardWarning.value = true
+  if (isDirty.value) showDiscardWarning.value = true
   else navigateTo('/')
 }
 
@@ -277,6 +313,26 @@ const discardAndExit = () => {
 const dismissDiscard = () => {
   showDiscardWarning.value = false
   pendingLeave.value = null
+}
+
+// Delete the currently-loaded alert. Available in the wizard for ANY existing
+// alert (drafts, inactive, active) — drafts open in the wizard, so without
+// this they'd have nowhere to be deleted from.
+const doDelete = async () => {
+  if (!form.value.id) return
+  deleting.value = true
+  try {
+    await alertService.delete(form.value.id as number)
+    confirmingDelete.value = false
+    await fetchAlerts()
+    bypassGuard.value = true
+    navigateTo('/')
+  } catch (error: any) {
+    console.error('Error deleting:', error)
+    alert(`Error deleting alert:\n\n${error?.data?.message || error?.message || 'Unknown error'}`)
+  } finally {
+    deleting.value = false
+  }
 }
 
 // Modal "Save as draft": persist, then continue to wherever the user was
@@ -301,14 +357,23 @@ const back = () => {
 }
 
 // ── Persistence ───────────────────────────────────────────────────────────
-const buildPayload = (status: AlertStatus) => ({
+// Compact the polling condition on the way out: drop unused fields when
+// kind === None, drop `value` for operators that don't use it. The in-memory
+// shape preserves all fields so the user can flip between modes without
+// losing context; only the DB-bound payload gets pruned.
+const buildPayload = (status: AlertStatus) => {
+  const tp: any = { ...(form.value.triggerParams ?? {}) }
+  if (isPolling.value && tp.condition) {
+    tp.condition = compactCondition(migrateCondition(tp.condition))
+  }
+  return ({
   id: form.value.id,
   title: form.value.title,
   description: form.value.description,
   input: form.value.input,
   triggerType: form.value.triggerType,
   status,
-  triggerParams: form.value.triggerParams ?? {},
+  triggerParams: tp,
   bundles: bundles.value.map(b => ({
     id: b.id,
     name: b.name,
@@ -317,15 +382,32 @@ const buildPayload = (status: AlertStatus) => ({
     discussion_list: b.discussion_list.map(d => d.id),
   })),
 })
+}
 
 const canSaveDraft = computed(() => !!form.value.title)
 
-// The final "Save alert" downgrades to Draft when the bundles are incomplete:
-// an empty bundle (no discussions) can't actually notify anyone, so the alert
-// isn't ready to be Inactive.
+// Would the form, as it stands right now, save as a complete (non-Draft)
+// alert? Used by the per-step Save button so it can offer "Save alert"
+// instead of "Save as draft" the moment everything's in place — no need to
+// wait until the user reaches the bundle step.
+const wouldBeComplete = computed(() =>
+  !!form.value.title &&
+  !!form.value.input &&
+  isPollingConfigComplete.value &&
+  isConditionComplete.value &&
+  bundles.value.length > 0 &&
+  !hasEmptyBundle.value,
+)
+
+// Resolves to the status the alert SHOULD have after this save. Drafts when
+// the form isn't complete; otherwise preserve the alert's existing status —
+// editing an Active alert that's still complete must NOT silently demote it
+// to Inactive (it would stop firing).
 const effectiveFinalStatus = computed<AlertStatus>(() => {
-  if (bundles.value.length === 0) return AlertStatus.Draft
-  if (hasEmptyBundle.value) return AlertStatus.Draft
+  if (!wouldBeComplete.value) return AlertStatus.Draft
+  if (isExisting.value && form.value.status === AlertStatus.Active) {
+    return AlertStatus.Active
+  }
   return AlertStatus.Inactive
 })
 
@@ -387,6 +469,20 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
       </div>
     </div>
 
+    <!-- Delete confirmation — for existing alerts (drafts included). -->
+    <div v-if="confirmingDelete" class="overlay">
+      <div class="overlay-box">
+        <h4>Delete this alert?</h4>
+        <p>This removes the alert and all its bundles. This cannot be undone.</p>
+        <div class="overlay-actions">
+          <button type="button" class="btn btn-ghost" @click="confirmingDelete = false">Cancel</button>
+          <button type="button" class="btn btn-danger" :disabled="deleting" @click="doDelete">
+            {{ deleting ? 'Deleting…' : 'Delete' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Stepper sits ABOVE the creation card -->
     <div class="wizard-stepper">
       <Stepper v-model="currentStep" :steps="stepDefs" />
@@ -403,7 +499,12 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
           placeholder="Alert title…"
           class="title-input"
         />
-        <span v-if="isExisting" class="draft-badge">DRAFT</span>
+        <!-- Status badge reflects the actual saved status — DRAFT only when
+             we're editing an alert that's actually a draft on the server.
+             Editing an Active alert shouldn't read as "DRAFT". -->
+        <span v-if="isExisting && form.status === AlertStatus.Draft" class="status-badge draft">DRAFT</span>
+        <span v-else-if="isExisting && form.status === AlertStatus.Inactive" class="status-badge inactive">INACTIVE</span>
+        <span v-else-if="isExisting && form.status === AlertStatus.Active" class="status-badge active">ACTIVE</span>
       </div>
       <button type="button" class="btn btn-ghost" @click="requestBack">← Back to list</button>
     </div>
@@ -516,7 +617,11 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
 
     </div>
 
-    <!-- ── Footer ─ context-sensitive ──────────────────────────────── -->
+    <!-- ── Footer ─ context-sensitive ────────────────────────────────
+         Left cluster: step-back + Delete (lateral / destructive actions).
+         Right cluster: save flow + forward action.
+         Spacer in the middle keeps the destructive button visually
+         separated from save buttons so it can't be mis-clicked.            -->
     <div class="panel-foot">
       <button
         v-if="currentStep > 1"
@@ -526,10 +631,17 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
       >
         ← Back
       </button>
+      <!--button
+        v-if="isExisting"
+        type="button"
+        class="btn btn-danger-ghost"
+        @click="confirmingDelete = true"
+      >
+        Delete
+      </button-->
       <div class="foot-spacer" />
 
-      <!-- Bundle step: final save. Status auto-downgrades to draft if any
-           bundle is missing discussions. -->
+      <!-- Bundle step: final save lives here, primary CTA. -->
       <template v-if="isOnBundleStep">
         <ButtonPrimary :disabled="saving" @click="save(false, true)">
           {{ saving ? 'Saving…' :
@@ -537,10 +649,25 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
         </ButtonPrimary>
       </template>
 
-      <!-- Every other step (general / config / condition): save as draft is
-           always offered, plus the appropriate forward action. -->
+      <!-- Every other step: Save button adapts based on completeness.
+           Complete  → primary "Save alert" that commits AND returns the
+                       user to view mode (navigateAfter=true). Sits to the
+                       left of Continue so the page reads left-to-right as
+                       "commit OR keep editing".
+           Incomplete → secondary "Save as draft", stays in the wizard
+                        (navigateAfter=false) so the user can keep filling
+                        the form. -->
       <template v-else>
+        <ButtonPrimary
+          v-if="wouldBeComplete"
+          :disabled="saving"
+          title="Save the alert and return to view mode"
+          @click="save(false, true)"
+        >
+          {{ saving ? 'Saving…' : 'Save alert' }}
+        </ButtonPrimary>
         <button
+          v-else
           type="button"
           class="btn btn-secondary"
           :disabled="!canSaveDraft || saving"
@@ -620,16 +747,31 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
 .title-input:focus { outline: none; border-bottom-color: var(--color-accent); }
 .title-input::placeholder { color: var(--color-text-faint); }
 
-.draft-badge {
-  background: var(--color-warning-soft);
-  border: 1px solid var(--color-warning-border);
-  color: var(--color-warning-text);
+/* Status badge — colour reflects the alert's current saved status. The
+ * .draft variant keeps the original draft-badge styling. */
+.status-badge {
   font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.6px;
   padding: 2px 7px;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
+  border: 1px solid transparent;
+}
+.status-badge.draft {
+  background: var(--color-warning-soft);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning-text);
+}
+.status-badge.inactive {
+  background: var(--color-border-subtle);
+  border-color: var(--color-border-default);
+  color: var(--color-text-dim);
+}
+.status-badge.active {
+  background: var(--color-success-soft);
+  border-color: var(--color-success-border);
+  color: var(--color-success-text);
 }
 
 /* Step-body callouts. */

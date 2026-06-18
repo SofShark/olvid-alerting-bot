@@ -9,6 +9,7 @@ import {
   migrateCondition,
   type PollingCondition,
 } from '#shared/constants'
+import { expandPath, hasWildcard } from '#shared/pathExpand'
 
 const props = defineProps<{
   modelValue?: PollingCondition
@@ -28,83 +29,78 @@ const current = computed<PollingCondition>(
 
 const kind = computed(() => current.value.kind)
 
-// Cached rule state — preserved across mode switches so the user doesn't
-// lose their selections when toggling to "Fire every poll cycle" by accident.
-// TODO Better preserve all fiels in Polling Condition and then erase if at save kind results to be none?
-const savedRule = ref({
-  paths:       [] as string[],
-  operator:    ConditionOperator.Changed,
-  value:       '',
-  aggregation: ConditionAggregation.All,
-})
+// PollingCondition is now homogeneous — every field is always present, so
+// the rule controls just read from `current` regardless of kind. Flipping
+// to None doesn't wipe paths/operator/value/aggregation; they're preserved
+// in the parent state and re-shown if the user flips back to Rule.
+const paths       = computed(() => current.value.paths)
+const operator    = computed(() => current.value.operator)
+const literal     = computed(() => current.value.value ?? '')
+const aggregation = computed(() => current.value.aggregation)
 
-// Whenever the parent gives us a Rule, refresh savedRule so manual edits
-// (typing in the value field, etc.) are remembered across mode toggles.
-watch(current, (c) => {
-  if (c.kind === ConditionKind.Rule) {
-    savedRule.value = {
-      paths:       c.paths,
-      operator:    c.operator,
-      value:       c.value ?? '',
-      aggregation: c.aggregation ?? ConditionAggregation.All,
+// `paths`         = what the user typed (chips). May contain wildcards.
+// `effectivePaths` = the concrete set those chips resolve to in the current
+//                   snapshot. Drives the picker's green-highlighting and the
+//                   "Watched fields (N)" count so the UI reflects what will
+//                   actually be evaluated at poll time, not just chip count.
+// Falls back to the concrete subset of `paths` when no snapshot is loaded
+// (wildcards have nothing to expand against yet).
+const effectivePaths = computed<string[]>(() => {
+  if (!parsed.value) {
+    return [...new Set(paths.value.filter(p => !hasWildcard(p)))]
+  }
+  const set = new Set<string>()
+  for (const p of paths.value) {
+    if (hasWildcard(p)) {
+      for (const c of expandPath(p, parsed.value)) set.add(c)
+    } else {
+      set.add(p)
     }
   }
-}, { immediate: true })
-
-// `rule` is what the rule controls read from. When the parent has switched
-// to None, we still display savedRule so the chips, operator, etc. remain
-// visible (the controls are disabled by the mode radio anyway).
-const rule = computed(() =>
-  current.value.kind === ConditionKind.Rule ? current.value : savedRule.value,
-)
-
-const paths       = computed(() => rule.value.paths)
-const operator    = computed(() => rule.value.operator)
-const literal     = computed(() => rule.value.value ?? '')
-const aggregation = computed(() => rule.value.aggregation ?? ConditionAggregation.All)
+  return [...set]
+})
 
 const needsValue = computed(() => OPERATORS_NEEDING_VALUE.has(operator.value))
 
-// Emit a new rule, merging only the changed bits. If the user is currently
-// in "None" mode, any change switches us to "Rule" mode automatically.
-function patchRule(patch: Partial<{ paths: string[]; operator: ConditionOperator; value: string; aggregation: ConditionAggregation }>) {
-  const next = {
-    kind:        ConditionKind.Rule as const,
-    paths:       patch.paths       ?? paths.value,
-    operator:    patch.operator    ?? operator.value,
-    value:       patch.value       ?? literal.value,
-    aggregation: patch.aggregation ?? aggregation.value,
-  }
-  // Strip `value` for operators that don't use it — keeps stored shape clean.
-  if (!OPERATORS_NEEDING_VALUE.has(next.operator)) delete (next as any).value
-  emit('update:modelValue', next)
+// Emit a new condition, merging only the changed bits onto the current
+// shape. Modifying any rule control auto-switches `kind` to Rule (clicking
+// a chip, picking an operator, etc. — clearly rule-mode intent). We KEEP
+// `value` even when the operator doesn't use it; compaction at save time
+// drops it. Same for all other fields when kind is None.
+function patchRule(patch: Partial<PollingCondition>) {
+  emit('update:modelValue', {
+    ...current.value,
+    ...patch,
+    kind: ConditionKind.Rule,
+  })
 }
 
+// Flip kind only. The other fields are preserved in-place so the user
+// doesn't lose their selections when toggling None ⇄ Rule. The DB-save
+// path (`compactCondition`) strips them if kind ends up None.
 function pickNone() {
-  // savedRule keeps the rule details intact — switching back to "Match rule"
-  // restores them. We just emit the None mode upstream.
-  emit('update:modelValue', { kind: ConditionKind.None })
+  emit('update:modelValue', { ...current.value, kind: ConditionKind.None })
 }
 
 function pickRule() {
   if (kind.value !== ConditionKind.Rule) {
-    const r = savedRule.value
-    emit('update:modelValue', {
-      kind:        ConditionKind.Rule,
-      paths:       r.paths,
-      operator:    r.operator,
-      value:       r.value || undefined,
-      aggregation: r.aggregation,
-    })
+    emit('update:modelValue', { ...current.value, kind: ConditionKind.Rule })
   }
 }
 
-// TODO?
+// Picker clicks. Three cases:
+//   (a) The clicked leaf is already a concrete chip → remove it.
+//   (b) Not a chip but covered by a wildcard chip → silent no-op. Removing
+//       the leaf would have to remove the wildcard (too destructive), so
+//       we leave it green and direct the user to the chips list instead.
+//   (c) Not on the list at all → add as a concrete chip.
 function toggleTreePath(path: string) {
-  const set = new Set(paths.value)
-  if (set.has(path)) set.delete(path)
-  else                set.add(path)
-  patchRule({ paths: Array.from(set) })
+  if (paths.value.includes(path)) {
+    patchRule({ paths: paths.value.filter(p => p !== path) })
+    return
+  }
+  if (effectivePaths.value.includes(path)) return // covered by a wildcard
+  patchRule({ paths: [...paths.value, path] })
 }
 
 function removePath(path: string) {
@@ -151,22 +147,21 @@ function commitAdd() {
     return
   }
 
-  // Validate against the retrieved source when we have one. Without a
-  // snapshot we can't tell, so we accept the path and let the user fix it
-  // later if it doesn't resolve at poll time.
-  if (parsed.value !== null) {
-    const observed = (function (obj: any, path: string) {
-      const parts = path.split('.').filter(Boolean)
-      let cur: any = obj
-      for (const part of parts) {
-        if (cur == null) return undefined
-        cur = cur[part]
-      }
-      return cur
-    })(parsed.value, v)
+  const wildcard = hasWildcard(v)
 
-    if (observed === undefined) {
-      addError.value = `Path "${v}" doesn't resolve to anything in the retrieved source. Fix it, click ⟳ above to refresh, or press Esc to cancel.`
+  // Validate against the retrieved snapshot when available — both concrete
+  // paths and wildcards must point to *something* there. Without a snapshot
+  // we accept anyway; the evaluator will sort it out at poll time.
+  //
+  // Wildcards are STORED VERBATIM (not expanded into many chips). The
+  // server-side evaluator re-expands them on every poll, so a pattern like
+  // `..temperatura.maxima` automatically picks up new array entries.
+  if (parsed.value !== null) {
+    const expanded = expandPath(v, parsed.value)
+    if (expanded.length === 0) {
+      addError.value = wildcard
+        ? `Pattern "${v}" doesn't match any paths in the retrieved source.`
+        : `Path "${v}" doesn't resolve to anything in the retrieved source. Fix it, click ⟳ above to refresh, or press Esc to cancel.`
       return
     }
   }
@@ -272,12 +267,32 @@ function evalPath(observed: any): { ok: boolean; detail: string } {
   return { ok: false, detail: '' }
 }
 
+// Mirror the server-side evaluator: expand wildcards into concrete paths so
+// the per-field breakdown lists each match individually, while the user's
+// chip list stays compact (one chip per pattern). A pattern that matches
+// nothing surfaces as a single non-firing entry.
 const verdicts = computed(() => {
   if (!retrieved.value || paths.value.length === 0) return []
-  return paths.value.map((path) => {
-    const observed = resolvePath(parsed.value, path)
-    const { ok, detail } = evalPath(observed)
-    return { path, observed, ok, detail }
+  return paths.value.flatMap((pathOrPattern) => {
+    if (!hasWildcard(pathOrPattern)) {
+      const observed = resolvePath(parsed.value, pathOrPattern)
+      const { ok, detail } = evalPath(observed)
+      return [{ path: pathOrPattern, observed, ok, detail }]
+    }
+    const concretes = expandPath(pathOrPattern, parsed.value)
+    if (concretes.length === 0) {
+      return [{
+        path:     pathOrPattern,
+        observed: undefined,
+        ok:       false,
+        detail:   'pattern matched no paths in the current source',
+      }]
+    }
+    return concretes.map((concretePath) => {
+      const observed = resolvePath(parsed.value, concretePath)
+      const { ok, detail } = evalPath(observed)
+      return { path: concretePath, observed, ok, detail }
+    })
   })
 })
 
@@ -288,10 +303,17 @@ const verdictSummary = computed(() => {
   if (paths.value.length === 0) {
     return { ok: false, label: 'No fields watched — click values in the source.' }
   }
+  // Chips exist but resolve to nothing (typical case: wildcard pattern that
+  // doesn't match anything in the current source). Surface this distinctly
+  // from "no chips at all" so the user knows the alert needs a fix.
+  if (retrieved.value && effectivePaths.value.length === 0) {
+    return { ok: false, label: 'Watched patterns don\'t match any paths in the source. Refresh or fix the pattern.' }
+  }
   if (operator.value === ConditionOperator.Changed) {
+    const n = effectivePaths.value.length
     return {
       ok: false,
-      label: `Change is detected at poll time (needs a baseline). Watching ${paths.value.length} field${paths.value.length === 1 ? '' : 's'}.`,
+      label: `Change is detected at poll time (needs a baseline). Watching ${n} field${n === 1 ? '' : 's'}.`,
     }
   }
   if (needsValue.value && !literal.value) {
@@ -337,7 +359,7 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
     <div class="cond-panel">
       <div class="cond-panel-head">Condition</div>
       <div class="cond-panel-body">
-      
+  
         <div class="cond-modes">
           <label class="mode" :class="{ active: kind === ConditionKind.None }">
             <input type="radio" :checked="kind === ConditionKind.None" @change="pickNone" />
@@ -363,10 +385,14 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
               <div class="watched-meta">
                 <span class="rule-label">
                   Watched fields
-                  <span class="rule-count">({{ paths.length }})</span>
+                  <!-- Count the EFFECTIVE set (post-wildcard expansion), so a
+                       single wildcard chip matching 7 paths reads as (7). -->
+                  <span class="rule-count">({{ effectivePaths.length }})</span>
                 </span>
                 <p class="rule-hint">
-                  Type a path like <code>root.production.origin.code</code>, or open the picker to choose visually.
+                  Type a path, or use <code>..</code> as a wildcard
+                  (e.g. <code>dia..temperatura.maxima</code> matches every day's max).
+                  Or open the picker to choose visually.
                 </p>
               </div>
 
@@ -433,8 +459,10 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
           <div class="rule-row inline">
             <span class="rule-label">Trigger when</span>
 
+            <!-- Always shown: a single chip can be a wildcard pattern that
+                 resolves to many paths at poll time, so aggregation matters
+                 even with one chip on the list. -->
             <select
-              v-if="paths.length > 1"
               class="rule-select agg"
               :value="aggregation"
               @change="patchRule({ aggregation: ($event.target as HTMLSelectElement).value as ConditionAggregation })"
@@ -442,7 +470,6 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
               <option :value="ConditionAggregation.All">all of them</option>
               <option :value="ConditionAggregation.Any">at least one</option>
             </select>
-            <span v-else class="agg-fake">the field</span>
 
             <select
               class="rule-select op"
@@ -474,7 +501,7 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
          open already-watched fields are still highlighted in green. Closing
          the modal is just a UI dismiss. -->
     <div v-if="isPickerOpen" class="overlay" @click.self="closePicker">
-      <div class="overlay-box picker-modal" @click.stop>
+      <div class="overlay-box picker-modal">
         <div class="picker-head">
           <h4>Pick watched fields from source</h4>
           <button type="button" class="picker-close" title="Close" @click="closePicker">✕</button>
@@ -521,7 +548,7 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
                   :node-name="k"
                   :node-value="v"
                   :path="k"
-                  :selected="paths"
+                  :selected="effectivePaths"
                   @select="toggleTreePath"
                 />
               </template>
@@ -530,7 +557,7 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
         </div>
 
         <div class="picker-foot">
-          <span class="picker-count">{{ paths.length }} field{{ paths.length === 1 ? '' : 's' }} selected</span>
+          <span class="picker-count">{{ effectivePaths.length }} field{{ effectivePaths.length === 1 ? '' : 's' }} selected</span>
           <ButtonPrimary @click="closePicker">Done</ButtonPrimary>
         </div>
       </div>
@@ -883,7 +910,6 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
 .rule-select.agg { min-width: 110px; }
 .rule-select.op  { min-width: 200px; flex: 1 1 auto; }
 .rule-input      { min-width: 120px; flex: 1 1 120px; }
-.agg-fake { color: var(--color-text-dim); font-size: var(--text-md); }
 
 /* ── Preview strip ──────────────────────────────────────────────────── */
 .preview-strip {

@@ -16,6 +16,9 @@ const props = defineProps({
   /** Polling alerts pass triggerParams so the editor can retrieve the live source
    *  and offer shortcut chips for the configured watched paths. */
   triggerParams: { type: Object, default: () => ({}) },
+  /** Alert id — required for the "Last received" toggle to fetch THIS
+   *  alert's most recent payload. Null on the create flow (no id yet). */
+  alertId:       { type: Number as () => number | null, default: null },
 })
 
 const emit = defineEmits(['save', 'close'])
@@ -37,11 +40,19 @@ function loadExamplePayload(source: string) {
   lastPayloadMissing.value = false
 }
 
-async function loadLastPayload(source: string) {
+async function loadLastPayload(_source: string) {
+  // "Last received" is per-alert now (alertId), not per-source. Without an
+  // alert id (e.g. mid-creation) there's nothing to fetch — surface that as
+  // "missing" so the UI explains the state instead of looking broken.
+  if (!props.alertId) {
+    lastPayloadMissing.value = true
+    jsonPayload.value = ''
+    return
+  }
   lastPayloadLoading.value = true
   lastPayloadMissing.value = false
   try {
-    const res = await $fetch<{ payload: any }>(`/api/payloads?source=${encodeURIComponent(source)}&type=last`)
+    const res = await $fetch<{ payload: any }>(`/api/payloads?type=last&alertId=${props.alertId}`)
     if (res.payload) {
       jsonPayload.value = JSON.stringify(res.payload, null, 2)
       lastPayloadMissing.value = false
@@ -343,16 +354,16 @@ const close = () => emit('close')
 </template>
 
 <style scoped>
-/* The FormatEditor modal is INTENTIONALLY light — it sits over a dimmed
- * dark backdrop so the user feels they've focused into a dedicated editor.
- * Its shell colors stay hard-coded (they don't theme with the app) — only
- * the accent and the dark code-blocks inside use design tokens.
+/* The FormatEditor modal shell tracks the app theme via tokens — light app
+ * gets a light shell, dark app gets a dark one. The interior code-blocks
+ * stay dark either way ("code blocks read as embedded IDE panels", per the
+ * token comments). Backdrop dims to the standard --color-overlay scrim.
  */
 
 .editor-overlay {
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100vh;
-  background-color: rgba(15, 23, 42, 0.85);
+  background-color: var(--color-overlay);
   backdrop-filter: blur(5px);
   display: flex; justify-content: center; align-items: center;
   z-index: 10500;
@@ -360,7 +371,7 @@ const close = () => emit('close')
 }
 
 .editor-window {
-  background: #ffffff;
+  background: var(--color-bg-panel);
   width: 98vw;
   max-width: 1600px;
   height: 96vh;
@@ -368,18 +379,19 @@ const close = () => emit('close')
   box-shadow: var(--shadow-overlay);
   display: flex; flex-direction: column;
   overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
 }
 
 .window-header {
   display: flex; justify-content: space-between; align-items: center;
   padding: var(--space-7) 30px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
-.header-titles h3 { margin: 0; color: #0f172a; font-size: var(--text-xl); font-weight: 700; }
-.header-titles p  { margin: 4px 0 0 0; color: #64748b; font-size: 14px; max-width: 720px; }
+.header-titles h3 { margin: 0; color: var(--color-text-primary); font-size: var(--text-xl); font-weight: 700; }
+.header-titles p  { margin: 4px 0 0 0; color: var(--color-text-muted); font-size: 14px; max-width: 720px; }
 
 .btn-close-icon {
-  background: transparent; border: none; color: #94a3b8;
+  background: transparent; border: none; color: var(--color-text-dim);
   font-size: var(--text-xl);
   cursor: pointer; transition: color 0.2s;
 }
@@ -388,7 +400,7 @@ const close = () => emit('close')
 .window-body {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  background: #f1f5f9;
+  background: var(--color-bg-card);
   flex-grow: 1;
   overflow: hidden;
 }
@@ -397,7 +409,7 @@ const close = () => emit('close')
   padding: var(--space-7);
   display: flex; flex-direction: column; gap: var(--space-7);
   overflow-y: auto;
-  border-right: 1px solid #e2e8f0;
+  border-right: 1px solid var(--color-border-subtle);
 }
 
 /* Code-blocks here override the global min/max-height — they live inside
@@ -519,48 +531,59 @@ const close = () => emit('close')
   font-size: var(--text-sm);
 }
 
-/* ── Preview column (chat bubble — light by design) ─────────────── */
-.preview-column { display: flex; flex-direction: column; background: #e5e5ea; }
+/* ── Preview column (mimics a messaging app — pale neutral surface so the
+ *    speech bubble pops in both themes) ─────────────────────────────── */
+.preview-column {
+  display: flex; flex-direction: column;
+  background: var(--color-bg-card-soft);
+  border-left: 1px solid var(--color-border-subtle);
+}
 .chat-header {
-  background: #f8fafc; padding: var(--space-6);
-  text-align: center; font-weight: bold; color: #475569;
-  border-bottom: 1px solid #cbd5e1;
+  background: var(--color-bg-panel);
+  padding: var(--space-6);
+  text-align: center; font-weight: bold;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border-subtle);
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 .chat-background { padding: var(--space-7); flex-grow: 1; overflow-y: auto; }
 .chat-bubble {
-  background: #ffffff;
+  background: var(--color-bg-panel);
   max-width: 85%;
   padding: var(--space-4) var(--space-6);
   border-radius: 0 16px 16px 16px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
   margin-bottom: var(--space-6);
+  border: 1px solid var(--color-border-subtle);
 }
 .bubble-sender { color: var(--color-accent); font-weight: 700; font-size: var(--text-base); margin-bottom: 5px; }
-.bubble-text   { margin: 0; font-family: inherit; font-size: var(--text-lg); color: #111827; white-space: pre-wrap; line-height: 1.4; }
-.bubble-time   { text-align: right; color: #9ca3af; font-size: var(--text-sm); margin-top: 5px; }
+.bubble-text   { margin: 0; font-family: inherit; font-size: var(--text-lg); color: var(--color-text-primary); white-space: pre-wrap; line-height: 1.4; }
+.bubble-time   { text-align: right; color: var(--color-text-dim); font-size: var(--text-sm); margin-top: 5px; }
 
 .error-bubble {
-  background: #fef2f2; color: #991b1b;
+  background: var(--color-danger-soft);
+  color: var(--color-danger-bright);
   max-width: 85%;
   padding: var(--space-4) var(--space-6);
-  border-radius: 16px; border: 1px solid #f87171;
+  border-radius: 16px;
+  border: 1px solid var(--color-danger-border);
   font-family: var(--font-mono); font-size: var(--text-base);
   white-space: pre-wrap;
 }
 
 .window-footer {
   padding: var(--space-6) 30px;
-  background: #ffffff;
-  border-top: 1px solid #e2e8f0;
+  background: var(--color-bg-panel);
+  border-top: 1px solid var(--color-border-subtle);
   display: flex; justify-content: flex-end; gap: var(--space-6);
 }
 .btn-cancel {
-  background: #f1f5f9; color: #475569;
+  background: var(--color-border-subtle);
+  color: var(--color-text-secondary);
   border: none; padding: var(--space-4) var(--space-7); border-radius: var(--radius-xl);
   font-weight: 600; cursor: pointer; transition: background-color 0.2s;
 }
-.btn-cancel:hover { background: #e2e8f0; }
+.btn-cancel:hover { background: var(--color-border-default); color: var(--color-text-primary); }
 
 .btn-save {
   background: var(--color-accent); color: var(--color-text-on-accent);

@@ -188,21 +188,57 @@ export const bdManager = {
     })
   },
 
-  // 8. Upsert the last successful payload for a source (one row per source).
-  async upsertLastPayload(source: string, payload: any) {
-    await prisma.lastSourcePayload.upsert({
-      where:  { source },
-      create: { source, payload },
+  // 8. Upsert the last successful payload for an alert. Keyed by alertId so
+  // each alert has its own row (webhook body, or polling parse-result). The
+  // FK is set up with onDelete: Cascade — deleting the alert removes the
+  // payload row automatically.
+  async upsertLastAlertPayload(alertId: number, payload: any) {
+    await prisma.lastAlertPayload.upsert({
+      where:  { alertId },
+      create: { alertId, payload },
       update: { payload },
     })
   },
 
-  // 8. Retrieve the last successful payload for a source, or null if none yet.
-  async getLastPayloadForSource(source: string) {
-    const row = await prisma.lastSourcePayload.findUnique({
-      where: { source },
-      select: { payload: true },
+  // 8. Retrieve the last successful payload for a given alert, or null if
+  // we've never received/polled anything for it yet.
+  async getLastAlertPayload(alertId: number) {
+    const row = await prisma.lastAlertPayload.findUnique({
+      where:  { alertId },
+      select: { payload: true, receivedAt: true },
     })
-    return row?.payload ?? null
+    return row ?? null
+  },
+
+  // 9. Upsert the most recent FAILURE for an alert (admin debugging). This
+  // is intentionally independent of `lastAlertPayload` — a later success
+  // does not clear the row, so the diagnostic trail survives recoveries.
+  // `null`-ing fields is allowed when we don't have them (e.g. the response
+  // never arrived, so no raw text).
+  async upsertLastFailedPayload(
+    alertId: number,
+    info: { raw?: string | null; parsed?: any; error: string; stage?: string },
+  ) {
+    const data = {
+      raw:    info.raw ?? null,
+      parsed: info.parsed ?? null,
+      error:  info.error,
+      stage:  info.stage ?? null,
+    }
+    await prisma.lastFailedPayload.upsert({
+      where:  { alertId },
+      create: { alertId, ...data },
+      update: data,
+    })
+  },
+
+  // 9. Retrieve the most recent failure for an alert, or null if none on
+  // record.
+  async getLastFailedPayload(alertId: number) {
+    const row = await prisma.lastFailedPayload.findUnique({
+      where:  { alertId },
+      select: { raw: true, parsed: true, error: true, stage: true, failedAt: true },
+    })
+    return row ?? null
   },
 }

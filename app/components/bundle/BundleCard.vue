@@ -18,6 +18,9 @@ const props = withDefaults(defineProps<{
   /** True when this card is rendered inside the alert *view* — disable all
    *  controls so the user inspects without mutating. Implies hideRemove. */
   readonly?: boolean
+  /** When the card is readonly AND editable, show an "Edit" button in the
+   *  header so the parent can open its own editor for this bundle. */
+  editable?: boolean
   /** Polling alerts pass their condition + a live payload so we can preview the default message. */
   alertContext?: any
   pollPayload?: any
@@ -28,12 +31,13 @@ const props = withDefaults(defineProps<{
   inputSource: '',
   hideRemove: false,
   readonly: false,
+  editable: false,
   alertContext: null,
   pollPayload: null,
   triggerParams: null,
 })
 
-const emit = defineEmits(['update:bundle', 'remove'])
+const emit = defineEmits(['update:bundle', 'remove', 'edit'])
 
 const patch = (changes: Partial<BundleModel>) =>
   emit('update:bundle', { ...props.bundle, ...changes })
@@ -114,6 +118,7 @@ const pollingPreview = computed(() => {
       :initial-script="bundle.custom_script || ''"
       :input-source="inputSource"
       :trigger-params="triggerParams ?? alertContext?.triggerParams"
+      :alert-id="alertContext?.id ?? null"
       @save="saveScript"
       @close="isEditorOpen = false"
     />
@@ -127,6 +132,13 @@ const pollingPreview = computed(() => {
         title="Remove bundle"
         @click="emit('remove')"
       >✕</button>
+      <button
+        v-else-if="readonly && editable"
+        type="button"
+        class="card-edit"
+        title="Edit this bundle"
+        @click="emit('edit')"
+      >✎ Edit</button>
     </div>
 
     <!-- Discussions -->
@@ -183,6 +195,25 @@ const pollingPreview = computed(() => {
  * pieces specific to BundleCard (format-row composition, polling-preview
  * box, script-hint) live here.
  */
+
+/* Edit button in the header for readonly+editable cards. Pill-shaped accent
+ * button that sits where the × normally lives. */
+.card-edit {
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent-border);
+  color: var(--color-accent-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color .15s, color .15s, border-color .15s;
+}
+.card-edit:hover {
+  background: var(--color-accent);
+  border-color: var(--color-accent-hover);
+  color: var(--color-text-on-accent);
+}
 
 .format-row { display: flex; gap: var(--space-3); }
 .format-select { flex: 1; }

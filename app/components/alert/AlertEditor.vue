@@ -1,8 +1,25 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { onBeforeRouteLeave, type RouteLocationNormalized } from 'vue-router'
-import { Formatting, AlertStatus, Trigger, type DiscussionModel, type BundleModel, type AlertModel } from '#shared/constants'
+import {
+  Formatting,
+  AlertStatus,
+  Trigger,
+  ConditionKind,
+  ConditionOperator,
+  ConditionAggregation,
+  OPERATORS_NEEDING_VALUE,
+  migrateCondition,
+  isPollingSource,
+  type DiscussionModel,
+  type BundleModel,
+  type AlertModel,
+} from '#shared/constants'
 import { alertService } from '~/utils/alertService'
+
+// AlertEditor is now PURE VIEW MODE. Edits go through the wizard
+// (`/alerts/[id]?edit=1`) or — for a single bundle — through the in-place
+// edit modal at the bottom of this component. No inline form, no route
+// guard, no dirty tracking required here.
 
 const props = withDefaults(defineProps<{
   alertaInicial?: AlertModel | null
@@ -10,39 +27,10 @@ const props = withDefaults(defineProps<{
   alertaInicial: null,
 })
 
-// State and navigation come from the composable + Nuxt router.
 const { availableDiscussions, discussionsLoading, fetchAlerts } = useAlerts()
 
-// ── Internal mode ────────────────────────────────────────────
-const editing = ref(false)           // false = view mode, true = edit mode
-const formSnapshot = ref('')         // JSON snapshot taken when entering edit mode
-const showDiscardWarning = ref(false)
 const confirmingDelete = ref(false)
-const saving = ref(false)
-
-// Route guard plumbing — see AlertWizard for the full rationale.
-const pendingLeave = ref<RouteLocationNormalized | null>(null)
-// One-shot escape hatch: set to true right before a navigation that the
-// guard should let through (confirmed discard, save, delete). The guard
-// reads-and-resets it so it can't suppress a later leave by accident.
-const bypassGuard = ref(false)
-
-onBeforeRouteLeave((to) => {
-  if (bypassGuard.value) { bypassGuard.value = false; return true }
-  if (!isDirty.value) return true
-  pendingLeave.value = to
-  showDiscardWarning.value = true
-  return false
-})
-
-// Browser-level: tab close, hard refresh, address bar nav. preventDefault is
-// the modern trigger for the "Leave site?" confirmation; returnValue is
-// deprecated and no longer needed.
-const onBeforeUnload = (e: BeforeUnloadEvent) => {
-  if (isDirty.value) e.preventDefault()
-}
-onMounted(() => window.addEventListener('beforeunload', onBeforeUnload))
-onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload))
+const saving           = ref(false)
 
 const blankForm = (): AlertModel => ({
   id: null,
@@ -53,12 +41,11 @@ const blankForm = (): AlertModel => ({
   status: AlertStatus.Draft,
   token: '',
   triggerParams: {},
-  bundles: []
+  bundles: [],
 })
 
 const form = ref<AlertModel>(blankForm())
 
-// Resolve discussion ids to full {id,title} objects for display.
 const resolveDiscussions = (ids: any[]): DiscussionModel[] =>
   (ids || []).map((entry: any) => {
     const id = String(typeof entry === 'object' ? entry.id : entry)
@@ -82,40 +69,32 @@ const fillFrom = (a: AlertModel | null) => {
         name: b.name,
         formating: (b.formating as Formatting) || Formatting.Unformatted,
         custom_script: b.custom_script || '',
-        discussion_list: resolveDiscussions(b.discussion_list as any)
-      }))
+        discussion_list: resolveDiscussions(b.discussion_list as any),
+      })),
     }
   } else {
     form.value = blankForm()
   }
 }
 
-// When selection changes: new → edit mode, existing → view mode.
 watch(() => props.alertaInicial, (a) => {
   fillFrom(a)
-  editing.value = !a || !a.id
-  showDiscardWarning.value = false
   confirmingDelete.value = false
 }, { immediate: true })
 
-// Re-resolve discussion titles once available discussions finish loading.
-
+// Re-resolve discussion titles once the discussion list finishes loading.
 watch(availableDiscussions, (available) => {
   if (available.length === 0) return
   form.value.bundles = form.value.bundles.map(b => ({
     ...b,
-    discussion_list: resolveDiscussions(b.discussion_list)
+    discussion_list: resolveDiscussions(b.discussion_list),
   }))
 })
 
-// ── Derived state ────────────────────────────────────────────
-const isExisting = computed(() => form.value.id !== null)
+// ── Derived state ──────────────────────────────────────────────────────────
+const isExisting  = computed(() => form.value.id !== null)
 const canActivate = computed(() => form.value.bundles.length > 0)
-
-const saveLabel = computed(() => {
-  if (isExisting.value) return 'Save Changes'
-  return form.value.input ? 'Save Alert' : 'Save Draft'
-})
+const isPolling   = computed(() => isPollingSource(form.value.input))
 
 const webhookUrl = computed(() => {
   if (!form.value.token) return ''
@@ -123,156 +102,77 @@ const webhookUrl = computed(() => {
   return `${origin}/api/webhooks/${form.value.token}`
 })
 
+// TODO Move somewhere else
 const statusLabel = computed(() => {
-  if (form.value.status === AlertStatus.Active) return 'Active'
+  if (form.value.status === AlertStatus.Active)   return 'Active'
   if (form.value.status === AlertStatus.Inactive) return 'Inactive'
   return 'Draft'
 })
 
-// ── Edit mode management ─────────────────────────────────────
-const startEditing = () => {
-  // Save pre-edition values of the form
-  formSnapshot.value = JSON.stringify(form.value)
-  editing.value = true
+// Human-readable label for a Formatting enum value — used in the compact
+// bundle rows in view mode.
+// TODO move somewhere else
+const formatLabel = (f: Formatting): string => {
+  switch (f) {
+    case Formatting.Unformatted:    return 'Brute (raw JSON)'
+    case Formatting.Simple:         return 'Simple (title + description)'
+    case Formatting.Custom:         return 'Custom script (Handlebars)'
+    case Formatting.PollingDefault: return 'Default (watched fields)'
+    case Formatting.PollingCustom:  return 'Custom script (Handlebars)'
+    default:                        return String(f)
+  }
 }
 
-// Detect if modifications have been made when selected "edit alert"
-const isDirty = computed(() => {
-  if (!editing.value) return false
-  return JSON.stringify(form.value) !== formSnapshot.value
+// ── Polling trigger-detail labels ──────────────────────────────────────────
+const intervalLabel = computed(() => {
+  const s = Number(form.value.triggerParams?.intervalSeconds ?? 0)
+  if (!s) return '—'
+  if (s % 86_400 === 0) { const d = s / 86_400; return `every ${d} day${d === 1 ? '' : 's'}` }
+  if (s % 3_600  === 0) { const h = s / 3_600;  return `every ${h} hour${h === 1 ? '' : 's'}` }
+  if (s % 60     === 0) { const m = s / 60;     return `every ${m} minute${m === 1 ? '' : 's'}` }
+  return `every ${s} seconds`
 })
 
-// "Back" button in edit mode — warn if dirty.
-const requestBack = () => {
-  if (isDirty.value) {
-    showDiscardWarning.value = true
-  } else {
-    cancelEdit()
+// TODO Move somewhere else
+const operatorPhrase: Record<ConditionOperator, (v?: string) => string> = {
+  [ConditionOperator.Changed]:     ()  => 'change between polls',
+  [ConditionOperator.Equals]:      (v) => `equal "${v ?? ''}"`,
+  [ConditionOperator.GreaterThan]: (v) => `are greater than ${v ?? ''}`,
+  [ConditionOperator.LessThan]:    (v) => `are less than ${v ?? ''}`,
+  [ConditionOperator.Contains]:    (v) => `contain "${v ?? ''}"`,
+}
+
+const conditionSummary = computed(() => {
+  const c = migrateCondition(form.value.triggerParams?.condition)
+  if (c.kind === ConditionKind.None) {
+    return { headline: 'Fires every poll cycle (no condition).', paths: [] as string[] }
   }
-}
-
-const cancelEdit = () => {
-  showDiscardWarning.value = false
-  const target = pendingLeave.value
-  pendingLeave.value = null
-
-  // Always restore the form from props so isDirty falls to false — that lets
-  // both the pending nav (sidebar) and a future user action through cleanly.
-  if (isExisting.value) {
-    fillFrom(props.alertaInicial)
-    editing.value = false
+  if (c.kind === ConditionKind.Rule) {
+    const agg = c.aggregation === ConditionAggregation.Any ? 'any' : 'all'
+    const phrase = operatorPhrase[c.operator]?.(c.value) ?? c.operator
+    const needsValue = OPERATORS_NEEDING_VALUE.has(c.operator) && !c.value
+    const headline = needsValue
+      ? `Fires when ${agg} of these fields ${phrase} (value missing — edit to set).`
+      : `Fires when ${agg} of these fields ${phrase}.`
+    return { headline, paths: c.paths ?? [] }
   }
-
-  if (target) {
-    // The discard was triggered by the route guard (sidebar / address bar).
-    // Skip the guard for this one navigation and continue to where the user
-    // was actually trying to go.
-    bypassGuard.value = true
-    navigateTo(target)
-  } else if (!isExisting.value) {
-    // "Back" pressed on a never-saved new alert — fall back to the list.
-    bypassGuard.value = true
-    navigateTo('/')
-  }
-  // Existing alert + no pending target: just stay here in view mode.
-}
-
-const dismissDiscard = () => {
-  showDiscardWarning.value = false
-  pendingLeave.value = null
-}
-
-// Modal "Save Changes": persist, then continue to wherever the user was
-// actually trying to go (sidebar target), or fall back to view mode in place.
-const saveAndLeave = async () => {
-  await save()
-  if (saving.value) return // mid-flight — shouldn't happen because save awaits, defensive only
-  showDiscardWarning.value = false
-  const target = pendingLeave.value
-  pendingLeave.value = null
-  if (target) {
-    bypassGuard.value = true
-    navigateTo(target)
-  } else {
-    // No pending target: drop back to view mode in place. The form was
-    // updated server-side; the props watcher will re-sync once fetchAlerts
-    // finishes.
-    editing.value = false
-  }
-}
-
-// ── Input source change ──────────────────────────────────────
-const onInputChange = () => {
-  // TriggerSelector handles clearing triggerType via its own watch.
-}
-
-// ── Bundles ──────────────────────────────────────────────────
-const addBundle = () => {
-  form.value.bundles.push({
-    discussion_list: [],
-    formating: Formatting.Unformatted,
-    custom_script: ''
-  })
-}
-const updateBundle = (index: number, newBundle: BundleModel) => {
-  form.value.bundles[index] = newBundle
-}
-const removeBundle = (index: number) => {
-  form.value.bundles.splice(index, 1)
-}
-
-// ── Persistence ──────────────────────────────────────────────
-const buildPayload = () => ({
-  id: form.value.id,
-  title: form.value.title,
-  description: form.value.description,
-  input: form.value.input,
-  triggerType: form.value.triggerType,
-  status: form.value.status,
-  triggerParams: form.value.triggerParams ?? {},
-  bundles: form.value.bundles.map(b => ({
-    id: b.id,
-    name: b.name,
-    formating: b.formating,
-    custom_script: b.custom_script,
-    discussion_list: b.discussion_list.map(d => d.id)
-  }))
+  return { headline: '—', paths: [] }
 })
 
-const save = async () => {
-  if (!form.value.title) return alert('Title is mandatory')
-  saving.value = true
-  try {
-    const payload = buildPayload()
-    if (isExisting.value) {
-      await alertService.updateAlert(payload)
-      await fetchAlerts()
-      // Stay on this route; the watcher on alertaInicial will refresh the form.
-    } else {
-      const res: any = await alertService.saveAlert(payload)
-      const newId = res?.data?.id
-      await fetchAlerts()
-      // Alert is now persisted; isDirty is technically still true because the
-      // snapshot is stale, so we bypass the guard for this nav.
-      bypassGuard.value = true
-      await navigateTo('/alerts/' + newId)
-    }
-  } catch (error: any) {
-    console.error('Error saving:', error.data || error)
-    alert(`Error saving alert:\n\n${error.data?.message || error.message || 'Unknown error'}`)
-  } finally {
-    saving.value = false
-  }
+// ── Actions ────────────────────────────────────────────────────────────────
+const openEditAlert = () => {
+  if (!form.value.id) return
+  navigateTo(`/alerts/${form.value.id}?edit=1`)
 }
 
-// Toggle status (works in view mode — doesn't leave the page).
 const toggleStatus = async () => {
+  console.log("toggling")
   if (!isExisting.value || !canActivate.value) return
   const next = form.value.status === AlertStatus.Active ? AlertStatus.Inactive : AlertStatus.Active
   try {
     const res: any = await alertService.setStatus(form.value.id as number, next)
     if (res?.data?.status) form.value.status = res.data.status
-    await fetchAlerts() // refresh sidebar count / status dots
+    await fetchAlerts()
   } catch (error: any) {
     console.error('Error toggling:', error)
   }
@@ -283,20 +183,94 @@ const doDelete = async () => {
     await alertService.delete(form.value.id as number)
     confirmingDelete.value = false
     await fetchAlerts()
-    // The alert is gone — no dirty state to warn about, but isDirty's snapshot
-    // is irrelevant now. Bypass to be safe.
-    bypassGuard.value = true
     navigateTo('/')
   } catch (error: any) {
     console.error('Error deleting:', error)
   }
 }
 
-const copyWebhook = () => {
-  if (webhookUrl.value) navigator.clipboard?.writeText(webhookUrl.value)
+// ── Per-bundle edit modal ──────────────────────────────────────────────────
+const editingBundleIndex = ref<number | null>(null)
+const editingBundleDraft = ref<BundleModel | null>(null)
+const bundleSnapshot     = ref('')          // JSON of the draft at modal-open time
+const bundleSaving       = ref(false)
+const confirmBundleDiscard = ref(false)     // inline "discard unsaved?" prompt
+
+const openBundleEditor = (index: number) => {
+  const b = form.value.bundles[index]
+  if (!b) return
+  editingBundleIndex.value = index
+  // Deep copy so cancel really discards changes.
+  editingBundleDraft.value = {
+    ...b,
+    discussion_list: [...b.discussion_list],
+  }
+  bundleSnapshot.value     = JSON.stringify(editingBundleDraft.value)
+  confirmBundleDiscard.value = false
 }
 
-// ── Manual test poll (polling alerts, inactive only) ────────────────────────
+const bundleDirty = computed(() => {
+  if (!editingBundleDraft.value) return false
+  return JSON.stringify(editingBundleDraft.value) !== bundleSnapshot.value
+})
+
+// Real close (always discards). Use `requestCloseBundleEditor` from any UI
+// affordance — it gates on `bundleDirty` and pops the confirmation prompt
+// when there are unsaved changes.
+const closeBundleEditor = () => {
+  editingBundleIndex.value   = null
+  editingBundleDraft.value   = null
+  bundleSnapshot.value       = ''
+  confirmBundleDiscard.value = false
+}
+
+const requestCloseBundleEditor = () => {
+  if (bundleDirty.value) {
+    confirmBundleDiscard.value = true
+    return
+  }
+  closeBundleEditor()
+}
+
+const saveBundle = async () => {
+  if (editingBundleIndex.value === null || !editingBundleDraft.value || !form.value.id) return
+  bundleSaving.value = true
+  try {
+    // Patch only this bundle on the local form so the payload below carries
+    // the user's intended state.
+    const idx     = editingBundleIndex.value
+    const draft   = editingBundleDraft.value
+    const updated = form.value.bundles.map((b, i) => (i === idx ? draft : b))
+
+    const payload = {
+      id: form.value.id,
+      title: form.value.title,
+      description: form.value.description,
+      input: form.value.input,
+      triggerType: form.value.triggerType,
+      status: form.value.status,
+      triggerParams: form.value.triggerParams ?? {},
+      bundles: updated.map(b => ({
+        id: b.id,
+        name: b.name,
+        formating: b.formating,
+        custom_script: b.custom_script,
+        discussion_list: b.discussion_list.map(d => d.id),
+      })),
+    }
+    await alertService.updateAlert(payload)
+    await fetchAlerts()
+    // The props watcher will refresh `form` from the canonical alerts list.
+    closeBundleEditor()
+  } catch (error: any) {
+    console.error('Error saving bundle:', error)
+    alert(`Error saving bundle:\n\n${error.data?.message || error.message || 'Unknown error'}`)
+  } finally {
+    bundleSaving.value = false
+  }
+}
+
+// ── Manual test poll (polling alerts, inactive only) ──────────────────────
 const testing    = ref(false)
 const testResult = ref<any>(null)
 
@@ -319,268 +293,248 @@ const runTestPoll = async () => {
 <template>
   <div class="panel editor">
 
-    <!-- ── Overlays ─────────────────────────────────────────── -->
-    <div v-if="showDiscardWarning" class="overlay">
-      <div class="overlay-box">
-        <h4>Unsaved changes</h4>
-        <p>You have unsaved changes. If you leave now, they will be lost.</p>
-        <div class="overlay-actions">
-          <button
-            v-if="form.title"
-            type="button"
-            class="btn btn-secondary"
-            :disabled="saving"
-            @click="saveAndLeave"
-          >
-            {{ saving ? 'Saving…' : 'Save changes' }}
-          </button>
-          <button type="button" class="btn btn-ghost" @click="dismissDiscard">Continue editing</button>
-          <button type="button" class="btn btn-danger" @click="cancelEdit">Discard changes</button>
-        </div>
-      </div>
-    </div>
-
+    <!-- ── Delete confirmation ──────────────────────────────── -->
     <div v-if="confirmingDelete" class="overlay">
       <div class="overlay-box">
         <h4>Delete this alert?</h4>
         <p>This removes the alert and all its bundles. This cannot be undone.</p>
         <div class="overlay-actions">
-          <button type="button" class="btn btn-ghost" @click="confirmingDelete = false">Cancel</button>
+          <button type="button" class="btn btn-ghost"  @click="confirmingDelete = false">Cancel</button>
           <button type="button" class="btn btn-danger" @click="doDelete">Delete</button>
         </div>
       </div>
     </div>
 
-    <!-- ═══════════════════ VIEW MODE ═══════════════════════ -->
-    <template v-if="!editing">
-
-      <!-- Header (view) -->
-      <div class="panel-head">
-        <div class="head-left">
-          <span class="head-tag">#{{ form.id }}</span>
-          <h2 class="view-title">{{ form.title || 'Untitled' }}</h2>
+    <!-- ── Per-bundle edit modal ────────────────────────────── -->
+    <!-- All close affordances (backdrop / × / Cancel) go through
+         `requestCloseBundleEditor`. If the draft is dirty, an inline confirm
+         strip takes over the footer until the user picks Discard or Keep
+         editing — no silent loss of edits.
+         Backdrop clicks fire `@click.self` only; inner clicks keep bubbling
+         to `document` so child dropdowns can detect outside-clicks. -->
+    <div
+      v-if="editingBundleIndex !== null && editingBundleDraft"
+      class="overlay"
+      @click.self="requestCloseBundleEditor"
+    >
+      <div class="overlay-box bundle-edit-modal">
+        <div class="modal-head">
+          <h4>Edit bundle {{ editingBundleIndex + 1 }}</h4>
+          <button type="button" class="modal-close" title="Close" @click="requestCloseBundleEditor">✕</button>
         </div>
-        <div class="head-right">
-          <div v-if="isExisting" class="toggle-wrap" :title="canActivate ? '' :
-                (form.status == AlertStatus.Draft ? 'Complete necessary fields and add a bundle to activate' : 'Add a bundle to activate')">
-            <button
-              type="button" class="toggle" :class="{ on: form.status === AlertStatus.Active }"
-              :disabled="!canActivate" @click="toggleStatus"
-            ><span class="knob"></span></button>
-            <span class="toggle-label">{{ statusLabel }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Body (view) — same field layout as edit mode, controls disabled. -->
-      <div class="panel-body">
-
-        <div class="field">
-          <label class="field-label">Description</label>
-          <textarea
-            :value="form.description || '— no description —'"
-            rows="2"
-            class="field-input"
-            disabled
-          />
-        </div>
-
-        <div v-if="form.input" class="field">
-          <label class="field-label">Input Source</label>
-          <span class="detail-badge">
-            {{ form.input }}
-            <span v-if="form.triggerType" class="trigger-inline">via {{ form.triggerType }}</span>
-          </span>
-        </div>
-
-        <!-- Webhook URL — only shown when trigger is specifically Webhook -->
-        <div v-if="form.triggerType === Trigger.Webhook && webhookUrl && form.input != ''" class="field">
-          <label class="field-label">Webhook Endpoint</label>
-          <div class="webhook-box">
-            <code>{{ webhookUrl }}</code>
-            <button type="button" class="btn-copy" @click="copyWebhook">📋</button>
-          </div>
-        </div>
-
-        <!-- Test poll — polling alerts only, while inactive -->
-        <div
-          v-if="form.triggerType === Trigger.Polling && form.status === AlertStatus.Inactive"
-          class="test-panel"
-        >
-          <div class="divider"><span>Test polling</span></div>
-          <p class="test-intro">
-            Trigger the polling pipeline once manually. The alert won't be
-            activated and no bundles will be fired — this just shows what would
-            happen on the next scheduled poll.
-          </p>
-          <button
-            type="button"
-            class="btn btn-secondary"
-            :disabled="testing"
-            @click="runTestPoll"
-          >
-            {{ testing ? 'Polling…' : 'Run test poll' }}
-          </button>
-
-          <div v-if="testResult" class="test-result">
-            <div v-if="testResult.error" class="test-error">
-              ⚠ {{ testResult.error }}
-            </div>
-            <template v-else>
-              <div
-                class="test-verdict"
-                :class="testResult.condition?.fired ? 'fired' : 'not-fired'"
-              >
-                <span class="bullet">●</span>
-                <span v-if="testResult.condition?.fired">
-                  Condition met — alert would fire.
-                </span>
-                <span v-else>
-                  Condition not met — alert would not fire.
-                </span>
-              </div>
-              <p class="test-reason">{{ testResult.condition?.reason }}</p>
-
-              <div
-                v-if="testResult.condition?.observedValue !== undefined"
-                class="test-value-block"
-              >
-                <span class="test-value-label">Observed value</span>
-                <pre class="test-value">{{ JSON.stringify(testResult.condition.observedValue, null, 2) }}</pre>
-              </div>
-
-              <details class="test-raw">
-                <summary>Parsed document</summary>
-                <pre>{{ JSON.stringify(testResult.parsed, null, 2) }}</pre>
-              </details>
-            </template>
-          </div>
-        </div>
-
-        <!-- Bundles — full BundleCard in readonly mode so view + edit share
-             exactly the same visual structure. -->
-        <div class="divider"><span>Bundles ({{ form.bundles.length }})</span></div>
-
-        <div v-if="form.bundles.length === 0" class="bundles-hint">
-          No bundles configured. Click <strong>Edit Alert</strong> to add one.
-        </div>
-
-        <div class="bundles-grid">
+        <div class="modal-body">
           <BundleCard
-            v-for="(b, i) in form.bundles"
-            :key="i"
-            :bundle="b"
-            :index="i"
+            :bundle="editingBundleDraft"
+            :index="editingBundleIndex"
             :available-discussions="availableDiscussions"
             :discussions-loading="discussionsLoading"
             :input-source="form.input"
             :alert-context="form"
             :trigger-params="form.triggerParams"
-            readonly
+            :hide-remove="true"
+            @update:bundle="editingBundleDraft = $event"
           />
         </div>
-
-      </div>
-
-      <!-- Footer (view) -->
-      <div class="panel-foot">
-        <button type="button" class="btn btn-danger-ghost" @click="confirmingDelete = true">Delete</button>
-        <div class="foot-spacer"></div>
-        <ButtonPrimary @click="startEditing">Edit Alert </ButtonPrimary>
-       </div>
-
-    </template>
-
-    <!-- ═══════════════════ EDIT MODE ═══════════════════════ -->
-    <template v-else>
-
-      <!-- Header (edit) -->
-      <div class="panel-head">
-        <div class="head-left">
-          <span class="head-tag" >{{ form.id ? `#${form.id}` : 'NEW' }}</span>
-          <input v-model="form.title" type="text" placeholder="Alert title…" class="title-input" />
+        <div v-if="confirmBundleDiscard" class="modal-foot discard-foot">
+          <span class="discard-msg">⚠ Discard unsaved changes to this bundle?</span>
+          <button type="button" class="btn btn-ghost" @click="confirmBundleDiscard = false">Keep editing</button>
+          <button type="button" class="btn btn-danger" @click="closeBundleEditor">Discard</button>
         </div>
-        <div class="head-right">
-          <button type="button" class="btn btn-ghost" @click="requestBack">← Back</button>
+        <div v-else class="modal-foot">
+          <button type="button" class="btn btn-ghost" @click="requestCloseBundleEditor">Cancel</button>
+          <ButtonPrimary :disabled="bundleSaving" @click="saveBundle">
+            {{ bundleSaving ? 'Saving…' : 'Save bundle' }}
+          </ButtonPrimary>
         </div>
       </div>
+    </div>
 
-      <!-- Body (edit) -->
-      <div class="panel-body">
-        <div class="field">
-          <label class="field-label">Description</label>
-          <textarea v-model="form.description" rows="2" placeholder="What does this alert do?" class="field-input"></textarea>
+    <!-- ── Header ─────────────────────────────────────────────── -->
+    <div class="panel-head">
+      <div class="head-left">
+        <!--span class="head-tag">#{{ form.id }}</span-->
+        <h2 class="view-title"> {{form.title || 'Untitled' }}</h2>
+      </div>
+      <div class="head-right">
+        <Toggle v-if="isExisting" 
+          v-model:status="form.status"
+          :canActivate="canActivate"
+          @update:state="toggleStatus"
+        /> 
+      </div>
+    </div>
+
+    <!-- ── Body ──────────────────────────────────────────────── -->
+    <!-- Compact info-rows: a single label-on-left / value-on-right pattern
+         used everywhere. No fake textareas, no accent-soft badges except
+         where they carry meaning (chips, the toggle, the primary CTA). -->
+    <div class="panel-body">
+
+      <dl class="info-list">
+        <div v-if="form.description" class="info-row">
+          <dt class="field-label">Description</dt>
+          <dd class="info-value">{{ form.description }}</dd>
+      </div>
+
+        <div v-if="form.input" class="info-row">
+          <dt class="field-label">Source</dt>
+          <dd class="info-value">
+            <span class="source-badge">
+          {{ form.input }}
+              <span v-if="form.triggerType" class="source-via">via {{ form.triggerType }}</span>
+        </span>
+          </dd>
+      </div>
+
+        <!-- Webhook URL — webhook-trigger alerts only. -->
+        <div v-if="form.triggerType === Trigger.Webhook && webhookUrl" class="info-row">
+          <dt class="field-label">Endpoint</dt>
+          <dd class="info-value">
+
+            <URLCopyBox :url="webhookUrl"> </URLCopyBox>
+        
+          </dd>
+      </div>
+      </dl>
+
+      <!-- ── Trigger details (polling only) ─────────────────── -->
+      <template v-if="isPolling">
+        <div class="divider"><span>Trigger configuration</span></div>
+
+        <dl class="info-list">
+          <div class="info-row">
+            <dt class="field-label">URL</dt>
+            <dd class="info-value">
+              <URLCopyBox :url="form.triggerParams?.url || '——'"> </URLCopyBox>
+            </dd>
+            </div>
+          <div class="info-row">
+            <dt class="field-label">Polling</dt>
+            <dd class="info-value">
+              {{ form.triggerParams?.format || '—' }}
+              <span class="info-secondary">· {{ intervalLabel }}</span>
+            </dd>
+          </div>
+          <div class="info-row">
+            <dt class="field-label">Condition</dt>
+            <dd class="info-value">
+              <p class="condition-text">{{ conditionSummary.headline }}</p>
+              <div v-if="conditionSummary.paths.length > 0" class="path-list">
+                <code v-for="p in conditionSummary.paths" :key="p" class="path-tag">{{ p }}</code>
+          </div>
+            </dd>
         </div>
+        </dl>
+      </template>
 
-        <div class="field">
-          <label class="field-label">Input Source <span class="field-required">*</span></label>
-          <InputSourceSelector v-model="form.input" :locked="form.bundles.length > 0" @update:modelValue="onInputChange" />
-        </div>
+      <!-- ── Bundles — compact rows, not full cards ──────────── -->
+      <div class="divider"><span>Bundles ({{ form.bundles.length }})</span></div>
 
-        <div v-if="form.input" class="field">
-          <label class="field-label">Trigger</label>
-          <TriggerSelector v-model="form.triggerType" :source="form.input" />
-        </div>
+      <div v-if="form.bundles.length === 0" class="bundles-hint">
+        No bundles configured. Click <strong>Edit Alert</strong> to add one.
+      </div>
 
-        <!-- Polling / Olvid params (when trigger requires configuration) -->
-        <div v-if="form.input && form.triggerType && form.triggerType !== 'Webhook'" class="field">
-          <label class="field-label">Trigger configuration</label>
-          <TriggerParamsEditor
-            :source="form.input"
-            :trigger-type="form.triggerType"
-            :model-value="form.triggerParams ?? {}"
-            @update:model-value="form.triggerParams = $event"
-          />
-        </div>
-
-        <!-- Bundles (once input + trigger set) -->
-        <template v-if="form.input && form.triggerType">
-          <div class="divider"><span>Bundles</span></div>
-
-          <p v-if="form.bundles.length === 0" class="bundles-hint">
-            No bundles yet. Add at least one to be able to activate this alert.
-          </p>
-
-          <div class="bundles-grid">
-            <BundleCard
-              v-for="(b, i) in form.bundles"
-              :key="i"
-              :bundle="b"
-              :index="i"
-              :available-discussions="availableDiscussions"
-              :discussions-loading="discussionsLoading"
-              :input-source="form.input"
-              @update:bundle="updateBundle(i, $event)"
-              @remove="removeBundle(i)"
-            />
-
-            <button type="button" class="card-add" @click="addBundle">
-              <span class="plus">+</span>
-              <span>New Bundle</span>
+      <div v-else class="bundle-list">
+        <div v-for="(b, i) in form.bundles" :key="i" class="bundle-card">
+          <div class="bundle-card-head">
+            <span class="bundle-tag">BUNDLE {{ i + 1 }}</span>
+            <button type="button" class="btn-mini" @click="openBundleEditor(i)">
+              <span class="btn-mini-icon">✎</span> Edit
             </button>
           </div>
-        </template>
+          <dl class="info-list info-list-tight">
+            <div class="info-row info-row-tight">
+              <dt class="field-label">Discussions</dt>
+              <dd class="info-value">
+                <span v-if="b.discussion_list.length === 0" class="info-empty">— none —</span>
+                <span v-else class="discussion-list">
+                  <span v-for="d in b.discussion_list" :key="d.id" class="mini-tag">{{ d.title }}</span>
+                </span>
+              </dd>
+            </div>
+            <div class="info-row info-row-tight">
+              <dt class="field-label">Format</dt>
+              <dd class="info-value">{{ formatLabel(b.formating) }}</dd>
+            </div>
+          </dl>
+        </div>
       </div>
 
-      <!-- Footer (edit) -->
-      <div class="panel-foot">
-        <div class="foot-spacer"></div>
-        <ButtonPrimary :disabled="!form.title || saving" @click="save" >
-          {{ saving ? 'Saving…' : saveLabel }}
-        </ButtonPrimary>
+
+      <!-- ── Test poll — polling alerts only, while inactive ── -->
+      <div v-if="form.triggerType === Trigger.Polling && form.status === AlertStatus.Inactive" 
+          class="divider"><span>Test polling</span>
+      </div>
+      <div
+        v-if="form.triggerType === Trigger.Polling && form.status === AlertStatus.Inactive"
+        class="test-panel"
+      >
+        
+        <p class="test-intro">
+          Trigger the polling pipeline once manually. The alert won't be
+          activated and no bundles will be fired.
+        </p>
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm test-btn"
+          :disabled="testing"
+          @click="runTestPoll"
+        >
+          {{ testing ? 'Polling…' : 'Run test poll' }}
+        </button>
+
+        <div v-if="testResult" class="test-result">
+          <div v-if="testResult.error" class="test-error">
+            ⚠ {{ testResult.error }}
+          </div>
+          <template v-else>
+            <div
+              class="test-verdict"
+              :class="testResult.condition?.fired ? 'fired' : 'not-fired'"
+            >
+              <span class="bullet">●</span>
+              <span v-if="testResult.condition?.fired">Condition met — alert would fire.</span>
+              <span v-else>Condition not met — alert would not fire.</span>
+            </div>
+            <p class="test-reason">{{ testResult.condition?.reason }}</p>
+
+            <div
+              v-if="testResult.condition?.observedValue !== undefined"
+              class="test-value-block"
+            >
+              <span class="test-value-label">Observed value</span>
+              <pre class="test-value">{{ JSON.stringify(testResult.condition.observedValue, null, 2) }}</pre>
+            </div>
+
+            <details class="test-raw">
+              <summary>Parsed document</summary>
+              <pre>{{ JSON.stringify(testResult.parsed, null, 2) }}</pre>
+            </details>
+          </template>
+        </div>
       </div>
 
-    </template>
+
+    </div>
+
+
+    
+
+    <!-- ── Footer ─────────────────────────────────────────────── -->
+    <div class="panel-foot">
+      <button type="button" class="btn btn-danger-ghost" @click="confirmingDelete = true">Delete</button>
+      <div class="foot-spacer"></div>
+      <ButtonPrimary @click="openEditAlert">Edit Alert</ButtonPrimary>
+    </div>
 
   </div>
 </template>
 
 <style scoped>
 /* Surfaces (.panel / .panel-head / .panel-body / .panel-foot / .field* /
- * .btn* / .overlay* / .card-add) come from the global stylesheet. Only
- * editor-specific patterns live here: the active/inactive toggle, view-mode
- * detail rows, bundle summary cards, the webhook box, the test-poll panel,
- * and the divider.
+ * .btn* / .overlay* / .card-add / .chip / .chips) come from the global
+ * stylesheet. Only editor-specific patterns live here: the view-mode detail rows, the test-poll panel,
+ * the trigger details grid, the bundle-edit modal, and the divider.
  */
 
 /* Header composition — same recipe as the wizard. */
@@ -596,22 +550,10 @@ const runTestPoll = async () => {
   border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
-.title-input {
-  flex: 1;
-  min-width: 0;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid transparent;
-  color: var(--color-text-primary);
-  font-size: var(--text-xl);
-  font-weight: 600;
-  padding: var(--space-1) 2px;
-}
-.title-input:focus { outline: none; border-bottom-color: var(--color-accent); }
-.title-input::placeholder { color: var(--color-text-faint); }
 
 .view-title {
   margin: 0;
+  padding-left: 12px; /* !!!!!!!!!!!!!!!!!!!!! */
   font-size: var(--text-xl);
   font-weight: 600;
   color: var(--color-text-primary);
@@ -651,8 +593,45 @@ const runTestPoll = async () => {
   min-width: 54px;
 }
 
-/* ── View-mode "Input Source" badge ─────────────── */
-.detail-badge {
+/* ── Info-list pattern (label / value definition list) ────────
+ * Used for description, source, URL, polling, condition, and inside each
+ * bundle row. One unified rhythm replaces the patchwork of fake textareas,
+ * accent badges, and ad-hoc grids that lived here before. */
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin: 0;
+}
+.info-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+ 
+.info-value {
+  margin: 0;
+  min-width: 0;              /* prevent overflow inside grid cell */
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
+  line-height: 1.5;
+}
+.info-secondary {
+  margin-left: var(--space-1);
+  color: var(--color-text-dim);
+  font-size: var(--text-md);
+}
+.info-empty {
+  color: var(--color-text-faint);
+  font-style: italic;
+}
+
+/* Source badge — kept as an accent-soft pill because it's the most
+ * load-bearing piece of meta-data ("what feeds this alert"). The accent
+ * elsewhere in view mode is reserved for actions, so this is the only
+ * non-action accent surface. */
+.source-badge {
   display: inline-flex;
   align-items: center;
   background: var(--color-accent-soft);
@@ -662,39 +641,76 @@ const runTestPoll = async () => {
   font-weight: 500;
   padding: 5px var(--space-4);
   border-radius: var(--radius-md);
-  width: fit-content;
 }
-.trigger-inline {
+.source-via {
+  margin-left: var(--space-2);
   color: var(--color-text-dim);
   font-size: var(--text-sm);
   font-weight: 400;
-  margin-left: var(--space-2);
 }
 
-/* ── Webhook box ────────────────────────────────── */
-.webhook-box {
+/* Tight variant — used inside bundle rows (narrower label column, smaller
+ * vertical rhythm). Same pattern, dense layout. */
+.info-list-tight { gap: var(--space-3); }
+.info-row-tight  { grid-template-columns: 120px 1fr; gap: var(--space-4); }
+.info-row-tight .field-label { padding-top: 2px; font-size: var(--text-sm); }
+.info-row-tight .info-value { font-size: var(--text-md); }
+
+
+/* ── Condition summary text + path tags ───────────────────────
+ * Plain paragraph, not a coloured badge — the surrounding info-row already
+ * delineates the section. Watched paths render as muted monospace tags
+ * (neutral border-subtle background), not accent-soft chips, so the
+ * accent colour stays meaningful elsewhere. */
+.condition-text {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
+  line-height: 1.5;
+}
+.path-list {
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/*
+.source-badge {
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-3);
-  background: var(--color-bg-code);
-  border: 1px solid var(--color-border-subtle);
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent-border);
+  color: var(--color-accent-text);
+  font-size: var(--text-base);
+  font-weight: 500;
+  padding: 5px var(--space-4);
   border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
 }
-.webhook-box code {
-  color: var(--color-text-webhook);
+
+*/
+.path-tag {
+  display: inline-block;
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent-border);
+  color: var(--color-accent-text);
   font-size: var(--text-md);
-  font-family: var(--font-mono);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
+  font-weight: 500;
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-md);
 }
-.btn-copy { background: transparent; border: none; cursor: pointer; font-size: var(--text-lg); }
 
 /* ── Test poll panel ────────────────────────────── */
-.test-panel { display: flex; flex-direction: column; gap: var(--space-3); }
+/* align-items: flex-start keeps the button at its natural width — without it,
+ * flex's default stretch makes the secondary button span the panel. */
+.test-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
 .test-intro { margin: 0; color: var(--color-text-muted); font-size: var(--text-md); line-height: 1.5; }
+.test-btn   { align-self: flex-start; }
+.test-result { width: 100%; box-sizing: border-box; }
 
 .test-result {
   display: flex;
@@ -769,11 +785,136 @@ const runTestPoll = async () => {
 
 .bundles-hint { color: var(--color-text-dim); font-size: var(--text-md); font-style: italic; margin: 0; }
 
-.bundles-grid {
+/* ── Compact bundle rows (view mode) ─────────────────────────
+ * Single-row card per bundle — header bar with the tag + Edit, and a
+ * tight info-list underneath. No more 280px-min grid of full BundleCards;
+ * those only show up in the edit modal where their full chrome makes sense. */
+.bundle-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--space-5);
+  /*display: flex;
+  flex-direction: column;
+  gap: var(--space-3);*/
+}
+.bundle-card {
+  background: var(--color-bundle-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+
+}
+.bundle-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+.bundle-tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--color-text-dim);
+}
+
+/* Neutral mini button — for "Edit" on bundle rows. Outlined rather than
+ * solid so the only solid accent button in view mode is "Edit Alert"
+ * (the primary footer CTA). */
+.btn-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: transparent;
+  border: 1px solid var(--color-border-default);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color .15s, border-color .15s, color .15s;
+}
+.btn-mini:hover {
+  background: var(--color-border-subtle);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+.btn-mini-icon { font-size: var(--text-md); }
+
+/* Discussion list inside a bundle row — small neutral tags, not blue chips. */
+.discussion-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.mini-tag {
+  display: inline-block;
+  padding: 1px var(--space-3);
+  background: var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
 }
 
 .foot-spacer { flex: 1; }
+
+/* ── Per-bundle edit modal ──────────────────────── */
+.bundle-edit-modal {
+  width: 92vw;
+  max-width: 560px;
+  max-height: 100vh;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.modal-head h4 {
+  margin: 0;
+  flex: 1;
+  font-size: var(--text-lg);
+  color: var(--color-text-primary);
+}
+.modal-close {
+  background: transparent;
+  border: none;
+  color: var(--color-text-dim);
+  font-size: var(--text-lg);
+  cursor: pointer;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+}
+.modal-close:hover { color: var(--color-text-primary); background: var(--color-border-subtle); }
+
+.modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-5) var(--space-6);
+}
+.modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+
+/* Discard-confirm strip that takes over the footer when the user tries to
+ * close while dirty. The warning message pushes the action buttons right. */
+.modal-foot.discard-foot { background: var(--color-warning-soft); }
+.discard-msg {
+  flex: 1;
+  color: var(--color-warning-text);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
 </style>

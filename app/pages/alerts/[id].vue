@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { AlertStatus } from '#shared/constants'
 
-const route  = useRoute()
+const route  = ref(useRoute())
 const { alerts, alertsLoading, fetchAlerts } = useAlerts()
 
 // Fetch on hard-refresh if the layout hasn't populated the list yet.
@@ -10,10 +10,14 @@ onMounted(() => {
 })
 
 const alert = computed(() =>
-  alerts.value.find(a => a.id === Number(route.params.id)) ?? null
+  alerts.value.find(a => a.id === Number(route.value.params.id)) ?? null
 )
 
 const isDraft = computed(() => alert.value?.status === AlertStatus.Draft)
+// Explicit edit request via query (?edit=1) puts a non-draft alert into the
+// wizard for full reconfiguration. Drafts always open in the wizard.
+const isEditing = computed(() => route.value.query.edit === '1')
+const useWizard = computed(() => /*isDraft.value ||*/ isEditing.value)
 </script>
 
 <template>
@@ -22,7 +26,7 @@ const isDraft = computed(() => alert.value?.status === AlertStatus.Draft)
     <span v-else>Alert not found.</span>
   </div>
   <AlertWizard
-    v-else-if="isDraft"
+    v-else-if="useWizard"
     :key="`wizard-${alert.id?.toString()}`"
     :alerta-inicial="alert"
   />

@@ -10,11 +10,13 @@
 }
 
 .field-label {
+  margin: 0;
+  padding-top: 4px;        /* baseline-align with the first line of value */
   font-size: var(--text-md);
   font-weight: 600;
-  color: var(--color-text-muted);
+  letter-spacing: 0.6px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
 }
 
 .field-hint {

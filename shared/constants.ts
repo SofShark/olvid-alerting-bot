@@ -93,35 +93,36 @@ export const isPollingSource = (s: string): boolean =>
 
 // Condition that decides whether a poll cycle actually fires the alert.
 //
-// Excel-style: pick 1+ leaf paths in the parsed source, choose an operator,
-// optionally provide a literal value, and (when watching >1 path) decide
-// whether ALL paths must verify or ANY of them is enough.
-export type PollingCondition =
-  | { kind: ConditionKind.None }
-  | {
-      kind:        ConditionKind.Rule
-      paths:       string[]                // dot-paths into the parsed object
-      operator:    ConditionOperator
-      value?:      string                  // unused for `changed`
-      aggregation: ConditionAggregation    // ignored when paths.length === 1
-    }
+// Excel-style condition. Stored as a single homogeneous shape: every rule
+// field (paths/operator/value/aggregation) is present regardless of `kind`,
+// so flipping between None/Rule in the UI doesn't lose any in-progress
+// configuration. The minimal "kind: None only" shape is produced at *save
+// time* by `compactCondition` — see below.
+export type PollingCondition = {
+  kind:        ConditionKind
+  paths:       string[]                // dot-paths or wildcard patterns
+  operator:    ConditionOperator       // unused (but preserved) when kind === None
+  value?:      string                  // unused for `changed` and for kind === None
+  aggregation: ConditionAggregation    // unused (but preserved) when kind === None
+}
 
-// Migrate legacy shape `{ kind: 'field_changed', field: 'x' }` (pre-rule)
-// to the new rule shape, so saved drafts keep working. Returns the input
-// unchanged when it already matches the new shape.
+// Defaults used whenever we need a fresh-but-valid PollingCondition.
+const blankCondition = (): PollingCondition => ({
+  kind:        ConditionKind.None,
+  paths:       [],
+  operator:    ConditionOperator.Changed,
+  aggregation: ConditionAggregation.All,
+})
+
+// Normalize whatever shape comes from props / DB / older drafts into the new
+// homogeneous form. Legacy `{ kind: 'field_changed', field: 'x' }` is also
+// upgraded here. Missing fields are filled with defaults; unknown `kind`
+// values fall back to None.
 export function migrateCondition(c: any): PollingCondition {
-  if (!c || typeof c !== 'object') return { kind: ConditionKind.None }
-  if (c.kind === ConditionKind.None) return { kind: ConditionKind.None }
-  if (c.kind === ConditionKind.Rule) {
-    return {
-      kind:        ConditionKind.Rule,
-      paths:       Array.isArray(c.paths) ? c.paths.filter(Boolean) : [],
-      operator:    (c.operator    ?? ConditionOperator.Changed) as ConditionOperator,
-      value:       typeof c.value === 'string' ? c.value : undefined,
-      aggregation: (c.aggregation ?? ConditionAggregation.All) as ConditionAggregation,
-    }
-  }
-  // Legacy: { kind: 'field_changed', field: 'x.y.z' } → single-path Changed.
+  const out = blankCondition()
+  if (!c || typeof c !== 'object') return out
+
+  // Legacy: { kind: 'field_changed', field: 'x.y.z' } → single-path Rule.
   if (c.kind === 'field_changed' && typeof c.field === 'string') {
     return {
       kind:        ConditionKind.Rule,
@@ -130,7 +131,36 @@ export function migrateCondition(c: any): PollingCondition {
       aggregation: ConditionAggregation.All,
     }
   }
-  return { kind: ConditionKind.None }
+
+  out.kind = (c.kind === ConditionKind.Rule || c.kind === ConditionKind.None)
+    ? c.kind
+    : ConditionKind.None
+  if (Array.isArray(c.paths)) out.paths = c.paths.filter(Boolean)
+  if (c.operator)             out.operator = c.operator as ConditionOperator
+  if (typeof c.value === 'string') out.value = c.value
+  if (c.aggregation)          out.aggregation = c.aggregation as ConditionAggregation
+
+  return out
+}
+
+// Serialize for DB storage / API payload. When kind === None we drop the
+// other fields (they're meaningless without a rule) to save bytes. When
+// operator doesn't need a value, drop it too. Anything still attached after
+// this function is meaningful.
+export function compactCondition(c: PollingCondition): any {
+  if (c.kind === ConditionKind.None) {
+    return { kind: ConditionKind.None }
+  }
+  const out: any = {
+    kind:        ConditionKind.Rule,
+    paths:       c.paths,
+    operator:    c.operator,
+    aggregation: c.aggregation,
+  }
+  if (OPERATORS_NEEDING_VALUE.has(c.operator) && c.value) {
+    out.value = c.value
+  }
+  return out
 }
 
 // Unified shape stored in AlertTable.triggerParams for polling alerts.
@@ -199,9 +229,9 @@ export const sampleData: Record<Source, TemplateData> = {
         }
       ]
     },
-    script: `🔧 **New Push in {{repository.full_name}}**
-User {{pusher.name}} has pushed code to the {{ref}} branch.
-Latest commit ({{commits.[0].id}}): {{commits.[0].message}}`
+    script: `🔧 **New Push in {{repository.name}}**
+User {{commits.[0].author.}} has pushed code to the {{commits.[0].modified}} branch.
+Latest commit: {{commits.[0].message}}`
   },
 
   [Source.GitHubPullRequest]: {

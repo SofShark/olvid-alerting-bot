@@ -5,6 +5,7 @@ import {
   OPERATORS_NEEDING_VALUE,
   migrateCondition,
 } from '#shared/constants'
+import { expandPath, hasWildcard } from '#shared/pathExpand'
 import type { EvalResult } from '../types'
 import { resolvePath } from './pathResolver'
 
@@ -98,14 +99,43 @@ export function evaluate(
     return { fired: false, reason: `Operator "${condition.operator}" needs a value.` }
   }
 
-  const verdicts: PerPathVerdict[] = condition.paths.map((path) => {
-    const observed = resolvePath(parsed,   path)
-    const prev     = baseline === undefined ? undefined : resolvePath(baseline, path)
-    const { fired, detail } = evalPath(condition.operator, condition.value, observed, prev)
-    return { path, fired, observed, baseline: prev, detail }
+  // Expand wildcard patterns into concrete paths at evaluation time. The user
+  // stores `..temperatura.maxima` as ONE chip; here it becomes one verdict per
+  // matching concrete path (`dia.0.temperatura.maxima`, `dia.1.…`, etc.). New
+  // entries appearing in the source between polls are picked up automatically
+  // because the expansion happens fresh on every call.
+  //
+  // Concrete paths short-circuit to themselves. A wildcard that matches nothing
+  // surfaces as a single non-firing verdict so the user sees the misconfig in
+  // the per-path breakdown (instead of vacuously passing under aggregation=All).
+  const verdicts: PerPathVerdict[] = condition.paths.flatMap((pathOrPattern) => {
+    if (!hasWildcard(pathOrPattern)) {
+      const observed = resolvePath(parsed,   pathOrPattern)
+      const prev     = baseline === undefined ? undefined : resolvePath(baseline, pathOrPattern)
+      const { fired, detail } = evalPath(condition.operator, condition.value, observed, prev)
+      return [{ path: pathOrPattern, fired, observed, baseline: prev, detail }]
+    }
+
+    const concretes = expandPath(pathOrPattern, parsed)
+    if (concretes.length === 0) {
+      return [{
+        path:     pathOrPattern,
+        fired:    false,
+        observed: undefined,
+        baseline: undefined,
+        detail:   'pattern matched no paths in the current source',
+      }]
+    }
+    return concretes.map((concretePath) => {
+      const observed = resolvePath(parsed,   concretePath)
+      const prev     = baseline === undefined ? undefined : resolvePath(baseline, concretePath)
+      const { fired, detail } = evalPath(condition.operator, condition.value, observed, prev)
+      return { path: concretePath, fired, observed, baseline: prev, detail }
+    })
   })
 
-  // Aggregate.
+  // Aggregate over the (post-expansion) verdict count, not the chip count —
+  // "all of N expanded fields fired" is the meaningful summary.
   const aggregation = condition.aggregation ?? ConditionAggregation.All
   const fired =
     aggregation === ConditionAggregation.All
@@ -113,7 +143,8 @@ export function evaluate(
       : verdicts.some (v => v.fired)
 
   const firedCount = verdicts.filter(v => v.fired).length
-  const reason = `${aggregation === ConditionAggregation.All ? 'All' : 'Any'} of ${condition.paths.length} field${condition.paths.length === 1 ? '' : 's'} — ${firedCount}/${condition.paths.length} verified.`
+  const total      = verdicts.length
+  const reason = `${aggregation === ConditionAggregation.All ? 'All' : 'Any'} of ${total} field${total === 1 ? '' : 's'} — ${firedCount}/${total} verified.`
 
   // Surface the first path's observed value for the test panel summary; the
   // full per-path breakdown is exposed via baselineValue for callers that
