@@ -10,12 +10,18 @@ model AlertTable {
   id                Int                @id @default(autoincrement())
   title             String
   description       String?
+  // `input` now stores AlertType: "Polling" | "Webhook" | "Message Olvid".
+  // The specific provider (GitHub Push, Polling Source, …) lives in alertParams.source.
   input             String?
-  triggerType       String?
   status            String             @default("draft")
+  // Kept top-level (not inside alertParams) so the webhook handler can
+  // `findUnique` by token without hitting JSON path operators.
   token             String?            @unique @default(uuid())
   createdAt         DateTime           @default(now())
-  triggerParams     Json?
+  // Type-specific config (replaces former `triggerParams`):
+  //   Polling → { source, url, format, intervalSeconds, condition, _baseline?, _lastHash? }
+  //   Webhook → { source }
+  alertParams       Json?
   bundles           Bundle[]
   lastPayload       LastAlertPayload?
   lastFailedPayload LastFailedPayload?

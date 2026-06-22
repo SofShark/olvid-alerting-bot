@@ -4,12 +4,14 @@ import {onBeforeRouteLeave, onBeforeRouteUpdate, type RouteLocationNormalized} f
 import {
   Formatting,
   AlertStatus,
-  Trigger,
+  AlertType,
   ConditionKind,
   PollingFormat,
-  isPollingSource,
-  sourceTriggers,
+  Source,
+  alertTypeForSource,
+  isPolling as isPollingType,
   compactCondition,
+  migrateAlertType,
   migrateCondition,
   type AlertModel,
   type BundleModel,
@@ -17,6 +19,8 @@ import {
 } from '#shared/constants'
 import { alertService } from '~/utils/alertService';
 import { snapshot } from 'node:test';
+
+const { t } = useI18n()
 
 const props = withDefaults(defineProps<{
   alertaInicial?: AlertModel | null
@@ -94,11 +98,10 @@ const blankForm = (): AlertModel => ({
   id: null,
   title: '',
   description: '',
-  input: '',
-  triggerType: '',
+  input: '',                         // AlertType — set when the user picks a source
   status: AlertStatus.Draft,
   token: '',
-  triggerParams: {},
+  alertParams: {},                   // renamed from triggerParams
   bundles: [],
 })
 
@@ -126,15 +129,25 @@ const resolveDiscussions = (ids: any[]): DiscussionModel[] =>
 
 const fillFrom = (a: AlertModel | null) => {
   if (a && a.id) {
+    // Normalize incoming shape: `input` should hold an AlertType value, not a
+    // legacy source name. `alertParams` is the new key; fall back to
+    // `triggerParams` for pre-migration in-flight data.
+    const rawParams = (a as any).alertParams ?? (a as any).triggerParams ?? {}
+    const alertType = migrateAlertType(a.input)
+    const alertParams = { ...rawParams } as Record<string, any>
+    // If migrating from the legacy shape, `a.input` was the source name —
+    // tuck it into alertParams.source so the UI dropdown can pre-select it.
+    if (!alertParams.source && a.input && a.input !== alertType) {
+      alertParams.source = a.input
+    }
     form.value = {
       id: a.id,
       title: a.title || '',
       description: a.description || '',
-      input: a.input || '',
-      triggerType: a.triggerType || '',
+      input: alertType,
       status: a.status || AlertStatus.Draft,
       token: a.token || '',
-      triggerParams: (a.triggerParams as Record<string, any>) ?? {},
+      alertParams,
       bundles: [],
     }
     bundles.value = (a.bundles || []).map(b => ({
@@ -178,32 +191,40 @@ const hasEmptyBundle = computed(() =>
 )
 
 // ── Derived state ─────────────────────────────────────────────────────────
-const isPolling = computed(() => isPollingSource(form.value.input))
-const isWebhook = computed(
-  () => !!form.value.input && form.value.triggerType === Trigger.Webhook,
-)
+const isPolling = computed(() => isPollingType(form.value.input))
+const isWebhook = computed(() => form.value.input === AlertType.Webhook)
 
-// Auto-derive triggerType from the chosen input source.
-watch(() => form.value.input, (src) => {
-  // TODO Should really be erasing trigger*? Maybe we can wait to saving before erasing (error-proof)
-  if (!src) {
-    form.value.triggerType = ''
-    form.value.triggerParams = {}
-    return
-  }
-  const triggers = sourceTriggers[src as keyof typeof sourceTriggers] ?? []
-  form.value.triggerType = triggers[0] ?? ''
-  if (isPollingSource(src)) {
-    form.value.triggerParams = {
-      url: '',
-      format: PollingFormat.XML,
-      intervalSeconds: 300,
-      condition: { kind: ConditionKind.None },
-      ...(form.value.triggerParams ?? {}),
+// Source picker binding — getter reads alertParams.source, setter takes the
+// picked Source, classifies it into an AlertType (writes to form.input),
+// and resets alertParams to a sensible default shape for that type while
+// preserving any existing polling config the user already entered.
+const selectedSource = computed<string>({
+  get: () => (form.value.alertParams as any)?.source ?? '',
+  set: (src) => {
+    if (!src) {
+      form.value.input = ''
+      form.value.alertParams = {}
+      return
     }
-  } else {
-    form.value.triggerParams = {}
-  }
+    const at = alertTypeForSource[src as Source] ?? AlertType.Webhook
+    form.value.input = at
+    if (at === AlertType.Polling) {
+      const prev = (form.value.alertParams ?? {}) as any
+      form.value.alertParams = {
+        source: src,
+        url:             prev.url             ?? '',
+        format:          prev.format          ?? PollingFormat.XML,
+        intervalSeconds: prev.intervalSeconds ?? 300,
+        condition:       prev.condition       ?? { kind: ConditionKind.None },
+        // preserve any runtime state the engine may have left in place
+        ...(prev._baseline !== undefined ? { _baseline: prev._baseline } : {}),
+        ...(prev._lastHash !== undefined ? { _lastHash: prev._lastHash } : {}),
+      }
+    } else {
+      // Webhook / other: only `source` matters at this layer.
+      form.value.alertParams = { source: src }
+    }
+  },
 })
 
 // ── Steps ─────────────────────────────────────────────────────────────────
@@ -215,47 +236,56 @@ type StepKey = 'general' | 'trigger' | 'bundle'
 
 const isPollingConfigComplete = computed(() => {
   if (!isPolling.value) return true
-  const p = form.value.triggerParams ?? {}
+  const p = (form.value.alertParams ?? {}) as any
   return !!p.url && !!p.format && !!p.intervalSeconds
 })
 
 const isStep1Complete = computed(
-  () => !!form.value.title && !!form.value.input && isPollingConfigComplete.value,
+  () => !!form.value.title
+        && !!form.value.input
+        && !!(form.value.alertParams as any)?.source
+        && isPollingConfigComplete.value,
 )
 
 const isConditionComplete = computed(() => {
   if (!isPolling.value) return true
-  const c = (form.value.triggerParams?.condition ?? {}) as any
+  const c = ((form.value.alertParams as any)?.condition ?? {}) as any
   if (c.kind === ConditionKind.None) return true
   if (c.kind === ConditionKind.Rule) {
     if (!Array.isArray(c.paths) || c.paths.length === 0) return false
-    // Operators other than `changed` need a literal value.
     if (c.operator && c.operator !== 'changed' && !c.value) return false
     return true
   }
   return false
 })
 
-const stepDefs = computed<Array<{ key: StepKey; title: string; description: string; disabled: boolean }>>(() => [
-  {
-    key:         'general',
-    title:       'General',
-    description: isPolling.value ? 'Title, source & polling config' : 'Title & source',
+// Step definitions are now alertType-driven: polling has 3 steps
+// (general → trigger condition → bundles), webhook has 2 (general → bundles).
+// The webhook info card moves inline into step 1, so there's no need for a
+// dedicated step to host it.
+const stepDefs = computed<Array<{ key: StepKey; title: string; description: string; disabled: boolean }>>(() => {
+  const general = {
+    key:         'general' as StepKey,
+    title:       t('wizard.steps.general.title'),
+    description: isPolling.value ? t('wizard.steps.general.descriptionPolling') : t('wizard.steps.general.descriptionWebhook'),
     disabled:    false,
-  },
-  {
-    key:         'trigger',
-    title:       'Trigger',
-    description: isPolling.value ? 'When to fire' : 'Webhook URL info',
+  }
+  const trigger = {
+    key:         'trigger' as StepKey,
+    title:       t('wizard.steps.trigger.title'),
+    description: t('wizard.steps.trigger.description'),
     disabled:    !isStep1Complete.value,
-  },
-  {
-    key:         'bundle',
-    title:       'Bundles',
-    description: 'Add notification targets',
+  }
+  const bundle = {
+    key:         'bundle' as StepKey,
+    title:       t('wizard.steps.bundle.title'),
+    description: t('wizard.steps.bundle.description'),
     disabled:    !isStep1Complete.value || !isConditionComplete.value,
-  },
-])
+  }
+  // Only polling alerts need the condition step. Webhook (and any future
+  // event-driven type) collapses to general → bundles.
+  return isPolling.value ? [general, trigger, bundle] : [general, bundle]
+})
 
 const currentStepKey = computed<StepKey>(
   () => stepDefs.value[currentStep.value - 1]?.key ?? 'general',
@@ -329,7 +359,7 @@ const doDelete = async () => {
     navigateTo('/')
   } catch (error: any) {
     console.error('Error deleting:', error)
-    alert(`Error deleting alert:\n\n${error?.data?.message || error?.message || 'Unknown error'}`)
+    alert(`${t('wizard.errors.deleting')}\n\n${error?.data?.message || error?.message || t('common.unknownError')}`)
   } finally {
     deleting.value = false
   }
@@ -362,26 +392,25 @@ const back = () => {
 // shape preserves all fields so the user can flip between modes without
 // losing context; only the DB-bound payload gets pruned.
 const buildPayload = (status: AlertStatus) => {
-  const tp: any = { ...(form.value.triggerParams ?? {}) }
-  if (isPolling.value && tp.condition) {
-    tp.condition = compactCondition(migrateCondition(tp.condition))
+  const ap: any = { ...(form.value.alertParams ?? {}) }
+  if (isPolling.value && ap.condition) {
+    ap.condition = compactCondition(migrateCondition(ap.condition))
   }
-  return ({
-  id: form.value.id,
-  title: form.value.title,
-  description: form.value.description,
-  input: form.value.input,
-  triggerType: form.value.triggerType,
-  status,
-  triggerParams: tp,
-  bundles: bundles.value.map(b => ({
-    id: b.id,
-    name: b.name,
-    formating: b.formating,
-    custom_script: b.custom_script,
-    discussion_list: b.discussion_list.map(d => d.id),
-  })),
-})
+  return {
+    id: form.value.id,
+    title: form.value.title,
+    description: form.value.description,
+    input: form.value.input,        // AlertType — DB stores it here now
+    status,
+    alertParams: ap,                // renamed from triggerParams
+    bundles: bundles.value.map(b => ({
+      id: b.id,
+      name: b.name,
+      formating: b.formating,
+      custom_script: b.custom_script,
+      discussion_list: b.discussion_list.map(d => d.id),
+    })),
+  }
 }
 
 const canSaveDraft = computed(() => !!form.value.title)
@@ -414,7 +443,7 @@ const effectiveFinalStatus = computed<AlertStatus>(() => {
 // forceDraft = "Save as draft" was clicked. Otherwise the final-save path
 // applies the empty-bundle rule.
 const save = async (forceDraft: boolean, navigateAfter: boolean) => {
-  if (!form.value.title) return alert('Title is mandatory')
+  if (!form.value.title) return alert(t('wizard.validation.titleMandatory'))
   const status = forceDraft ? AlertStatus.Draft : effectiveFinalStatus.value
   saving.value = true
   try {
@@ -444,7 +473,7 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
     }
   } catch (error: any) {
     console.error('Error saving:', error.data || error)
-    alert(`Error saving alert:\n\n${error.data?.message || error.message || 'Unknown error'}`)
+    alert(`${t('wizard.errors.saving')}\n\n${error.data?.message || error.message || t('common.unknownError')}`)
   } finally {
     saving.value = false
   }
@@ -457,14 +486,14 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
 
     <div v-if="showDiscardWarning" class="overlay">
       <div class="overlay-box">
-        <h4>Unsaved changes</h4>
-        <p>If you leave now, your progress will be lost. Would you like to save this alert as a draft before leaving?</p>
+        <h4>{{ $t('wizard.discardModal.title') }}</h4>
+        <p>{{ $t('wizard.discardModal.message') }}</p>
         <div class="overlay-actions">
           <button type="button" class="btn btn-secondary" v-if="canSaveDraft" :disabled="saving" @click="saveDraftAndLeave">
-            {{ saving ? 'Saving…' : 'Save as draft' }}
+            {{ saving ? $t('common.saving') : $t('wizard.footer.saveAsDraft') }}
           </button>
-          <button type="button" class="btn btn-ghost" @click="dismissDiscard">Continue editing</button>
-          <button type="button" class="btn btn-danger" @click="discardAndExit">Discard</button>
+          <button type="button" class="btn btn-ghost" @click="dismissDiscard">{{ $t('button.continueEditing') }}</button>
+          <button type="button" class="btn btn-danger" @click="discardAndExit">{{ $t('button.discard') }}</button>
         </div>
       </div>
     </div>
@@ -472,28 +501,24 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
     <!-- Delete confirmation — for existing alerts (drafts included). -->
     <div v-if="confirmingDelete" class="overlay">
       <div class="overlay-box">
-        <h4>Delete this alert?</h4>
-        <p>This removes the alert and all its bundles. This cannot be undone.</p>
+        <h4>{{ $t('wizard.deleteModal.title') }}</h4>
+        <p>{{ $t('wizard.deleteModal.message') }}</p>
         <div class="overlay-actions">
-          <button type="button" class="btn btn-ghost" @click="confirmingDelete = false">Cancel</button>
+          <button type="button" class="btn btn-ghost" @click="confirmingDelete = false">{{ $t('button.cancel') }}</button>
           <button type="button" class="btn btn-danger" :disabled="deleting" @click="doDelete">
-            {{ deleting ? 'Deleting…' : 'Delete' }}
+            {{ deleting ? $t('common.deleting') : $t('button.delete') }}
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Stepper sits ABOVE the creation card -->
+    <!-- Stepper-->
     <div class="wizard-stepper">
       <Stepper v-model="currentStep" :steps="stepDefs" />
     </div>
 
     <div class="panel wizard">
 
-    <!-- Header mirrors the view-mode layout: tag + title-block (with status
-         badge inline at the title row) + back button. The title-block stacks
-         title and description so they sit in the same place in BOTH modes —
-         user just sees the same surface transition from read-only to inputs. -->
     <div class="panel-head">
       <div class="head-left">
         <div class="head-title-block">
@@ -501,89 +526,82 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
             <input
               v-model="form.title"
               type="text"
-              placeholder="Untitled alert..."
+              :placeholder="$t('common.untitledAlert')"
               class="title-input"
-              aria-label="Alert title"
+              :aria-label="$t('wizard.alertTitleAria')"
             />
-            <span v-if="isExisting && form.status === AlertStatus.Draft" class="status-badge draft">DRAFT</span>
-            <span v-else-if="isExisting && form.status === AlertStatus.Inactive" class="status-badge inactive">INACTIVE</span>
-            <span v-else-if="isExisting && form.status === AlertStatus.Active" class="status-badge active">ACTIVE</span>
+            <span v-if="isExisting && form.status === AlertStatus.Draft" class="status-badge draft">{{ $t('alertStatusBadge.draft') }}</span>
+            <span v-else-if="isExisting && form.status === AlertStatus.Inactive" class="status-badge inactive">{{ $t('alertStatusBadge.inactive') }}</span>
+            <span v-else-if="isExisting && form.status === AlertStatus.Active" class="status-badge active">{{ $t('alertStatusBadge.active') }}</span>
           </div>
           <input
             v-model="form.description"
             type="text"
-            placeholder="Add a brief description…"
+            :placeholder="$t('common.descriptionPlaceholder')"
             class="description-input"
-            aria-label="Alert description"
+            :aria-label="$t('wizard.alertDescriptionAria')"
           />
         </div>
       </div>
-      <button type="button" class="btn btn-ghost" @click="requestBack">← Back to list</button>
+      <button type="button" class="btn btn-ghost" @click="requestBack">{{ $t('button.backToList') }}</button>
     </div>
 
     <div class="panel-body">
 
-      <!-- ── STEP 1 ─ General (source + inline polling cfg) ──────────────
-           Title + description moved to the panel-head so editing them is
-           visible and reachable from any step, not just this one. -->
+      <!-- ── STEP 1 ─ General (source + inline polling cfg) ──────────────-->
       <template v-if="currentStepKey === 'general'">
         <div class="field">
-          <label class="field-label">Input Source <span class="field-required">*</span></label>
-          <InputSourceSelector v-model="form.input" />
-          <p v-if="form.triggerType" class="field-hint">
-            Communication: <strong>{{ form.triggerType }}</strong>
-            — how this source talks to the alert system.
+          <label class="field-label">{{ $t('wizard.fieldLabels.inputSource') }} <span class="field-required">*</span></label>
+          <!-- Bound to selectedSource: setter classifies the picked source into
+               an AlertType, writes form.input + alertParams.source. -->
+          <InputSourceSelector v-model="selectedSource" />
+          <p v-if="form.input" class="field-hint">
+            {{ $t('wizard.communicationHint') }}<strong>{{ form.input }}</strong>{{ $t('wizard.communicationHintSuffix') }}
           </p>
         </div>
 
         <!-- Polling sources expose URL / format / timing inline. -->
         <div v-if="isPolling" class="field">
-          <label class="field-label">Polling configuration <span class="field-required">*</span></label>
+          <label class="field-label">{{ $t('wizard.fieldLabels.pollingConfiguration') }} <span class="field-required">*</span></label>
           <TriggerParamsEditor
-            :source="form.input"
-            :trigger-type="form.triggerType"
-            :model-value="form.triggerParams ?? {}"
-            @update:model-value="form.triggerParams = $event"
+            :source="selectedSource"
+            :trigger-type="form.input"
+            :model-value="form.alertParams ?? {}"
+            @update:model-value="form.alertParams = $event"
           />
         </div>
-      </template>
 
-      <!-- ── STEP 2 ─ Trigger (polling: condition editor / webhook: URL info) ── -->
-      <template v-else-if="currentStepKey === 'trigger'">
-        <template v-if="isPolling">
-          <ConditionEditor
-            :model-value="form.triggerParams?.condition"
-            :url="form.triggerParams?.url"
-            :format="form.triggerParams?.format"
-            @update:model-value="form.triggerParams = { ...(form.triggerParams ?? {}), condition: $event }"
-            @update:payload="lastPollPayload = $event"
-          />
-        </template>
-
-        <template v-else-if="isWebhook">
-          <p class="step-intro">
-            <strong>{{ form.input }}</strong> uses a <strong>webhook</strong>.
-            Nothing to configure here: a unique webhook URL will be generated
-            once you save the alert, and you can paste it into the source's
-            outgoing-webhook settings.
-          </p>
+        <!-- Webhook source: info card inline here (no separate Trigger step). -->
+        <template v-if="isWebhook">
           <div class="info-box">
             <span class="info-icon">ℹ</span>
             <div>
-              <p class="info-title">Webhook URL</p>
+              <p class="info-title">{{ $t('wizard.webhookInfo.title') }}</p>
               <p class="info-text">
-                Will appear in this alert's view page after save.
+                <strong>{{ selectedSource }}</strong>{{ $t('wizard.webhookInfo.body') }}
               </p>
             </div>
           </div>
         </template>
       </template>
 
+      <!-- ── STEP 2 ─ Trigger (POLLING ONLY — webhook skips this step) ── -->
+      <template v-else-if="currentStepKey === 'trigger'">
+        <ConditionEditor
+          :model-value="(form.alertParams as any)?.condition"
+          :url="(form.alertParams as any)?.url"
+          :format="(form.alertParams as any)?.format"
+          @update:model-value="form.alertParams = { ...(form.alertParams ?? {}), condition: $event }"
+          @update:payload="lastPollPayload = $event"
+        />
+      </template>
+
       <!-- ── STEP 3 ─ Bundles ──────────────────────────────────────── -->
       <template v-else-if="currentStepKey === 'bundle'">
         <p class="step-intro">
-          A <strong>bundle</strong> is one notification target: a set of discussions
-          plus a message format. 
+          <i18n-t keypath="wizard.bundleStep.intro" tag="span">
+            <template #bundle><strong>{{ $t('wizard.bundleStep.bundleWord') }}</strong></template>
+          </i18n-t>
         </p>
 
         <div class="bundles-grid">
@@ -594,17 +612,17 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
             :index="i"
             :available-discussions="availableDiscussions"
             :discussions-loading="discussionsLoading"
-            :input-source="form.input"
+            :input-source="selectedSource"
             :alert-context="form"
             :poll-payload="lastPollPayload"
-            :trigger-params="form.triggerParams"
+            :trigger-params="form.alertParams"
             @update:bundle="updateBundle(i, $event)"
             @remove="removeBundle(i)"
           />
 
           <button type="button" class="card-add" @click="addBundle">
             <span class="plus">+</span>
-            <span>{{ bundles.length === 0 ? 'Start adding bundles' : 'New Bundle' }}</span>
+            <span>{{ bundles.length === 0 ? $t('wizard.bundleStep.startAdding') : $t('wizard.bundleStep.newBundle') }}</span>
           </button>
         </div>
 
@@ -612,19 +630,15 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
           v-if="bundles.length > 0 && hasEmptyBundle"
           class="warn-hint"
         >
-          ⚠ Some bundles have no discussions selected — this alert will be saved
-          as a <strong>draft</strong> until every bundle has at least one
-          discussion.
+          <i18n-t keypath="wizard.bundleStep.warnHint" tag="span">
+            <template #draft><strong>{{ $t('wizard.bundleStep.draftWord') }}</strong></template>
+          </i18n-t>
         </p>
       </template>
 
     </div>
 
-    <!-- ── Footer ─ context-sensitive ────────────────────────────────
-         Left cluster: step-back + Delete (lateral / destructive actions).
-         Right cluster: save flow + forward action.
-         Spacer in the middle keeps the destructive button visually
-         separated from save buttons so it can't be mis-clicked.            -->
+    <!-- ── Footer ─ context-sensitive ────────────────────────────────-->
     <div class="panel-foot">
       <button
         v-if="currentStep > 1"
@@ -632,52 +646,38 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
         class="btn btn-ghost"
         @click="back"
       >
-        ← Back
+        {{ $t('button.back') }}
       </button>
-      <!--button
-        v-if="isExisting"
-        type="button"
-        class="btn btn-danger-ghost"
-        @click="confirmingDelete = true"
-      >
-        Delete
-      </button-->
+     
       <div class="foot-spacer" />
 
       <!-- Bundle step: final save lives here, primary CTA. -->
       <template v-if="isOnBundleStep">
         <ButtonPrimary :disabled="saving" @click="save(false, true)">
-          {{ saving ? 'Saving…' :
-             (effectiveFinalStatus === AlertStatus.Draft ? 'Save as draft' : 'Save alert') }}
+          {{ saving ? $t('common.saving') :
+             (effectiveFinalStatus === AlertStatus.Draft ? $t('wizard.footer.saveAsDraft') : $t('wizard.footer.saveAlert')) }}
         </ButtonPrimary>
       </template>
 
-      <!-- Every other step: Save button adapts based on completeness.
-           Complete  → primary "Save alert" that commits AND returns the
-                       user to view mode (navigateAfter=true). Sits to the
-                       left of Continue so the page reads left-to-right as
-                       "commit OR keep editing".
-           Incomplete → secondary "Save as draft", stays in the wizard
-                        (navigateAfter=false) so the user can keep filling
-                        the form. -->
+
       <template v-else>
         <ButtonPrimary
           v-if="wouldBeComplete"
           :disabled="saving"
-          title="Save the alert and return to view mode"
+          :title="$t('wizard.footer.saveAlertTitle')"
           @click="save(false, true)"
         >
-          {{ saving ? 'Saving…' : 'Save alert' }}
+          {{ saving ? $t('common.saving') : $t('wizard.footer.saveAlert') }}
         </ButtonPrimary>
         <button
           v-else
           type="button"
           class="btn btn-secondary"
           :disabled="!canSaveDraft || saving"
-          :title="canSaveDraft ? 'Save as draft and return to view mode' : 'Add a title to save'"
+          :title="canSaveDraft ? $t('wizard.footer.saveAsDraftTitle') : $t('wizard.footer.saveAsDraftNoTitle')"
           @click="save(true, true)"
         >
-          {{ saving ? 'Saving…' : 'Save as draft' }}
+          {{ saving ? $t('common.saving') : $t('wizard.footer.saveAsDraft') }}
         </button>
 
         <ButtonPrimary
@@ -685,28 +685,24 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
           :disabled="!canAdvance || saving"
           @click="next"
         >
-          Add bundles →
+          {{ $t('button.addBundles') }}
         </ButtonPrimary>
         <ButtonPrimary
           v-else
           :disabled="!canAdvance || saving"
           @click="next"
         >
-          Continue →
+          {{ $t('button.continue') }}
         </ButtonPrimary>
       </template>
     </div>
 
-    </div><!-- /.wizard -->
+    </div>
 
   </div>
 </template>
 
 <style scoped>
-/* Most surfaces come from the global stylesheet (.panel / .panel-head /
- * .panel-body / .panel-foot / .field* / .btn* / .overlay* / .card-add).
- * Only wizard-specific layout/composition lives here.
- */
 
 .wizard-root {
   position: relative;

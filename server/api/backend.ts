@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
       console.log('📥 [PUT /api/backend] Updating alert #' + body.id)
       const id = Number(body.id)
       const data = await bdManager.updateAlert(id, body)
-      // Re-register to pick up any changed triggerParams / intervalSeconds.
+      // Re-register to pick up any changed alertParams / intervalSeconds.
       //triggerEngine.unregister(id)
       //if (data.status === AlertStatus.Active) triggerEngine.register(data)
       return { success: true, data }

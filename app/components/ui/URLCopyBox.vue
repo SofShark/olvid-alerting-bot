@@ -23,7 +23,7 @@ const copyWebhook = () => {
             type="button"
             class="btn-copy"
             :class="{ copied }"
-            :title="copied ? 'Copied!' : 'Copy URL'"
+            :title="copied ? $t('urlCopyBox.copiedTitle') : $t('urlCopyBox.copyTitle')"
             @click="copyWebhook"
           >{{ copied ? '✓' : '📋' }}</button>
     </div>

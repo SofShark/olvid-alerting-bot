@@ -1,4 +1,6 @@
-/* ── Preview strip ──────────────────────────────────────────────────── */
+/* ── Preview strip ──────────────────────────────────────────────────── 
+Used in condition editor and test-poll modal to show a summary of the polling result*/
+
 .preview-strip {
   display: flex;
   align-items: center;

@@ -2,12 +2,13 @@
 // this folder and add it to the map.
 
 import type { Parser } from '../types'
-import { xmlParser } from './xml'
+import { xmlParser }  from './xml'
+import { htmlParser } from './html'
 
 const parsers: Record<string, Parser> = {
-  [xmlParser.format]: xmlParser,
+  [xmlParser.format]:  xmlParser,
+  [htmlParser.format]: htmlParser,
   // [jsonParser.format]:  jsonParser,
-  // [htmlParser.format]:  htmlParser,
 }
 
 export function getParser(format: string): Parser | null {

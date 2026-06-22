@@ -2,6 +2,8 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import type { DiscussionModel } from '#shared/constants'
 
+const { t } = useI18n()
+
 const props = withDefaults(defineProps<{
   modelValue: DiscussionModel[]
   available?: DiscussionModel[]
@@ -66,7 +68,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
     <p
       v-if="readonly && modelValue.length === 0"
       class="empty-readonly"
-    >— no discussions —</p>
+    >{{ $t('discussionSelector.empty') }}</p>
 
     <!-- Search / add — hidden when readonly. -->
     <div v-if="!readonly" class="search-wrap" ref="containerRef">
@@ -74,7 +76,11 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
         v-model="searchQuery"
         @focus="isDropdownOpen = true"
         type="text"
-        :placeholder="isLoading ? 'Loading...' : available.length === 0 ? 'No discussions available' : 'Add a discussion...'"
+        :placeholder="isLoading
+          ? t('discussionSelector.search.loading')
+          : available.length === 0
+            ? t('discussionSelector.search.noneAvailable')
+            : t('discussionSelector.search.addPlaceholder')"
         :disabled="isLoading"
         class="search-input"
       />
@@ -88,7 +94,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
           <span class="item-title">{{ d.title }}</span>
         </div>
         <div v-if="filtered.length === 0" class="dropdown-empty">
-          {{ available.length === 0 ? 'No discussions found in daemon' : 'All discussions already added' }}
+          {{ available.length === 0 ? $t('discussionSelector.dropdown.noFound') : $t('discussionSelector.dropdown.allAdded') }}
         </div>
       </div>
     </div>

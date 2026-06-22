@@ -58,12 +58,15 @@ function serializeAlert(alert: any) {
 }
 
 // Rules:
-// - draft     : explicit client request OR input/trigger missing
+// - draft     : explicit client request OR alertType missing
 // - active    : complete, has >=1 bundle and caller asked for active
 // - inactive  : complete but not active (or no bundles)
-function computeStatus(input: any, triggerType: any, bundleCount: number, wantActive: boolean, wantDraft: boolean): AlertStatus {
+//
+// `input` now stores the AlertType (post-refactor). `triggerType` is gone —
+// the AlertType IS the type discriminator.
+function computeStatus(input: any, bundleCount: number, wantActive: boolean, wantDraft: boolean): AlertStatus {
   if (wantDraft) return AlertStatus.Draft
-  if (!input || !triggerType) return AlertStatus.Draft
+  if (!input) return AlertStatus.Draft
   if (wantActive && bundleCount > 0) return AlertStatus.Active
   return AlertStatus.Inactive
 }
@@ -86,15 +89,14 @@ export const bdManager = {
     const incomingBundles: any[] = Array.isArray(data.bundles) ? data.bundles : []
     const wantActive = data.status === AlertStatus.Active
     const wantDraft  = data.status === AlertStatus.Draft
-    const aStatus = computeStatus(data.input, data.triggerType, incomingBundles.length, wantActive, wantDraft)
+    const aStatus = computeStatus(data.input, incomingBundles.length, wantActive, wantDraft)
 
     const newAlert = await prisma.alertTable.create({
       data: {
         title: data.title,
         description: data.description ?? null,
-        input: data.input ?? null,
-        triggerType: data.triggerType ?? null,
-        triggerParams: data.triggerParams ?? null,
+        input: data.input ?? null,            // AlertType
+        alertParams: data.alertParams ?? null, // type-specific config (incl. source)
         status: aStatus,
         bundles: {
           create: incomingBundles.map(toBundleCreate),
@@ -111,7 +113,7 @@ export const bdManager = {
     const incomingBundles: any[] = Array.isArray(data.bundles) ? data.bundles : []
     const wantActive = data.status === AlertStatus.Active
     const wantDraft  = data.status === AlertStatus.Draft
-    const status = computeStatus(data.input, data.triggerType, incomingBundles.length, wantActive, wantDraft)
+    const status = computeStatus(data.input, incomingBundles.length, wantActive, wantDraft)
 
     // Replace the bundle set entirely (simplest correct strategy).
     await prisma.bundle.deleteMany({ where: { alertId: id } })
@@ -122,8 +124,7 @@ export const bdManager = {
         title: data.title,
         description: data.description ?? null,
         input: data.input ?? null,
-        triggerType: data.triggerType ?? null,
-        triggerParams: data.triggerParams ?? null,
+        alertParams: data.alertParams ?? null,
         status,
         bundles: {
           create: incomingBundles.map(toBundleCreate),
@@ -180,11 +181,13 @@ export const bdManager = {
     })
   },
 
-  // 7. Persist updated triggerParams (e.g. _lastSeenId, _lastHash) without touching other fields.
-  async updateTriggerParams(id: number, params: Record<string, any>) {
+  // 7. Persist updated alertParams (e.g. _lastSeenId, _lastHash, _baseline)
+  // without touching other fields. Used by the polling engine to keep
+  // runtime state attached to the alert.
+  async updateAlertParams(id: number, params: Record<string, any>) {
     await prisma.alertTable.update({
       where: { id },
-      data: { triggerParams: params },
+      data: { alertParams: params },
     })
   },
 

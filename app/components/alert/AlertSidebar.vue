@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { AlertStatus, type AlertModel } from '#shared/constants'
 
+const { t } = useI18n()
+
 withDefaults(defineProps<{
   alerts?: AlertModel[]
   selectedId?: number | null
@@ -18,16 +20,16 @@ const statusClass = (status: string) => ({
 })
 
 const statusLabel = (status: string) => {
-  if (status === AlertStatus.Active) return 'Active'
-  if (status === AlertStatus.Inactive) return 'Inactive'
-  return 'Draft'
+  if (status === AlertStatus.Active)   return t('sidebar.statusLabel.active')
+  if (status === AlertStatus.Inactive) return t('sidebar.statusLabel.inactive')
+  return t('sidebar.statusLabel.draft')
 }
 </script>
 
 <template>
   <aside class="sidebar">
     <div class="sidebar-head">
-      <span class="sidebar-title">Alert List</span>
+      <span class="sidebar-title">{{$t('sidebar.title')}}</span>
       <!---- ><span class="sidebar-count">{{ alerts.length }}</span>-->
     </div>
 
@@ -41,16 +43,16 @@ const statusLabel = (status: string) => {
         @click="emit('select', a)"
       >
         <span class="status-dot" :class="statusClass(a.status)" :title="statusLabel(a.status)"></span>
-        <span class="row-title">{{ a.title || 'Untitled' }}</span>
+        <span class="row-title">{{ a.title }}</span>
       </button>
 
       <div v-if="alerts.length === 0" class="sidebar-empty">
-        No alerts yet.
+        {{ $t('sidebar.empty') }}
       </div>
     </div>
 
     <button type="button" class="btn-new-bottom" @click="emit('new')">
-      <span class="plus">+</span> New Alert
+      <span class="plus">+</span> {{ $t('button.newAlert') }}
     </button>
   </aside>
 </template>
@@ -68,12 +70,22 @@ const statusLabel = (status: string) => {
 }
 
 .sidebar-head {
-  display: flex; align-items: center; gap: var(--space-3);
+  display: flex; 
+  align-items: center;
+  justify-content: center;
+ 
+  gap: var(--space-3);
   padding: var(--space-4) var(--space-6);
   background: var(--color-border-subtle);
   border-bottom: 1px solid var(--color-border-subtle);
 }
-.sidebar-title { font-size: var(--text-base); font-weight: 600; color: var(--color-text-primary); }
+.sidebar-title { 
+  font-size: var(--text-base); 
+  font-weight: 600; 
+  color: var(--color-text-primary); 
+}
+
+
 .sidebar-count {
   margin-left: auto;
   background: var(--color-border-subtle);

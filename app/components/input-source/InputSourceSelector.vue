@@ -1,11 +1,4 @@
 <script setup lang="ts">
-/* 
-
-
-
-*/
-
-
 
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { Source } from '#shared/constants'
@@ -34,7 +27,12 @@ const select = (s: string) => {
   isDropdownOpen.value = false
 }
 
-const clear = () => emit('update:modelValue', '')
+const clear = async() => {
+  isDropdownOpen.value = true
+  await nextTick()
+  emit('update:modelValue', '')
+  
+}
 
 const onClickOutside = (e: MouseEvent) => {
   if (containerRef.value && !containerRef.value.contains(e.target as Node))
@@ -52,29 +50,29 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
         <span class="check">✔</span>
         <strong>{{ modelValue }}</strong>
       </div>
-      <button v-if="!locked" type="button" class="btn-change" @click="clear">Change</button>
-      <span v-else class="locked-hint">🔒 Can't be changed, bundles already depend on this source</span>
+      <button v-if="!locked" type="button" class="btn-change" @click.stop="clear">{{ $t('inputSourceSelector.changeButton') }}</button>
+      <span v-else class="locked-hint">{{ $t('inputSourceSelector.lockedHint') }}</span>
     </div>
     <div v-else class="search-wrap" ref="containerRef">
       <input
         v-model="searchQuery"
         @focus="isDropdownOpen = true"
         type="text"
-        placeholder="Search source (GitHub, Grafana, Sentry...)"
+        :placeholder="$t('inputSourceSelector.searchPlaceholder')"
         class="search-input"
       />
       <div v-if="isDropdownOpen" class="dropdown">
         <div v-for="s in filtered" :key="s" @mousedown.prevent="select(s)" class="dropdown-item">
           {{ s }}
         </div>
-        <div v-if="filtered.length === 0" class="dropdown-empty">No results</div>
+        <div v-if="filtered.length === 0" class="dropdown-empty">{{ $t('inputSourceSelector.noResults') }}</div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.selector { width: 100%; position: relative; }
+.selector { width: 25%; position: relative; }
 
 .selected-badge {
   display: flex; justify-content: space-between; align-items: center;

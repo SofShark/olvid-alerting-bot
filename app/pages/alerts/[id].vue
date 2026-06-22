@@ -21,8 +21,8 @@ const isEditing = computed(() => route.value.query.edit === '1')
 
 <template>
   <div v-if="alertsLoading || !alert" class="loading-panel">
-    <span v-if="alertsLoading">Loading…</span>
-    <span v-else>Alert not found.</span>
+    <span v-if="alertsLoading">{{ $t('alertPage.loading') }}</span>
+    <span v-else>{{ $t('alertPage.notFound') }}</span>
   </div>
   <AlertWizard
     v-else-if="isEditing"

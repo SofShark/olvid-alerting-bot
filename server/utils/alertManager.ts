@@ -2,6 +2,7 @@ import { Formatting, AlertStatus } from "#shared/constants"
 import { buildPollingDefaultMessage } from "#shared/pollingMessage"
 import Handlebars from 'handlebars'
 
+
 export const alertManager = {
 
   async getDiscussionList(){
@@ -54,7 +55,12 @@ export const alertManager = {
       case Formatting.Custom: {
         // Both run a user-provided Handlebars template against the payload.
         // For polling, the payload is the parsed source tree; for webhook,
-        // it's the raw posted JSON.
+        // it's the raw posted JSON
+        
+        
+        
+
+  
         if (bundle.custom_script && bundle.custom_script.trim() !== '') {
           try {
             const template = Handlebars.compile(bundle.custom_script)

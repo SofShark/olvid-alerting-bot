@@ -1,0 +1,432 @@
+{
+  "topNav": {
+    "title": "Alerting System",
+    "themeToggle": "Toggle Theme",
+    "changeLanguage": "Change language"
+  },
+
+  "index": {
+    "placeholder": "Select an alert from the list, or create a new one."
+  },
+
+  "sidebar": {
+    "title": "Alert List",
+    "empty": "No alerts yet",
+    "searchPlaceholder": "Filter alerts...",
+    "statusLabel": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "draft": "Draft"
+    }
+  },
+
+  "alertStatus": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "draft": "Draft"
+  },
+
+  "alertStatusBadge": {
+    "active": "ACTIVE",
+    "inactive": "INACTIVE",
+    "draft": "DRAFT"
+  },
+
+  "alertPage": {
+    "loading": "Loading…",
+    "notFound": "Alert not found."
+  },
+
+  "common": {
+    "untitled": "Untitled",
+    "untitledAlert": "Untitled alert...",
+    "descriptionPlaceholder": "Add a brief description…",
+    "unknownError": "Unknown error",
+    "loadingEllipsis": "Loading…",
+    "emDash": "—",
+    "via": "via",
+    "saving": "Saving…",
+    "deleting": "Deleting…",
+    "polling": "Polling…",
+    "fieldRequired": "*"
+  },
+
+  "button": {
+    "saveAlert": "Save Alert",
+    "saveAsDraft": "Save as Draft",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "newAlert": "New Alert",
+    "backToList": "← Back to list",
+    "back": "← Back",
+    "continue": "Continue →",
+    "addBundles": "Add bundles →",
+    "editAlert": "Edit Alert",
+    "close": "Close",
+    "done": "Done",
+    "discard": "Discard",
+    "keepEditing": "Keep editing",
+    "continueEditing": "Continue editing",
+    "saveBundle": "Save bundle"
+  },
+
+  "selector": {
+    "change": "Change",
+    "noResults": "No results found"
+  },
+
+  "wizard": {
+    "alertTitleAria": "Alert title",
+    "alertDescriptionAria": "Alert description",
+
+    "discardModal": {
+      "title": "Unsaved changes",
+      "message": "If you leave now, your progress will be lost. Would you like to save this alert as a draft before leaving?"
+    },
+
+    "deleteModal": {
+      "title": "Delete this alert?",
+      "message": "This removes the alert and all its bundles. This cannot be undone."
+    },
+
+    "steps": {
+      "general": {
+        "title": "General",
+        "descriptionPolling": "Title, source & polling config",
+        "descriptionWebhook": "Title & source"
+      },
+      "trigger": {
+        "title": "Trigger",
+        "description": "When to fire"
+      },
+      "bundle": {
+        "title": "Bundles",
+        "description": "Add notification targets"
+      }
+    },
+
+    "fieldLabels": {
+      "inputSource": "Input Source",
+      "pollingConfiguration": "Polling configuration"
+    },
+
+    "communicationHint": "Communication: ",
+    "communicationHintSuffix": " — how this source talks to the alert system.",
+
+    "webhookInfo": {
+      "title": "Webhook URL",
+      "body": " uses a webhook. Nothing more to configure here — a unique URL will be generated once you save the alert, and you can paste it into the source's outgoing-webhook settings. The URL will appear in this alert's view page after save."
+    },
+
+    "bundleStep": {
+      "intro": "A {bundle} is one notification target: a set of discussions plus a message format.",
+      "bundleWord": "bundle",
+      "startAdding": "Start adding bundles",
+      "newBundle": "New Bundle",
+      "warnHint": "⚠ Some bundles have no discussions selected — this alert will be saved as a {draft} until every bundle has at least one discussion.",
+      "draftWord": "draft"
+    },
+
+    "footer": {
+      "saveAlert": "Save alert",
+      "saveAsDraft": "Save as draft",
+      "saveAlertTitle": "Save the alert and return to view mode",
+      "saveAsDraftTitle": "Save as draft and return to view mode",
+      "saveAsDraftNoTitle": "Add a title to save"
+    },
+
+    "validation": {
+      "titleMandatory": "Title is mandatory"
+    },
+
+    "errors": {
+      "saving": "Error saving alert:",
+      "deleting": "Error deleting alert:"
+    }
+  },
+
+  "editor": {
+    "view": {
+      "fields": {
+        "source": "Source",
+        "endpoint": "Endpoint",
+        "url": "URL",
+        "polling": "Polling",
+        "condition": "Condition",
+        "discussions": "Discussions",
+        "format": "Format"
+      },
+      "dividers": {
+        "triggerConfiguration": "Trigger configuration",
+        "bundles": "Bundles ({count})",
+        "testPolling": "Test polling",
+        "messagesPerBundle": "Messages per bundle"
+      },
+      "noBundles": "No bundles configured. Click {editAlert} to add one.",
+      "noBundlesEditAlert": "Edit Alert",
+      "bundleTag": "BUNDLE {n}",
+      "bundleEdit": "Edit",
+      "discussionsEmpty": "— none —"
+    },
+
+    "interval": {
+      "everyDay": "every {n} day",
+      "everyDays": "every {n} days",
+      "everyHour": "every {n} hour",
+      "everyHours": "every {n} hours",
+      "everyMinute": "every {n} minute",
+      "everyMinutes": "every {n} minutes",
+      "everySeconds": "every {n} seconds",
+      "empty": "—"
+    },
+
+    "condition": {
+      "summaryNone": "Fires every poll cycle (no condition).",
+      "summaryRuleAll": "Fires when all of these fields {phrase}.",
+      "summaryRuleAny": "Fires when any of these fields {phrase}.",
+      "summaryRuleAllMissingValue": "Fires when all of these fields {phrase} (value missing — edit to set).",
+      "summaryRuleAnyMissingValue": "Fires when any of these fields {phrase} (value missing — edit to set).",
+      "phrase": {
+        "changed": "change between polls",
+        "equals": "equal \"{value}\"",
+        "greaterThan": "are greater than {value}",
+        "lessThan": "are less than {value}",
+        "contains": "contain \"{value}\""
+      }
+    },
+
+    "testPanel": {
+      "intro": "Trigger the polling pipeline once manually. The alert won't be activated and no bundles will be fired — the result will open in a panel showing the per-field breakdown and the message each bundle would send.",
+      "runButton": "Run test poll",
+      "pollingButton": "Polling…"
+    },
+
+    "testModal": {
+      "title": "Test poll result",
+      "conditionMet": "Condition met — alert would fire.",
+      "conditionNotMet": "Condition not met — alert would not fire.",
+      "perFieldBreakdown": "per-field breakdown",
+      "discussionsCount": "{n} discussion",
+      "discussionsCountPlural": "{n} discussions",
+      "parsedSourceRaw": "Parsed source (raw)",
+      "closeButton": "Close",
+      "errorPrefix": "⚠ {message}"
+    },
+
+    "bundleModal": {
+      "title": "Edit bundle {n}",
+      "closeTitle": "Close",
+      "savingButton": "Saving…",
+      "saveButton": "Save bundle",
+      "cancelButton": "Cancel",
+      "discardWarning": "⚠ Discard unsaved changes to this bundle?",
+      "keepEditingButton": "Keep editing",
+      "discardButton": "Discard"
+    },
+
+    "footer": {
+      "delete": "Delete",
+      "editAlert": "Edit Alert"
+    },
+
+    "errors": {
+      "savingBundle": "Error saving bundle:",
+      "testFailed": "Test failed"
+    }
+  },
+
+  "conditionEditor": {
+    "panel": {
+      "title": "Condition"
+    },
+    "mode": {
+      "none": "Fire every poll cycle",
+      "rule": "Match a rule"
+    },
+    "watchedFields": {
+      "label": "Watched fields",
+      "hint": "Type a path, or use {dotdot} as a wildcard (e.g. {example} matches every day's max). Or open the picker to choose visually.",
+      "hintCode": "..",
+      "hintExample": "dia..temperatura.maxima",
+      "emptyChips": "— no watched fields yet —",
+      "typePath": "Type path",
+      "pickFromSource": "Pick from source",
+      "inputPlaceholder": "paste or type a path, then Enter",
+      "inputDone": "Done",
+      "inputCancel": "Cancel"
+    },
+    "trigger": {
+      "label": "Trigger when"
+    },
+    "aggregation": {
+      "all": "all of them",
+      "any": "at least one"
+    },
+    "operator": {
+      "changed": "has changed since last poll",
+      "equals": "equals",
+      "greaterThan": "is greater than",
+      "lessThan": "is less than",
+      "contains": "contains"
+    },
+    "value": {
+      "placeholder": "value"
+    },
+    "summary": {
+      "firesEvery": "Fires every poll cycle (no condition).",
+      "noFields": "No fields watched — click values in the source.",
+      "noMatch": "Watched patterns don't match any paths in the source. Refresh or fix the pattern.",
+      "changedNeedsBaseline": "Change is detected at poll time (needs a baseline). Watching {n} field.",
+      "changedNeedsBaselinePlural": "Change is detected at poll time (needs a baseline). Watching {n} fields.",
+      "operatorNeedsValue": "Operator \"{operator}\" needs a value.",
+      "waitingForSource": "Waiting for source data…",
+      "wouldFireAll": "Would fire — all of {total} field verified ({passing}/{total}).",
+      "wouldFireAllPlural": "Would fire — all of {total} fields verified ({passing}/{total}).",
+      "wouldFireAny": "Would fire — more than one of {total} field verified ({passing}/{total}).",
+      "wouldFireAnyPlural": "Would fire — more than one of {total} fields verified ({passing}/{total}).",
+      "wouldNotFireRequiresAll": "Would not fire — {passing} of {total} field verified, this condition requires all.",
+      "wouldNotFireRequiresAllPlural": "Would not fire — {passing} of {total} fields verified, this condition requires all.",
+      "wouldNotFireRequiresAny": "Would not fire — {passing} of {total} field verified, this condition requires at least one.",
+      "wouldNotFireRequiresAnyPlural": "Would not fire — {passing} of {total} fields verified, this condition requires at least one."
+    },
+    "validation": {
+      "patternNoMatch": "Pattern \"{value}\" doesn't match any paths in the retrieved source.",
+      "pathNotInSource": "Path \"{value}\" doesn't resolve to anything in the retrieved source. Fix it, click ⟳ above to refresh, or press Esc to cancel."
+    },
+    "errors": {
+      "noUrl": "No URL configured. Go back to the input-config step and set one.",
+      "failedToRetrieve": "Failed to retrieve",
+      "networkError": "Network error",
+      "couldNotRetrieveTitle": "⚠ Could not retrieve source",
+      "couldNotRetrieveHint": "Check the URL in the input-config step, then click ⟳ above to retry."
+    },
+    "picker": {
+      "title": "Pick watched fields from source",
+      "closeTitle": "Close",
+      "refreshTitle": "Re-fetch the source",
+      "fetching": "Fetching {url}…",
+      "waiting": "Waiting for source data…",
+      "empty": "Empty document.",
+      "doneButton": "Done",
+      "fieldsSelected": "{n} field selected",
+      "fieldsSelectedPlural": "{n} fields selected"
+    }
+  },
+
+  "formatEditor": {
+    "title": "Custom Format Editor",
+    "intro": {
+      "polling": "Build the message that fires when this polling alert triggers. Click any value on the right to insert its path, or use the watched-path shortcuts below the script.",
+      "webhook": "Configure the message that users will receive on Olvid."
+    },
+    "scriptTitle": "script.hbs (Handlebars)",
+    "watchedPathsLabel": "Watched paths:",
+    "watchedPathsInsertTitle": "Insert {token}",
+    "sourceTitlePollingFormat": "source.{format}",
+    "sourceTitleWebhook": "payload.json (Test Data)",
+    "sourceRefreshTitle": "Re-fetch the source",
+    "sourceExampleButton": "Example",
+    "sourceLastReceivedButton": "Last received",
+    "sourceLoadingPolling": "Loading source…",
+    "sourceEmptyPolling": "No data yet.",
+    "sourceLoadingWebhook": "Loading…",
+    "sourceNoPayloads": "No payloads from this input source have been received yet.",
+    "errors": {
+      "noUrlPolling": "No URL configured for this alert — set one in the alert's polling configuration.",
+      "failedToRetrieveSource": "Failed to retrieve source",
+      "jsonError": "Error in JSON: {message}",
+      "handlebarsError": "Error in Handlebars: {message}"
+    },
+    "preview": {
+      "title": "📱 Preview on device",
+      "placeholder": "Formatted message will appear here...",
+      "sender": "Alerting Bot",
+      "time": "now"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "save": "Save Script",
+      "closeTitle": "Close"
+    }
+  },
+
+  "bundleCard": {
+    "tag": "BUNDLE {n}",
+    "fields": {
+      "discussions": "Discussions",
+      "format": "Message Format"
+    },
+    "format": {
+      "unformatted": "Brute (raw JSON)",
+      "simple": "Simple (title + description)",
+      "custom": "Custom script (Handlebars)",
+      "pollingDefault": "Default (watched fields)",
+      "pollingCustom": "Custom script (Handlebars)"
+    },
+    "scriptButton": "Script",
+    "previewPlaceholder": "Default polling message — fills in the watched paths and their observed values when the alert fires.",
+    "removeTitle": "Remove bundle",
+    "editTitle": "Edit this bundle",
+    "editButton": "✎ Edit"
+  },
+
+  "discussionSelector": {
+    "search": {
+      "loading": "Loading...",
+      "noneAvailable": "No discussions available",
+      "addPlaceholder": "Add a discussion..."
+    },
+    "dropdown": {
+      "noFound": "No discussions found in daemon",
+      "allAdded": "All discussions already added"
+    },
+    "empty": "— no discussions —"
+  },
+
+  "inputSourceSelector": {
+    "lockedHint": "🔒 Can't be changed, bundles already depend on this source",
+    "searchPlaceholder": "Search source (GitHub, Grafana, Sentry...)",
+    "noResults": "No results",
+    "changeButton": "Change"
+  },
+
+  "triggerParamsEditor": {
+    "url": {
+      "label": "URL",
+      "placeholder": "https://example.com/feed.xml",
+      "hint": "Endpoint the alert system will poll."
+    },
+    "format": {
+      "label": "Format",
+      "hint": "Content type returned by the URL."
+    },
+    "interval": {
+      "label": "Poll interval",
+      "every": "every",
+      "at": "at"
+    },
+    "units": {
+      "minutes": "minutes",
+      "hours": "hours",
+      "daily": "daily"
+    }
+  },
+
+  "triggerSelector": {
+    "lockedHint": "— how this source communicates with the alert system",
+    "empty": "Select an input source first."
+  },
+
+  "select": {
+    "placeholder": "Select…"
+  },
+
+  "urlCopyBox": {
+    "copiedTitle": "Copied!",
+    "copyTitle": "Copy URL"
+  },
+
+  "xmlTree": {
+    "leafTitle": "Click to watch: {path}"
+  }
+}

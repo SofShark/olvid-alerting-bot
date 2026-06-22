@@ -1,5 +1,13 @@
+<script setup lang="ts">
+  defineProps<{
+    small?: boolean
+  }>()
+</script>
+
 <template>
-  <button class="btn-primary" v-bind="$attrs">
+  <button class="btn-primary" 
+          :class="{ 'btn-small': small }"
+          v-bind="$attrs">
     <slot />
   </button>
 </template>
@@ -19,6 +27,11 @@
   gap: 6px;
   transition: background-color 0.15s, border-color 0.15s;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.btn-primary.btn-small {
+  padding: 6px 12px;
+  font-size: 12px;
 }
 
 .btn-primary:hover:not(:disabled) {

@@ -49,7 +49,9 @@ export const pollingEngine = {
   },
 
   async test(alert: any): Promise<RunResult> {
-    const params = (alert?.triggerParams ?? {}) as any
+    // alertParams is the new name (post-refactor); fall back to triggerParams
+    // for any in-flight legacy alert that hasn't been re-saved yet.
+    const params = (alert?.alertParams ?? alert?.triggerParams ?? {}) as any
     const url    = params.url
     const format = params.format
     const r = await this.retrieve(url, format)

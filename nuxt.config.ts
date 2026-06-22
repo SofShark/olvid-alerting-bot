@@ -7,6 +7,7 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL || "postgresql://postgres:@localhost:5432/mi_base_datos?schema=public"
   },
@@ -39,5 +40,29 @@ export default defineNuxtConfig({
     }
   }
   */
+
+  modules: [
+    '@nuxtjs/i18n',
+  ],
+  i18n: {
+    
+    bundle: {
+      optimizeTranslationDirective: false,
+    },
+    locales: [
+      { code: 'en', name: 'English',  file:'en.json', language: 'en-US' },
+      { code: 'fr', name: 'Français', file:'fr.json',language: 'fr-FR' },
+      //{ code: 'sp', name: 'Español',  file: 'sp.json',language: 'sp-SP'}
+    ],
+    defaultLocale: 'en',
+
+    strategy: 'no_prefix',
+
+    detectBrowserLanguage: {
+      useCookie:        true,
+    }
+  }
+
+  
 
 })

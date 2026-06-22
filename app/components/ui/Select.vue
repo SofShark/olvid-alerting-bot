@@ -3,6 +3,8 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 
 type Option = { value: string; label: string }
 
+const { t } = useI18n()
+
 const props = withDefaults(defineProps<{
   modelValue: string
   options: Option[]
@@ -10,7 +12,7 @@ const props = withDefaults(defineProps<{
   placeholder?: string
 }>(), {
   disabled: false,
-  placeholder: 'Select…',
+  placeholder: () => '',
 })
 
 const emit = defineEmits<{
@@ -24,7 +26,7 @@ const current = computed(() =>
   props.options.find(o => o.value === props.modelValue),
 )
 
-const displayLabel = computed(() => current.value?.label ?? props.placeholder)
+const displayLabel = computed(() => current.value?.label ?? (props.placeholder || t('select.placeholder')))
 
 function toggle() {
   if (props.disabled) return

@@ -67,12 +67,12 @@ function onLeafClick() {
       />
     </template>
 
-    <!-- Leaf (primitive) — clickable. -->
+    <!-- Leaf — clickable. -->
     <div
       v-else
       class="leaf-line"
       :class="{ selected: isSelected, attribute: isAttribute }"
-      :title="`Click to watch: ${path}`"
+      :title="$t('xmlTree.leafTitle', { path })"
       @click="onLeafClick"
     >
       <span class="leaf-name">
@@ -111,6 +111,7 @@ function onLeafClick() {
   cursor: pointer;
   border: 1px solid transparent;
   transition: background-color .12s, border-color .12s;
+  min-width: max-content;
 }
 .leaf-line:hover {
   background:    color-mix(in srgb, var(--color-accent) 12%, transparent);
@@ -130,6 +131,7 @@ function onLeafClick() {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .leaf-path {

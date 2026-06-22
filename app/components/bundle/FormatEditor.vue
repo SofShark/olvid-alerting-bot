@@ -10,6 +10,8 @@ import {
   migrateCondition,
 } from '#shared/constants'
 
+const { t } = useI18n()
+
 const props = defineProps({
   initialScript: { type: String, default: '' },
   inputSource:   { type: String, default: Source.GenericWebhook },
@@ -91,7 +93,7 @@ async function retrievePolling() {
   const url    = props.triggerParams?.url
   const format = props.triggerParams?.format ?? PollingFormat.XML
   if (!url) {
-    pollingError.value = 'No URL configured for this alert — set one in the alert\'s polling configuration.'
+    pollingError.value = t('formatEditor.errors.noUrlPolling')
     return
   }
   pollingLoading.value = true
@@ -102,13 +104,13 @@ async function retrievePolling() {
       body: { url, format },
     })
     if (!res.ok) {
-      pollingError.value = res.error ?? 'Failed to retrieve source'
+      pollingError.value = res.error ?? t('formatEditor.errors.failedToRetrieveSource')
       parsedTree.value   = null
     } else {
       parsedTree.value = res.parsed
     }
   } catch (e: any) {
-    pollingError.value = e?.data?.statusMessage ?? e?.message ?? 'Network error'
+    pollingError.value = e?.data?.statusMessage ?? e?.message ?? t('conditionEditor.errors.networkError')
   } finally {
     pollingLoading.value = false
   }
@@ -168,23 +170,31 @@ watch(payloadType, (type) => {
 // ── Live preview ────────────────────────────────────────────────────────────
 const previewData = computed(() => {
   if (!scriptContent.value || scriptContent.value.trim() === '') {
-    return { text: 'Formatted message will appear here...', error: null }
+    return { text: t('formatEditor.preview.placeholder'), error: null }
   }
   let context: any
   if (isPolling.value) {
     context = parsedTree.value ?? {}
   } else {
     try { context = JSON.parse(jsonPayload.value) }
-    catch (err) { return { text: '', error: 'Error in JSON: ' + (err as Error).message } }
+    catch (err) { return { text: '', error: t('formatEditor.errors.jsonError', { message: (err as Error).message }) } }
   }
   try {
+
+    // Contains helper TODO => modularize
+        Handlebars.registerHelper('contains', function(this: any, texto: string, palabra: string, options: any) {
+          if (texto && typeof texto === 'string' && texto.toLowerCase().includes(palabra.toLowerCase())) {
+            return options.fn(this);
+          }
+          return options.inverse(this);
+        });
     const template = Handlebars.compile(scriptContent.value)
     return {
       text:  template(context).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'),
       error: null,
     }
   } catch (err) {
-    return { text: '', error: 'Error in Handlebars: ' + (err as Error).message }
+    return { text: '', error: t('formatEditor.errors.handlebarsError', { message: (err as Error).message }) }
   }
 })
 
@@ -198,17 +208,15 @@ const close = () => emit('close')
 
       <div class="window-header">
         <div class="header-titles">
-          <h3>Custom Format Editor</h3>
+          <h3>{{ $t('formatEditor.title') }}</h3>
           <p v-if="isPolling">
-            Build the message that fires when this polling alert triggers. Click
-            any value on the right to insert its path, or use the watched-path
-            shortcuts below the script.
+            {{ $t('formatEditor.intro.polling') }}
           </p>
           <p v-else>
-            Configure the message that users will receive on Olvid.
+            {{ $t('formatEditor.intro.webhook') }}
           </p>
         </div>
-        <button class="btn-close-icon" @click="close">✕</button>
+        <button class="btn-close-icon" :title="$t('formatEditor.buttons.closeTitle')" @click="close">✕</button>
       </div>
 
       <div class="window-body">
@@ -219,7 +227,7 @@ const close = () => emit('close')
           <div class="code-block">
             <div class="code-header">
               <span class="dot dot-red" /><span class="dot dot-yellow" /><span class="dot dot-green" />
-              <span class="code-title">script.hbs (Handlebars)</span>
+              <span class="code-title">{{ $t('formatEditor.scriptTitle') }}</span>
             </div>
 
             <!-- Shortcuts row: watched paths from the alert's condition. Polling only. -->
@@ -227,13 +235,13 @@ const close = () => emit('close')
               v-if="isPolling && watchedPaths.length > 0"
               class="shortcuts"
             >
-              <span class="shortcuts-label">Watched paths:</span>
+              <span class="shortcuts-label">{{ $t('formatEditor.watchedPathsLabel') }}</span>
               <button
                 v-for="p in watchedPaths"
                 :key="p"
                 type="button"
                 class="shortcut-chip"
-                :title="`Insert {{${pathToHandlebars(p)}}}`"
+                :title="$t('formatEditor.watchedPathsInsertTitle', { token: `{{${pathToHandlebars(p)}}}` })"
                 @click="onPathSelect(p)"
               >
                 {{ p }}
@@ -253,7 +261,9 @@ const close = () => emit('close')
             <div class="code-header">
               <span class="dot dot-red" /><span class="dot dot-yellow" /><span class="dot dot-green" />
               <span class="code-title">
-                {{ isPolling ? `source.${(triggerParams?.format ?? 'xml').toLowerCase()}` : 'payload.json (Test Data)' }}
+                {{ isPolling
+                  ? $t('formatEditor.sourceTitlePollingFormat', { format: (triggerParams?.format ?? 'xml').toLowerCase() })
+                  : $t('formatEditor.sourceTitleWebhook') }}
               </span>
 
               <!-- Polling: refresh button -->
@@ -262,7 +272,7 @@ const close = () => emit('close')
                 type="button"
                 class="payload-refresh"
                 :disabled="pollingLoading"
-                title="Re-fetch the source"
+                :title="$t('formatEditor.sourceRefreshTitle')"
                 @click="retrievePolling"
               >
                 {{ pollingLoading ? '…' : '⟳' }}
@@ -273,29 +283,27 @@ const close = () => emit('close')
                 <button
                   :class="['toggle-btn', { active: payloadType === 'example' }]"
                   @click="payloadType = 'example'"
-                >Example</button>
+                >{{ $t('formatEditor.sourceExampleButton') }}</button>
                 <button
                   :class="['toggle-btn', { active: payloadType === 'last' }]"
                   @click="payloadType = 'last'"
-                >Last received</button>
+                >{{ $t('formatEditor.sourceLastReceivedButton') }}</button>
               </div>
             </div>
 
             <!-- Polling: XML tree -->
             <template v-if="isPolling">
               <div class="payload-notice" v-if="pollingLoading">
-                Loading source…
+                {{ $t('formatEditor.sourceLoadingPolling') }}
               </div>
               <div class="payload-empty" v-else-if="pollingError">
                 ⚠ {{ pollingError }}
               </div>
               <div class="payload-empty" v-else-if="rootEntries.length === 0">
-                No data yet.
+                {{ $t('formatEditor.sourceEmptyPolling') }}
               </div>
-              <div v-else class="tree-pane">
-                <p class="tree-pane-hint">
-                  Click any value to insert its path into the script.
-                </p>
+              <div v-else class="tree-panel">
+
                 <XmlTreeNode
                   v-for="([k, v]) in rootEntries"
                   :key="k"
@@ -310,9 +318,9 @@ const close = () => emit('close')
 
             <!-- Webhook: JSON textarea (unchanged) -->
             <template v-else>
-              <div v-if="lastPayloadLoading" class="payload-notice">Loading…</div>
+              <div v-if="lastPayloadLoading" class="payload-notice">{{ $t('formatEditor.sourceLoadingWebhook') }}</div>
               <div v-else-if="lastPayloadMissing" class="payload-empty">
-                No payloads from this input source have been received yet.
+                {{ $t('formatEditor.sourceNoPayloads') }}
               </div>
               <textarea
                 v-else
@@ -328,16 +336,16 @@ const close = () => emit('close')
 
         <div class="preview-column">
           <div class="chat-header">
-            📱 Preview on device
+            {{ $t('formatEditor.preview.title') }}
           </div>
           <div class="chat-background">
             <div v-if="previewData.error" class="error-bubble">
               ⚠️ {{ previewData.error }}
             </div>
             <div v-else class="chat-bubble">
-              <div class="bubble-sender">Alerting Bot</div>
+              <div class="bubble-sender">{{ $t('formatEditor.preview.sender') }}</div>
               <div class="bubble-text" v-html="previewData.text" />
-              <div class="bubble-time">now</div>
+              <div class="bubble-time">{{ $t('formatEditor.preview.time') }}</div>
             </div>
           </div>
         </div>
@@ -345,8 +353,8 @@ const close = () => emit('close')
       </div>
 
       <div class="window-footer">
-        <button type="button" class="btn-cancel" @click="close">Cancel</button>
-        <button type="button" class="btn-save" @click="save">Save Script</button>
+        <button type="button" class="btn-cancel" @click="close">{{ $t('formatEditor.buttons.cancel') }}</button>
+        <button type="button" class="btn-save" @click="save">{{ $t('formatEditor.buttons.save') }}</button>
       </div>
 
     </div>
@@ -514,21 +522,12 @@ const close = () => emit('close')
 .shortcut-chip:hover { background: #1e3a8a; color: var(--color-text-on-accent); }
 
 /* ── XML tree pane (polling only) ───────────────────────────────── */
-.tree-pane {
+.tree-panel {
   padding: var(--space-4);
   background: var(--color-bg-code);
   overflow-y: auto;
   min-height: 250px;
   max-height: 360px;
-}
-.tree-pane-hint {
-  margin: 0 0 var(--space-3);
-  padding: var(--space-2) var(--space-4);
-  background: #0a0a0a;
-  border-left: 3px solid var(--color-accent);
-  border-radius: var(--radius-sm);
-  color: var(--color-accent-text);
-  font-size: var(--text-sm);
 }
 
 /* ── Preview column (mimics a messaging app — pale neutral surface so the

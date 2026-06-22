@@ -40,7 +40,7 @@ function lineFor(
 /**
  * Build the polling-default message for an alert + observed payload.
  *
- * @param alert    Has at least { title, description, triggerParams.condition }
+ * @param alert    Has at least { title, description, alertParams.condition }
  * @param payload  The parsed source object (for XML this is the parsed tree)
  * @param baseline Optional previous-poll snapshot — pass on the server for
  *                 accurate `changed` evaluation. Omit in previews; the
@@ -52,7 +52,11 @@ export function buildPollingDefaultMessage(
   baseline?: any,
 ): string { 
   const title = alert?.title ?? 'Polling alert'
-  const result = evaluateCondition(alert?.triggerParams?.condition, payload, baseline)
+  // Support both shapes during the transition: new `alertParams.condition`,
+  // legacy `triggerParams.condition`. Both eventually pass through
+  // migrateCondition inside evaluateCondition anyway.
+  const cond = alert?.alertParams?.condition ?? alert?.triggerParams?.condition
+  const result = evaluateCondition(cond, payload, baseline)
 
   if (result.kind === ConditionKind.None) {
     return `📡 ${title}\nPolled successfully (no condition — fires every cycle).`

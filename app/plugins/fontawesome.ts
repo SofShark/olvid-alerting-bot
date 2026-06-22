@@ -12,11 +12,10 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 // ── FREE PATH (solid style) ─────────────────────────────────
 import { faPencil,
           faPenToSquare,
-          faCopy
+          faCopy,
         } from '@fortawesome/free-solid-svg-icons'
 
-import { 
-        } from '@fortawesome/free-regular-svg-icons'
+import { faGithub } from '@fortawesome/free-brands-svg-icons'
 
 // ── PRO PATH (light style) — uncomment when using Pro ───────
 // import { faPencil } from '@fortawesome/pro-light-svg-icons'
@@ -33,7 +32,8 @@ config.autoAddCss = false
 // here, append to library.add(...).
 library.add(faPencil, 
             faPenToSquare, 
-            faCopy)
+            faCopy,
+            faGithub)
 
 export default defineNuxtPlugin((nuxtApp) => {
   // Component name is PascalCase here; Vue will also resolve it as

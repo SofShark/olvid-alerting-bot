@@ -25,7 +25,7 @@ function toggle() {
     <button
       type="button"
       class="theme-toggle"
-      :title="`Switch to ${current === 'dark' ? 'light' : 'dark'} mode`"
+      :title="$t('topNav.themeToggle')"
       
       @click="toggle"
     >

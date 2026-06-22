@@ -8,11 +8,13 @@ const props = defineProps<{
     canActivate: boolean
 }>()
 
+const { t } = useI18n()
+
 // TODO RECYCLE
 const statusLabel = computed(() => {
-  if (status.value === AlertStatus.Active)   return 'Active'
-  if (status.value === AlertStatus.Inactive) return 'Inactive'
-  return 'Draft'
+  if (status.value === AlertStatus.Active)   return t('alertStatus.active')
+  if (status.value === AlertStatus.Inactive) return t('alertStatus.inactive')
+  return t('alertStatus.draft')
 })
 
 const emit = defineEmits(['update:state'])

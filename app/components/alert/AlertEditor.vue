@@ -3,19 +3,22 @@ import { ref, computed, watch } from 'vue'
 import {
   Formatting,
   AlertStatus,
-  Trigger,
+  AlertType,
   ConditionKind,
   ConditionOperator,
   ConditionAggregation,
   OPERATORS_NEEDING_VALUE,
   migrateCondition,
-  isPollingSource,
+  migrateAlertType,
+  isPolling as isPollingType,
   type DiscussionModel,
   type BundleModel,
   type AlertModel,
 } from '#shared/constants'
 import { alertService } from '~/utils/alertService'
 import { pollingService } from '~/utils/pollingService'
+
+const { t } = useI18n()
 
 // AlertEditor is now PURE VIEW MODE. Edits go through the wizard
 // (`/alerts/[id]?edit=1`) or — for a single bundle — through the in-place
@@ -36,11 +39,10 @@ const blankForm = (): AlertModel => ({
   id: null,
   title: '',
   description: '',
-  input: '',
-  triggerType: '',
+  input: '',                       // AlertType (post-refactor)
   status: AlertStatus.Draft,
   token: '',
-  triggerParams: {},
+  alertParams: {},
   bundles: [],
 })
 
@@ -55,15 +57,22 @@ const resolveDiscussions = (ids: any[]): DiscussionModel[] =>
 
 const fillFrom = (a: AlertModel | null) => {
   if (a && a.id) {
+    // Normalize legacy shape: input may carry a source name from older rows,
+    // and triggerParams may still be the field name in transit.
+    const rawParams = (a as any).alertParams ?? (a as any).triggerParams ?? {}
+    const alertType = migrateAlertType(a.input)
+    const alertParams = { ...rawParams } as Record<string, any>
+    if (!alertParams.source && a.input && a.input !== alertType) {
+      alertParams.source = a.input
+    }
     form.value = {
       id: a.id,
       title: a.title || '',
       description: a.description || '',
-      input: a.input || '',
-      triggerType: a.triggerType || '',
+      input: alertType,
       status: a.status || AlertStatus.Draft,
       token: a.token || '',
-      triggerParams: (a.triggerParams as Record<string, any>) ?? {},
+      alertParams,
       bundles: (a.bundles || []).map(b => ({
         id: b.id,
         name: b.name,
@@ -94,7 +103,11 @@ watch(availableDiscussions, (available) => {
 // ── Derived state ──────────────────────────────────────────────────────────
 const isExisting  = computed(() => form.value.id !== null)
 const canActivate = computed(() => form.value.bundles.length > 0)
-const isPolling   = computed(() => isPollingSource(form.value.input))
+const isPolling   = computed(() => isPollingType(form.value.input))
+const isWebhook   = computed(() => form.value.input === AlertType.Webhook)
+// Specific provider name (e.g. 'GitHub Push', 'Polling Source'). Lives in
+// alertParams.source post-refactor; displayed in the view-mode "Source" row.
+const sourceName  = computed(() => (form.value.alertParams as any)?.source ?? '')
 
 const webhookUrl = computed(() => {
   if (!form.value.token) return ''
@@ -107,49 +120,66 @@ const webhookUrl = computed(() => {
 // TODO move somewhere else
 const formatLabel = (f: Formatting): string => {
   switch (f) {
-    case Formatting.Unformatted:    return 'Brute (raw JSON)'
-    case Formatting.Simple:         return 'Simple (title + description)'
-    case Formatting.Custom:         return 'Custom script (Handlebars)'
-    case Formatting.PollingDefault: return 'Default (watched fields)'
-    case Formatting.PollingCustom:  return 'Custom script (Handlebars)'
+    case Formatting.Unformatted:    return t('bundleCard.format.unformatted')
+    case Formatting.Simple:         return t('bundleCard.format.simple')
+    case Formatting.Custom:         return t('bundleCard.format.custom')
+    case Formatting.PollingDefault: return t('bundleCard.format.pollingDefault')
+    case Formatting.PollingCustom:  return t('bundleCard.format.pollingCustom')
     default:                        return String(f)
   }
 }
 
 // ── Polling trigger-detail labels ──────────────────────────────────────────
 const intervalLabel = computed(() => {
-  const s = Number(form.value.triggerParams?.intervalSeconds ?? 0)
-  if (!s) return '—'
-  if (s % 86_400 === 0) { const d = s / 86_400; return `every ${d} day${d === 1 ? '' : 's'}` }
-  if (s % 3_600  === 0) { const h = s / 3_600;  return `every ${h} hour${h === 1 ? '' : 's'}` }
-  if (s % 60     === 0) { const m = s / 60;     return `every ${m} minute${m === 1 ? '' : 's'}` }
-  return `every ${s} seconds`
+  const s = Number((form.value.alertParams as any)?.intervalSeconds ?? 0)
+  if (!s) return t('editor.interval.empty')
+  if (s % 86_400 === 0) {
+    const d = s / 86_400
+    return t(d === 1 ? 'editor.interval.everyDay' : 'editor.interval.everyDays', { n: d })
+  }
+  if (s % 3_600 === 0) {
+    const h = s / 3_600
+    return t(h === 1 ? 'editor.interval.everyHour' : 'editor.interval.everyHours', { n: h })
+  }
+  if (s % 60 === 0) {
+    const m = s / 60
+    return t(m === 1 ? 'editor.interval.everyMinute' : 'editor.interval.everyMinutes', { n: m })
+  }
+  return t('editor.interval.everySeconds', { n: s })
 })
 
 // TODO Move somewhere else
-const operatorPhrase: Record<ConditionOperator, (v?: string) => string> = {
-  [ConditionOperator.Changed]:     ()  => 'change between polls',
-  [ConditionOperator.Equals]:      (v) => `equal "${v ?? ''}"`,
-  [ConditionOperator.GreaterThan]: (v) => `are greater than ${v ?? ''}`,
-  [ConditionOperator.LessThan]:    (v) => `are less than ${v ?? ''}`,
-  [ConditionOperator.Contains]:    (v) => `contain "${v ?? ''}"`,
+// Operator → translated phrase (used in the view-mode condition summary).
+// `value` is interpolated by vue-i18n's `t()` placeholders, so we can't keep
+// the original template-literal map shape — return the resolved phrase here
+// and let conditionSummary string it together.
+const operatorPhrase = (op: ConditionOperator, v?: string): string => {
+  const value = v ?? ''
+  switch (op) {
+    case ConditionOperator.Changed:     return t('editor.condition.phrase.changed')
+    case ConditionOperator.Equals:      return t('editor.condition.phrase.equals',      { value })
+    case ConditionOperator.GreaterThan: return t('editor.condition.phrase.greaterThan', { value })
+    case ConditionOperator.LessThan:    return t('editor.condition.phrase.lessThan',    { value })
+    case ConditionOperator.Contains:    return t('editor.condition.phrase.contains',    { value })
+    default:                            return String(op)
+  }
 }
 
 const conditionSummary = computed(() => {
-  const c = migrateCondition(form.value.triggerParams?.condition)
+  const c = migrateCondition((form.value.alertParams as any)?.condition)
   if (c.kind === ConditionKind.None) {
-    return { headline: 'Fires every poll cycle (no condition).', paths: [] as string[] }
+    return { headline: t('editor.condition.summaryNone'), paths: [] as string[] }
   }
   if (c.kind === ConditionKind.Rule) {
-    const agg = c.aggregation === ConditionAggregation.Any ? 'any' : 'all'
-    const phrase = operatorPhrase[c.operator]?.(c.value) ?? c.operator
+    const isAny = c.aggregation === ConditionAggregation.Any
+    const phrase = operatorPhrase(c.operator, c.value)
     const needsValue = OPERATORS_NEEDING_VALUE.has(c.operator) && !c.value
-    const headline = needsValue
-      ? `Fires when ${agg} of these fields ${phrase} (value missing — edit to set).`
-      : `Fires when ${agg} of these fields ${phrase}.`
-    return { headline, paths: c.paths ?? [] }
+    const key = needsValue
+      ? (isAny ? 'editor.condition.summaryRuleAnyMissingValue' : 'editor.condition.summaryRuleAllMissingValue')
+      : (isAny ? 'editor.condition.summaryRuleAny'             : 'editor.condition.summaryRuleAll')
+    return { headline: t(key, { phrase }), paths: c.paths ?? [] }
   }
-  return { headline: '—', paths: [] }
+  return { headline: t('common.emDash'), paths: [] }
 })
 
 // ── Actions ────────────────────────────────────────────────────────────────
@@ -252,10 +282,9 @@ const saveBundle = async () => {
       id: form.value.id,
       title: form.value.title,
       description: form.value.description,
-      input: form.value.input,
-      triggerType: form.value.triggerType,
+      input: form.value.input,                    // AlertType
       status: form.value.status,
-      triggerParams: form.value.triggerParams ?? {},
+      alertParams: form.value.alertParams ?? {},  // renamed from triggerParams
       bundles: updated.map(b => ({
         id: b.id,
         name: b.name,
@@ -270,7 +299,7 @@ const saveBundle = async () => {
     closeBundleEditor()
   } catch (error: any) {
     console.error('Error saving bundle:', error)
-    alert(`Error saving bundle:\n\n${error.data?.message || error.message || 'Unknown error'}`)
+    alert(`${t('editor.errors.savingBundle')}\n\n${error.data?.message || error.message || t('common.unknownError')}`)
   } finally {
     bundleSaving.value = false
   }
@@ -288,7 +317,7 @@ const runTestPoll = async () => {
     // the resolved RunResult, and the template renders nothing useful.
     testResult.value = await pollingService.testOnScreen(form.value.id)
   } catch (error: any) {
-    testResult.value = { ok: false, error: error?.data?.statusMessage ?? error?.message ?? 'Test failed' }
+    testResult.value = { ok: false, error: error?.data?.statusMessage ?? error?.message ?? t('editor.errors.testFailed') }
   } finally {
     testing.value = false
   }
@@ -301,11 +330,11 @@ const runTestPoll = async () => {
     <!-- ── Delete confirmation ──────────────────────────────── -->
     <div v-if="confirmingDelete" class="overlay">
       <div class="overlay-box">
-        <h4>Delete this alert?</h4>
-        <p>This removes the alert and all its bundles. This cannot be undone.</p>
+        <h4>{{ $t('wizard.deleteModal.title') }}</h4>
+        <p>{{ $t('wizard.deleteModal.message') }}</p>
         <div class="overlay-actions">
-          <button type="button" class="btn btn-ghost"  @click="confirmingDelete = false">Cancel</button>
-          <button type="button" class="btn btn-danger" @click="doDelete">Delete</button>
+          <button type="button" class="btn btn-ghost"  @click="confirmingDelete = false">{{ $t('button.cancel') }}</button>
+          <button type="button" class="btn btn-danger" @click="doDelete">{{ $t('button.delete') }}</button>
         </div>
       </div>
     </div>
@@ -324,8 +353,8 @@ const runTestPoll = async () => {
     >
       <div class="overlay-box bundle-edit-modal">
         <div class="modal-head">
-          <h4>Edit bundle {{ editingBundleIndex + 1 }}</h4>
-          <button type="button" class="modal-close" title="Close" @click="requestCloseBundleEditor">✕</button>
+          <h4>{{ $t('editor.bundleModal.title', { n: editingBundleIndex + 1 }) }}</h4>
+          <button type="button" class="modal-close" :title="$t('editor.bundleModal.closeTitle')" @click="requestCloseBundleEditor">✕</button>
         </div>
         <div class="modal-body">
           <BundleCard
@@ -333,22 +362,22 @@ const runTestPoll = async () => {
             :index="editingBundleIndex"
             :available-discussions="availableDiscussions"
             :discussions-loading="discussionsLoading"
-            :input-source="form.input"
+            :input-source="sourceName"
             :alert-context="form"
-            :trigger-params="form.triggerParams"
+            :trigger-params="form.alertParams"
             :hide-remove="true"
             @update:bundle="editingBundleDraft = $event"
           />
         </div>
         <div v-if="confirmBundleDiscard" class="modal-foot discard-foot">
-          <span class="discard-msg">⚠ Discard unsaved changes to this bundle?</span>
-          <button type="button" class="btn btn-ghost" @click="confirmBundleDiscard = false">Keep editing</button>
-          <button type="button" class="btn btn-danger" @click="closeBundleEditor">Discard</button>
+          <span class="discard-msg">{{ $t('editor.bundleModal.discardWarning') }}</span>
+          <button type="button" class="btn btn-ghost" @click="confirmBundleDiscard = false">{{ $t('editor.bundleModal.keepEditingButton') }}</button>
+          <button type="button" class="btn btn-danger" @click="closeBundleEditor">{{ $t('editor.bundleModal.discardButton') }}</button>
         </div>
         <div v-else class="modal-foot">
-          <button type="button" class="btn btn-ghost" @click="requestCloseBundleEditor">Cancel</button>
+          <button type="button" class="btn btn-ghost" @click="requestCloseBundleEditor">{{ $t('editor.bundleModal.cancelButton') }}</button>
           <ButtonPrimary :disabled="bundleSaving" @click="saveBundle">
-            {{ bundleSaving ? 'Saving…' : 'Save bundle' }}
+            {{ bundleSaving ? $t('editor.bundleModal.savingButton') : $t('editor.bundleModal.saveButton') }}
           </ButtonPrimary>
         </div>
       </div>
@@ -365,8 +394,8 @@ const runTestPoll = async () => {
     >
       <div class="overlay-box test-modal">
         <div class="modal-head">
-          <h4>Test poll result</h4>
-          <button type="button" class="modal-close" title="Close" @click="testResult = null">✕</button>
+          <h4>{{ $t('editor.testModal.title') }}</h4>
+          <button type="button" class="modal-close" :title="$t('editor.bundleModal.closeTitle')" @click="testResult = null">✕</button>
         </div>
         <div class="modal-body">
 
@@ -389,12 +418,12 @@ const runTestPoll = async () => {
               :class="testResult.condition?.fired ? 'ok' : 'no'"
             >
               <span class="bullet">●</span>
-              <span v-if="testResult.condition?.fired">Condition met — alert would fire.</span>
-              <span v-else>Condition not met — alert would not fire.</span>
+              <span v-if="testResult.condition?.fired">{{ $t('editor.testModal.conditionMet') }}</span>
+              <span v-else>{{ $t('editor.testModal.conditionNotMet') }}</span>
               <p class="test-reason">{{ testResult.condition?.reason }}</p>
 
               <details v-if="testResult.condition?.baselineValue?.length" class="preview-detail">
-                <summary>per-field breakdown</summary>
+                <summary>{{ $t('editor.testModal.perFieldBreakdown') }}</summary>
                 <ul>
 
                   <li
@@ -436,7 +465,7 @@ const runTestPoll = async () => {
 
             <!-- Per-bundle messages — exactly what each bundle would send -->
             <template v-if="testResult.bundleMessages?.length">
-              <div class="divider"><span>Messages per bundle</span></div>
+              <div class="divider"><span>{{ $t('editor.view.dividers.messagesPerBundle') }}</span></div>
               <div class="bundle-messages">
                 <div
                   v-for="bm in testResult.bundleMessages"
@@ -444,9 +473,11 @@ const runTestPoll = async () => {
                   class="bundle-message"
                 >
                   <div class="bundle-message-head">
-                    <span class="bundle-tag">BUNDLE {{ bm.index + 1 }}</span>
+                    <span class="bundle-tag">{{ $t('editor.view.bundleTag', { n: bm.index + 1 }) }}</span>
                     <span class="bundle-message-meta">
-                      {{ bm.discussionCount }} discussion{{ bm.discussionCount === 1 ? '' : 's' }}
+                      {{ bm.discussionCount === 1
+                          ? $t('editor.testModal.discussionsCount',       { n: bm.discussionCount })
+                          : $t('editor.testModal.discussionsCountPlural', { n: bm.discussionCount }) }}
                       · {{ formatLabel(bm.formating) }}
                     </span>
                   </div>
@@ -458,13 +489,13 @@ const runTestPoll = async () => {
 
             <!-- Raw parsed payload — collapsed by default, opt-in debug -->
             <details class="test-raw">
-              <summary>Parsed source (raw)</summary>
+              <summary>{{ $t('editor.testModal.parsedSourceRaw') }}</summary>
               <pre>{{ JSON.stringify(testResult.parsed, null, 2) }}</pre>
             </details>
           </template>
         </div>
         <div class="modal-foot">
-          <ButtonPrimary @click="testResult = null">Close</ButtonPrimary>
+          <ButtonPrimary @click="testResult = null">{{ $t('editor.testModal.closeButton') }}</ButtonPrimary>
         </div>
       </div>
     </div>
@@ -476,7 +507,7 @@ const runTestPoll = async () => {
     <div class="panel-head">
       <div class="head-left">
         <div class="head-title-block">
-          <h2 class="view-title">{{ form.title || 'Untitled' }}</h2>
+          <h2 class="view-title">{{ form.title || $t('common.untitled') }}</h2>
           <p v-if="form.description" class="view-subtitle">{{ form.description }}</p>
       </div>
       </div>
@@ -502,47 +533,47 @@ const runTestPoll = async () => {
           <dd class="info-value">{{ form.description }}</dd>
       </div-->
 
-        <div v-if="form.input" class="info-row">
-          <dt class="field-label">Source</dt>
+        <div v-if="sourceName" class="info-row">
+          <dt class="field-label">{{ $t('editor.view.fields.source') }}</dt>
           <dd class="info-value">
+            <!-- Specific provider on the badge; AlertType as the muted "via" suffix.
+                 Reads "Polling Source · via Polling" or "GitHub Push · via Webhook". -->
             <span class="source-badge">
-          {{ form.input }}
-              <span v-if="form.triggerType" class="source-via">via {{ form.triggerType }}</span>
-        </span>
+              {{ sourceName }}
+              <span v-if="form.input" class="source-via">{{ $t('common.via') }} {{ form.input }}</span>
+            </span>
           </dd>
-      </div>
+        </div>
 
-        <!-- Webhook URL — webhook-trigger alerts only. -->
-        <div v-if="form.triggerType === Trigger.Webhook && webhookUrl" class="info-row">
-          <dt class="field-label">Endpoint</dt>
+        <!-- Webhook URL — webhook alerts only. -->
+        <div v-if="isWebhook && webhookUrl" class="info-row">
+          <dt class="field-label">{{ $t('editor.view.fields.endpoint') }}</dt>
           <dd class="info-value">
-
-            <URLCopyBox :url="webhookUrl"> </URLCopyBox>
-        
+            <URLCopyBox :url="webhookUrl"></URLCopyBox>
           </dd>
-      </div>
+        </div>
       </dl>
 
       <!-- ── Trigger details (polling only) ─────────────────── -->
       <template v-if="isPolling">
-        <div class="divider"><span>Trigger configuration</span></div>
+        <div class="divider"><span>{{ $t('editor.view.dividers.triggerConfiguration') }}</span></div>
 
         <dl class="info-list">
           <div class="info-row">
-            <dt class="field-label">URL</dt>
+            <dt class="field-label">{{ $t('editor.view.fields.url') }}</dt>
             <dd class="info-value">
-              <URLCopyBox :url="form.triggerParams?.url || '——'"> </URLCopyBox>
+              <URLCopyBox :url="(form.alertParams as any)?.url || '——'"></URLCopyBox>
             </dd>
             </div>
           <div class="info-row">
-            <dt class="field-label">Polling</dt>
+            <dt class="field-label">{{ $t('editor.view.fields.polling') }}</dt>
             <dd class="info-value">
-              {{ form.triggerParams?.format || '—' }}
+              {{ (form.alertParams as any)?.format || $t('editor.interval.empty') }}
               <span class="info-secondary">· {{ intervalLabel }}</span>
             </dd>
           </div>
           <div class="info-row">
-            <dt class="field-label">Condition</dt>
+            <dt class="field-label">{{ $t('editor.view.fields.condition') }}</dt>
             <dd class="info-value">
               <p class="condition-text">{{ conditionSummary.headline }}</p>
               <div v-if="conditionSummary.paths.length > 0" class="path-list">
@@ -554,32 +585,34 @@ const runTestPoll = async () => {
       </template>
 
       <!-- ── Bundles — compact rows, not full cards ──────────── -->
-      <div class="divider"><span>Bundles ({{ form.bundles.length }})</span></div>
+      <div class="divider"><span>{{ $t('editor.view.dividers.bundles', { count: form.bundles.length }) }}</span></div>
 
       <div v-if="form.bundles.length === 0" class="bundles-hint">
-        No bundles configured. Click <strong>Edit Alert</strong> to add one.
+        <i18n-t keypath="editor.view.noBundles" tag="span">
+          <template #editAlert><strong>{{ $t('editor.view.noBundlesEditAlert') }}</strong></template>
+        </i18n-t>
       </div>
 
       <div v-else class="bundle-list">
         <div v-for="(b, i) in form.bundles" :key="i" class="bundle-card">
           <div class="bundle-card-head">
-            <span class="field-label">BUNDLE {{ i + 1 }}</span>
+            <span class="field-label">{{ $t('editor.view.bundleTag', { n: i + 1 }) }}</span>
             <button type="button" class="btn-mini" @click="openBundleEditor(i)">
-              <span class="btn-mini-icon">✎</span> Edit
+              <span class="btn-mini-icon">✎</span> {{ $t('editor.view.bundleEdit') }}
             </button>
           </div>
           <dl class="info-list info-list-tight">
             <div class="info-row info-row-tight">
-              <dt class="field-label">Discussions</dt>
+              <dt class="field-label">{{ $t('editor.view.fields.discussions') }}</dt>
               <dd class="info-value">
-                <span v-if="b.discussion_list.length === 0" class="info-empty">— none —</span>
+                <span v-if="b.discussion_list.length === 0" class="info-empty">{{ $t('editor.view.discussionsEmpty') }}</span>
                 <span v-else class="discussion-list">
                   <span v-for="d in b.discussion_list" :key="d.id" class="mini-tag">{{ d.title }}</span>
                 </span>
               </dd>
             </div>
             <div class="info-row info-row-tight">
-              <dt class="field-label">Format</dt>
+              <dt class="field-label">{{ $t('editor.view.fields.format') }}</dt>
               <dd class="info-value">{{ formatLabel(b.formating) }}</dd>
             </div>
           </dl>
@@ -591,14 +624,11 @@ const runTestPoll = async () => {
            Inline panel kept minimal: intro + button. The rich result
            (verdict, per-field breakdown, per-bundle messages, raw payload)
            lives in a modal that auto-opens when testResult arrives. -->
-      <template v-if="form.triggerType === Trigger.Polling && form.status === AlertStatus.Inactive">
-        <div class="divider"><span>Test polling</span></div>
+      <template v-if="isPolling && form.status === AlertStatus.Inactive">
+        <div class="divider"><span>{{ $t('editor.view.dividers.testPolling') }}</span></div>
         <div class="test-panel">
           <p class="test-intro">
-            Trigger the polling pipeline once manually. The alert won't be
-            activated and no bundles will be fired — the result will open in
-            a panel showing the per-field breakdown and the message each
-            bundle would send.
+            {{ $t('editor.testPanel.intro') }}
           </p>
           <button
             type="button"
@@ -606,7 +636,7 @@ const runTestPoll = async () => {
             :disabled="testing"
             @click="runTestPoll"
           >
-            {{ testing ? 'Polling…' : 'Run test poll' }}
+            {{ testing ? $t('editor.testPanel.pollingButton') : $t('editor.testPanel.runButton') }}
           </button>
         </div>
       </template>
@@ -619,9 +649,9 @@ const runTestPoll = async () => {
 
     <!-- ── Footer ─────────────────────────────────────────────── -->
     <div class="panel-foot">
-      <button type="button" class="btn btn-danger-ghost" @click="confirmingDelete = true">Delete</button>
+      <button type="button" class="btn btn-danger-ghost" @click="confirmingDelete = true">{{ $t('editor.footer.delete') }}</button>
       <div class="foot-spacer"></div>
-      <ButtonPrimary @click="openEditAlert">Edit Alert</ButtonPrimary>
+      <ButtonPrimary @click="openEditAlert">{{ $t('editor.footer.editAlert') }}</ButtonPrimary>
     </div>
 
   </div>

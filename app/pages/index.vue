@@ -1,10 +1,13 @@
+<script setup lang="ts">
+</script>
+
 <template>
   <div class="placeholder">
     <div class="placeholder-inner">
       <div class="ph-icon">🔔</div>
-      <p>Select an alert from the list, or create a new one.</p>
+      <p>{{ $t('index.placeholder') }}</p>
       <ButtonPrimary @click="navigateTo('/alerts/new')">
-        <span class="plus-icon">+</span> New Alert
+        <span class="plus-icon">+</span> {{ $t('button.newAlert') }}
       </ButtonPrimary>
     </div>
   </div>

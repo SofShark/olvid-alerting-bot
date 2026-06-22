@@ -8,6 +8,8 @@ import {
 } from '#shared/constants'
 import { buildPollingDefaultMessage } from '#shared/pollingMessage'
 
+const { t } = useI18n()
+
 const props = withDefaults(defineProps<{
   bundle: BundleModel
   availableDiscussions?: DiscussionModel[]
@@ -60,13 +62,13 @@ const isPolling = computed(() => isPollingSource(props.inputSource))
 const formatOptions = computed(() =>
   isPolling.value
     ? [
-        { value: Formatting.PollingDefault, label: 'Default (watched fields)' },
-        { value: Formatting.PollingCustom,  label: 'Custom script (Handlebars)' },
+        { value: Formatting.PollingDefault, label: t('bundleCard.format.pollingDefault') },
+        { value: Formatting.PollingCustom,  label: t('bundleCard.format.pollingCustom') },
       ]
     : [
-        { value: Formatting.Unformatted, label: 'Brute (raw JSON)' },
-        { value: Formatting.Simple,      label: 'Simple (title + description)' },
-        { value: Formatting.Custom,      label: 'Custom script (Handlebars)' },
+        { value: Formatting.Unformatted, label: t('bundleCard.format.unformatted') },
+        { value: Formatting.Simple,      label: t('bundleCard.format.simple') },
+        { value: Formatting.Custom,      label: t('bundleCard.format.custom') },
       ],
 )
 
@@ -124,26 +126,26 @@ const pollingPreview = computed(() => {
     />
 
     <div class="card-head">
-      <span class="card-tag">BUNDLE {{ index + 1 }}</span>
+      <span class="card-tag">{{ $t('bundleCard.tag', { n: index + 1 }) }}</span>
       <button
         v-if="!hideRemove && !readonly"
         type="button"
         class="card-remove"
-        title="Remove bundle"
+        :title="$t('bundleCard.removeTitle')"
         @click="emit('remove')"
       >✕</button>
       <button
         v-else-if="readonly && editable"
         type="button"
         class="card-edit"
-        title="Edit this bundle"
+        :title="$t('bundleCard.editTitle')"
         @click="emit('edit')"
-      >✎ Edit</button>
+      >{{ $t('bundleCard.editButton') }}</button>
     </div>
 
     <!-- Discussions -->
     <div class="field">
-      <label class="field-label">Discussions</label>
+      <label class="field-label">{{ $t('bundleCard.fields.discussions') }}</label>
       <DiscussionSelector
         v-model="discussions"
         :available="availableDiscussions"
@@ -154,7 +156,7 @@ const pollingPreview = computed(() => {
 
     <!-- Format — options depend on whether the input source is polling. -->
     <div class="field">
-      <label class="field-label">Message Format</label>
+      <label class="field-label">{{ $t('bundleCard.fields.format') }}</label>
       <div class="format-row">
         <Select
           v-model="formating"
@@ -171,7 +173,7 @@ const pollingPreview = computed(() => {
         >
           <FontAwesomeIcon :icon="['fas', 'pencil']" />
 
-          <!--✏️--> Script
+          <!--✏️--> {{ $t('bundleCard.scriptButton') }}
         </button>
       </div>
 
@@ -179,7 +181,7 @@ const pollingPreview = computed(() => {
       <pre
         v-if="formating === Formatting.PollingDefault"
         class="poll-preview"
-      >{{ pollingPreview || 'Default polling message — fills in the watched paths and their observed values when the alert fires.' }}</pre>
+      >{{ pollingPreview || $t('bundleCard.previewPlaceholder') }}</pre>
 
       <!--span
         v-else-if="(formating === Formatting.Custom || formating === Formatting.PollingCustom) && bundle.custom_script"

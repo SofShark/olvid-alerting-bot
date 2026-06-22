@@ -37,7 +37,7 @@ const select = (t: string) => emit('update:modelValue', t)
     <!-- Single supported trigger → small informative text -->
     <p v-if="isLocked" class="trigger-locked">
       <span class="trigger-name">{{ triggers[0] }}</span>
-      <span class="locked-hint">— how this source communicates with the alert system</span>
+      <span class="locked-hint">{{ $t('triggerSelector.lockedHint') }}</span>
     </p>
 
     <!-- Multiple triggers → selectable pills -->
@@ -55,7 +55,7 @@ const select = (t: string) => emit('update:modelValue', t)
     </div>
 
     <!-- No source / no triggers -->
-    <div v-else class="trigger-empty">Select an input source first.</div>
+    <div v-else class="trigger-empty">{{ $t('triggerSelector.empty') }}</div>
   </div>
 </template>
 

@@ -25,6 +25,11 @@ const isPolling = computed(() => props.triggerType === Trigger.Polling)
 
 // ── Poll interval ───────────────────────────────────────────────────────────
 
+const { t } = useI18n()
+
+// Unit labels here are i18n KEYS (used both as the select option value and as
+// the `label` field for translation lookup). The form's unit storage uses
+// these keys, not the localized strings — `detectUnit` etc. keep working.
 const UNITS = [
   { label: 'minutes', multiplier: 60,    min: 1   },
   { label: 'hours',   multiplier: 3600,  min: 1   },
@@ -90,20 +95,20 @@ const selectedFormat = computed(() => (p.value.format as PollingFormat) ?? Polli
 
     <!-- URL -->
     <div class="field">
-      <label class="field-label">URL <span class="field-required">*</span></label>
+      <label class="field-label">{{ $t('triggerParamsEditor.url.label') }} <span class="field-required">*</span></label>
       <input
         type="url"
         :value="p.url ?? ''"
-        placeholder="https://example.com/feed.xml"
+        :placeholder="$t('triggerParamsEditor.url.placeholder')"
         class="field-input"
         @input="set('url', ($event.target as HTMLInputElement).value)"
       />
-      <span class="field-hint">Endpoint the alert system will poll.</span>
+      <span class="field-hint">{{ $t('triggerParamsEditor.url.hint') }}</span>
     </div>
 
     <!-- Format -->
     <div class="field">
-      <label class="field-label">Format <span class="field-required">*</span></label>
+      <label class="field-label">{{ $t('triggerParamsEditor.format.label') }} <span class="field-required">*</span></label>
       <select
         :value="selectedFormat"
         class="field-input"
@@ -111,16 +116,16 @@ const selectedFormat = computed(() => (p.value.format as PollingFormat) ?? Polli
       >
         <option v-for="f in FORMATS" :key="f" :value="f">{{ f }}</option>
       </select>
-      <span class="field-hint">Content type returned by the URL.</span>
+      <span class="field-hint">{{ $t('triggerParamsEditor.format.hint') }}</span>
     </div>
 
     <!-- Interval -->
     <div class="field">
-      <label class="field-label">Poll interval <span class="field-required">*</span></label>
+      <label class="field-label">{{ $t('triggerParamsEditor.interval.label') }} <span class="field-required">*</span></label>
       <div class="interval-row">
 
         <template v-if="!isDaily">
-          <span class="interval-label">every</span>
+          <span class="interval-label">{{ $t('triggerParamsEditor.interval.every') }}</span>
           <input
             type="number"
             :value="intervalValue"
@@ -131,7 +136,7 @@ const selectedFormat = computed(() => (p.value.format as PollingFormat) ?? Polli
         </template>
 
         <template v-else>
-          <span class="interval-label">at</span>
+          <span class="interval-label">{{ $t('triggerParamsEditor.interval.at') }}</span>
           <input
             type="time"
             :value="p.dailyAt ?? '08:00'"
@@ -145,7 +150,7 @@ const selectedFormat = computed(() => (p.value.format as PollingFormat) ?? Polli
           class="field-input interval-unit"
           @change="onUnitChange(($event.target as HTMLSelectElement).value as UnitLabel)"
         >
-          <option v-for="u in UNITS" :key="u.label" :value="u.label">{{ u.label }}</option>
+          <option v-for="u in UNITS" :key="u.label" :value="u.label">{{ $t(`triggerParamsEditor.units.${u.label}`) }}</option>
         </select>
 
       </div>

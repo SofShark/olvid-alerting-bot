@@ -11,6 +11,9 @@ import {
 } from '#shared/constants'
 import { expandPath, hasWildcard } from '#shared/pathExpand'
 import { evaluateCondition } from '#shared/conditionEval'
+import ButtonPrimary from '../ui/ButtonPrimary.vue';
+
+const { t } = useI18n()
 
 const props = defineProps<{
   modelValue?: PollingCondition
@@ -152,8 +155,8 @@ function commitAdd() {
     const expanded = expandPath(v, parsed.value)
     if (expanded.length === 0) {
       addError.value = wildcard
-        ? `Pattern "${v}" doesn't match any paths in the retrieved source.`
-        : `Path "${v}" doesn't resolve to anything in the retrieved source. Fix it, click ⟳ above to refresh, or press Esc to cancel.`
+        ? t('conditionEditor.validation.patternNoMatch', { value: v })
+        : t('conditionEditor.validation.pathNotInSource', { value: v })
       return
     }
   }
@@ -188,7 +191,7 @@ async function retrieve() {
   const url    = (props.url    ?? '').trim()
   const format = (props.format ?? PollingFormat.XML)
   if (!url) {
-    error.value = 'No URL configured. Go back to the input-config step and set one.'
+    error.value = t('conditionEditor.errors.noUrl')
     parsed.value = null
     return
   }
@@ -200,7 +203,7 @@ async function retrieve() {
       body: { url, format },
     })
     if (!res.ok) {
-      error.value  = res.error ?? 'Failed to retrieve'
+      error.value  = res.error ?? t('conditionEditor.errors.failedToRetrieve')
       parsed.value = null
       raw.value    = res.raw ?? ''
       emit('update:payload', null)
@@ -210,7 +213,7 @@ async function retrieve() {
       emit('update:payload', res.parsed)
     }
   } catch (e: any) {
-    error.value  = e?.data?.statusMessage ?? e?.message ?? 'Network error'
+    error.value  = e?.data?.statusMessage ?? e?.message ?? t('conditionEditor.errors.networkError')
     parsed.value = null
   } finally {
     loading.value = false
@@ -232,42 +235,48 @@ const verdicts = computed(() => {
 
 const verdictSummary = computed(() => {
   if (kind.value === ConditionKind.None) {
-    return { ok: true, label: 'Fires every poll cycle (no condition).' }
+    return { ok: true, label: t('conditionEditor.summary.firesEvery') }
   }
   if (paths.value.length === 0) {
-    return { ok: false, label: 'No fields watched — click values in the source.' }
+    return { ok: false, label: t('conditionEditor.summary.noFields') }
   }
   // Chips exist but resolve to nothing (typical case: wildcard pattern that
   // doesn't match anything in the current source). Surface this distinctly
   // from "no chips at all" so the user knows the alert needs a fix.
   if (retrieved.value && effectivePaths.value.length === 0) {
-    return { ok: false, label: 'Watched patterns don\'t match any paths in the source. Refresh or fix the pattern.' }
+    return { ok: false, label: t('conditionEditor.summary.noMatch') }
   }
   if (operator.value === ConditionOperator.Changed) {
     const n = effectivePaths.value.length
     return {
       ok: false,
-      label: `Change is detected at poll time (needs a baseline). Watching ${n} field${n === 1 ? '' : 's'}.`,
+      label: n === 1
+        ? t('conditionEditor.summary.changedNeedsBaseline', { n })
+        : t('conditionEditor.summary.changedNeedsBaselinePlural', { n }),
     }
   }
   if (needsValue.value && !literal.value) {
-    return { ok: false, label: `Operator "${operator.value}" needs a value.` }
+    return { ok: false, label: t('conditionEditor.summary.operatorNeedsValue', { operator: operator.value }) }
   }
   if (!retrieved.value) {
-    return { ok: false, label: 'Waiting for source data…' }
+    return { ok: false, label: t('conditionEditor.summary.waitingForSource') }
   }
   const fired = aggregation.value === ConditionAggregation.All
     ? verdicts.value.every(v => v.fired)
     : verdicts.value.some (v => v.fired)
   const passing = verdicts.value.filter(v => v.fired).length
   const total   = verdicts.value.length
-  const word    = aggregation.value === ConditionAggregation.All ? 'all' : 'more than one'
-  return {
-    ok:    fired,
-    label: fired
-      ? `Would fire — ${word} of ${total} field${total === 1 ? '' : 's'} verified (${passing}/${total}).`
-      : `Would not fire — ${passing} of ${total} field${total === 1 ? '' : 's'} verified, this condition requires ${aggregation.value === ConditionAggregation.All ? 'all' : 'at least one'}.`,
-  }
+  const isAll   = aggregation.value === ConditionAggregation.All
+  // Pick the right plural variant based on the total count; the "all/any"
+  // axis splits each plural pair so we end up with 8 distinct keys.
+  const key = fired
+    ? (isAll
+        ? (total === 1 ? 'conditionEditor.summary.wouldFireAll'     : 'conditionEditor.summary.wouldFireAllPlural')
+        : (total === 1 ? 'conditionEditor.summary.wouldFireAny'     : 'conditionEditor.summary.wouldFireAnyPlural'))
+    : (isAll
+        ? (total === 1 ? 'conditionEditor.summary.wouldNotFireRequiresAll' : 'conditionEditor.summary.wouldNotFireRequiresAllPlural')
+        : (total === 1 ? 'conditionEditor.summary.wouldNotFireRequiresAny' : 'conditionEditor.summary.wouldNotFireRequiresAnyPlural'))
+  return { ok: fired, label: t(key, { total, passing }) }
 })
 
 const rootEntries = computed<Array<[string, any]>>(() => {
@@ -275,14 +284,15 @@ const rootEntries = computed<Array<[string, any]>>(() => {
   return Object.entries(parsed.value)
 })
 
-// Operators surfaced in the dropdown.
-const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
-  { value: ConditionOperator.Changed,     label: 'has changed since last poll' },
-  { value: ConditionOperator.Equals,      label: 'equals' },
-  { value: ConditionOperator.GreaterThan, label: 'is greater than' },
-  { value: ConditionOperator.LessThan,    label: 'is less than' },
-  { value: ConditionOperator.Contains,    label: 'contains' },
-]
+// Operators surfaced in the dropdown. Labels are resolved at render time so
+// they re-translate when the locale changes — `computed` keeps reactivity.
+const OPERATORS = computed<Array<{ value: ConditionOperator; label: string }>>(() => [
+  { value: ConditionOperator.Changed,     label: t('conditionEditor.operator.changed')     },
+  { value: ConditionOperator.Equals,      label: t('conditionEditor.operator.equals')      },
+  { value: ConditionOperator.GreaterThan, label: t('conditionEditor.operator.greaterThan') },
+  { value: ConditionOperator.LessThan,    label: t('conditionEditor.operator.lessThan')    },
+  { value: ConditionOperator.Contains,    label: t('conditionEditor.operator.contains')    },
+])
 </script>
 
 <template>
@@ -291,17 +301,17 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
 
     <!-- ── Condition (plain panel — no code-block dots) ──────────────────── -->
     <div class="cond-panel">
-      <div class="cond-panel-head">Condition</div>
+      <div class="cond-panel-head">{{ $t('conditionEditor.panel.title') }}</div>
       <div class="cond-panel-body">
-  
+
         <div class="cond-modes">
           <label class="mode" :class="{ active: kind === ConditionKind.None }">
             <input type="radio" :checked="kind === ConditionKind.None" @change="pickNone" />
-            <span>Fire every poll cycle</span>
+            <span>{{ $t('conditionEditor.mode.none') }}</span>
           </label>
           <label class="mode" :class="{ active: kind === ConditionKind.Rule }">
             <input type="radio" :checked="kind === ConditionKind.Rule" @change="pickRule" />
-            <span>Match a rule</span>
+            <span>{{ $t('conditionEditor.mode.rule') }}</span>
           </label>
         </div>
 
@@ -318,15 +328,18 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
             <div class="watched-head">
               <div class="watched-meta">
                 <span class="rule-label">
-                  Watched fields
-                  <!-- Count the EFFECTIVE set (post-wildcard expansion), so a
-                       single wildcard chip matching 7 paths reads as (7). -->
+                  {{ $t('conditionEditor.watchedFields.label') }}
+                 
                   <span class="rule-count">({{ effectivePaths.length }})</span>
                 </span>
+                <!-- The hint embeds two code-styled snippets. Translation
+                     placeholders ({dotdot}/{example}) become i18n-t children
+                     so the strings stay translatable in one piece. -->
                 <p class="rule-hint">
-                  Type a path, or use <code>..</code> as a wildcard
-                  (e.g. <code>dia..temperatura.maxima</code> matches every day's max).
-                  Or open the picker to choose visually.
+                  <i18n-t keypath="conditionEditor.watchedFields.hint" tag="span">
+                    <template #dotdot><code>{{ $t('conditionEditor.watchedFields.hintCode') }}</code></template>
+                    <template #example><code>{{ $t('conditionEditor.watchedFields.hintExample') }}</code></template>
+                  </i18n-t>
                 </p>
               </div>
 
@@ -334,12 +347,14 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
                    "Type path" doesn't replace them, it just spawns an inline
                    input next to the existing path chips below. -->
               <div class="watched-actions">
-                <button type="button" class="add-btn" :class="{ active: isAdding }" @click="startAdding">
-                  <span class="add-icon">✎</span> Type path
-                </button>
-                <button type="button" class="add-btn" @click="openPicker">
-                  <span class="add-icon">⊞</span> Pick from source
-                </button>
+                <ButtonPrimary small @click="startAdding">
+                  <span class="add-icon">✎</span> {{ $t('conditionEditor.watchedFields.typePath') }}
+                </ButtonPrimary>
+
+                <ButtonPrimary small @click="openPicker">
+                  <span class="add-icon">⊞</span> {{ $t('conditionEditor.watchedFields.pickFromSource') }}
+                </ButtonPrimary>
+                
               </div>
             </div>
 
@@ -367,31 +382,30 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
                   v-model="newPath"
                   type="text"
                   class="chip-input"
-                  placeholder="paste or type a path, then Enter"
+                  :placeholder="$t('conditionEditor.watchedFields.inputPlaceholder')"
                   @keydown.enter.prevent="commitAdd"
                   @keydown.escape="cancelAdd"
-                  @blur="onAddBlur"
                 />
                 <button
                   type="button"
                   class="chip-input-done"
-                  title="Done"
-                  @mousedown.prevent="commitAdd"
+                  :title="$t('conditionEditor.watchedFields.inputDone')"
+                  @click="commitAdd"
                 >✓</button>
                 <button
                   type="button"
                   class="chip-input-cancel"
-                  title="Cancel"
-                  @mousedown.prevent="cancelAdd"
+                  :title="$t('conditionEditor.watchedFields.inputCancel')"
+                  @click="cancelAdd"
                 >✕</button>
               </span>
             </div>
-            <p v-else class="chips-empty">— no watched fields yet —</p>
+            <p v-else class="chips-empty">{{ $t('conditionEditor.watchedFields.emptyChips') }}</p>
           </div>
 
           <!-- Operator + value + aggregation, on one line when it fits -->
           <div class="rule-row inline">
-            <span class="rule-label">Trigger when</span>
+            <span class="rule-label">{{ $t('conditionEditor.trigger.label') }}</span>
 
             <!-- Always shown: a single chip can be a wildcard pattern that
                  resolves to many paths at poll time, so aggregation matters
@@ -401,8 +415,8 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
               :value="aggregation"
               @change="patchRule({ aggregation: ($event.target as HTMLSelectElement).value as ConditionAggregation })"
             >
-              <option :value="ConditionAggregation.All">all of them</option>
-              <option :value="ConditionAggregation.Any">at least one</option>
+              <option :value="ConditionAggregation.All">{{ $t('conditionEditor.aggregation.all') }}</option>
+              <option :value="ConditionAggregation.Any">{{ $t('conditionEditor.aggregation.any') }}</option>
             </select>
 
             <select
@@ -420,7 +434,7 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
               type="text"
               class="rule-input"
               :value="literal"
-              placeholder="value"
+              :placeholder="$t('conditionEditor.value.placeholder')"
               @input="patchRule({ value: ($event.target as HTMLInputElement).value })"
             />
           </div>
@@ -437,8 +451,8 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
     <div v-if="isPickerOpen" class="overlay" @click.self="closePicker">
       <div class="overlay-box picker-modal">
         <div class="picker-head">
-          <h4>Pick watched fields from source</h4>
-          <button type="button" class="picker-close" title="Close" @click="closePicker">✕</button>
+          <h4>{{ $t('conditionEditor.picker.title') }}</h4>
+          <button type="button" class="picker-close" :title="$t('conditionEditor.picker.closeTitle')" @click="closePicker">✕</button>
         </div>
 
         <div class="picker-body">
@@ -451,31 +465,28 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
                 type="button"
                 class="btn-refresh"
                 :disabled="loading"
-                title="Re-fetch the source"
+                :title="$t('conditionEditor.picker.refreshTitle')"
                 @click="retrieve"
               >
                 {{ loading ? '…' : '⟳' }}
               </button>
             </div>
             <div class="code-body tree-body">
-              <div v-if="loading" class="muted">Fetching {{ props.url }}…</div>
+              <div v-if="loading" class="muted">{{ $t('conditionEditor.picker.fetching', { url: props.url }) }}</div>
 
               <div v-else-if="error" class="source-error">
-                <div class="error-head">⚠ Could not retrieve source</div>
+                <div class="error-head">{{ $t('conditionEditor.errors.couldNotRetrieveTitle') }}</div>
                 <pre class="error-body">{{ error }}</pre>
                 <p class="error-hint">
-                  Check the URL in the input-config step, then click ⟳ above to retry.
+                  {{ $t('conditionEditor.errors.couldNotRetrieveHint') }}
                 </p>
               </div>
 
-              <div v-else-if="!retrieved" class="muted">Waiting for source data…</div>
-              <div v-else-if="rootEntries.length === 0" class="muted">Empty document.</div>
+              <div v-else-if="!retrieved" class="muted">{{ $t('conditionEditor.picker.waiting') }}</div>
+              <div v-else-if="rootEntries.length === 0" class="muted">{{ $t('conditionEditor.picker.empty') }}</div>
 
               <template v-else>
-                <!--p>
-                  Click any value to toggle it as a watched field. Already-selected
-                  paths show with a green outline — click again to remove.
-                </p-->
+
                 <XmlTreeNode
                   v-for="([k, v]) in rootEntries"
                   :key="k"
@@ -491,8 +502,12 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
         </div>
 
         <div class="picker-foot">
-          <span class="picker-count">{{ effectivePaths.length }} field{{ effectivePaths.length === 1 ? '' : 's' }} selected</span>
-          <ButtonPrimary @click="closePicker">Done</ButtonPrimary>
+          <span class="picker-count">
+            {{ effectivePaths.length === 1
+              ? $t('conditionEditor.picker.fieldsSelected',       { n: effectivePaths.length })
+              : $t('conditionEditor.picker.fieldsSelectedPlural', { n: effectivePaths.length }) }}
+          </span>
+          <ButtonPrimary @click="closePicker">{{ $t('conditionEditor.picker.doneButton') }}</ButtonPrimary>
         </div>
       </div>
     </div>
@@ -507,7 +522,7 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
       <span class="preview-label">{{ verdictSummary.label }}</span>
 
       <details v-if="kind === ConditionKind.Rule && verdicts.length > 0" class="preview-detail">
-        <summary>per-field breakdown</summary>
+        <summary>{{ $t('editor.testModal.perFieldBreakdown') }}</summary>
         <ul>
           <li v-for="v in verdicts" :key="v.path" :class="v.fired ? 'ok' : 'no'">
             <code>{{ v.path }}</code> — {{ v.detail }}
@@ -689,39 +704,13 @@ const OPERATORS: Array<{ value: ConditionOperator; label: string }> = [
   align-items: center;
   flex-shrink: 0;
 }
+
+
 /* Solid-accent buttons — visually distinct from the soft-accent chips so
  * "add an entry" is unmistakeable next to "an entry that exists". Filled
  * surface + on-accent text reads as a CTA in both themes. */
-.add-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  background: var(--color-accent);
-  border: 1px solid var(--color-accent);
-  color: var(--color-text-on-accent);
-  padding: 6px var(--space-4);
-  border-radius: var(--radius-md);
-  font-family: inherit;
-  font-size: var(--text-md);
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-  transition: background-color .15s, border-color .15s, transform .05s, box-shadow .15s;
-}
-.add-btn:hover {
-  background: var(--color-accent-hover);
-  border-color: var(--color-accent-hover);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-.add-btn:active { transform: translateY(1px); box-shadow: none; }
-/* Pressed-in look while the inline input is open — signals "this button is
- * the one driving the input that just appeared in the chips row below". */
-.add-btn.active {
-  background: var(--color-accent-hover);
-  border-color: var(--color-accent-hover);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25);
-}
+
+
 .add-icon { font-size: var(--text-base); line-height: 1; }
 
 .chips-empty {

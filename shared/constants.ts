@@ -1,3 +1,24 @@
+// Two-level taxonomy:
+//   AlertType  ← top axis ("how does the trigger arrive")
+//   Source     ← the specific provider, scoped under an AlertType
+//
+// On the DB side this maps to:
+//   AlertTable.input        stores an AlertType value (e.g. "Polling", "Webhook")
+//   AlertTable.alertParams  stores a JSON object whose shape depends on AlertType.
+//                           For both types it carries `source` (the provider name);
+//                           polling additionally carries url/format/intervalSeconds/condition.
+
+export enum AlertType {
+  Polling  = 'Polling',
+  Webhook  = 'Webhook',
+  MsgOlvid = 'Message Olvid',   // reserved — Olvid-platform events; no sources yet
+}
+
+// Backward-compat alias for code still importing `Trigger`. New code should
+// use AlertType. Safe to delete after a full sweep.
+export const Trigger = AlertType
+export type Trigger = AlertType
+
 export enum Source {
   // ── Webhook sources ──────────────────────────────────────
   GitHubPush        = 'GitHub Push',
@@ -10,6 +31,45 @@ export enum Source {
   // ── Polling sources ──────────────────────────────────────
   Polling           = 'Polling Source',
 }
+
+// Grouping that drives the wizard's source selector and the `isPolling`
+// runtime check. Adding a new AlertType = add an entry here + a step-flow
+// branch in AlertWizard.
+export const sourcesByAlertType: Record<AlertType, Source[]> = {
+  [AlertType.Polling]: [Source.Polling],
+  [AlertType.Webhook]: [
+    Source.GenericWebhook,
+    Source.GitHubPush,
+    Source.GitHubPullRequest,
+    Source.SentryIssue,
+    Source.GrafanaAlert,
+    Source.GitLabPipeline,
+  ],
+  [AlertType.MsgOlvid]: [],
+}
+
+// Inverse: given a Source, what AlertType does it belong to? Used by the
+// legacy migration helper below — new code should branch on alertType, not
+// on source name.
+export const alertTypeForSource: Record<Source, AlertType> = (() => {
+  const out = {} as Record<Source, AlertType>
+  for (const [type, sources] of Object.entries(sourcesByAlertType)) {
+    for (const s of sources) out[s] = type as AlertType
+  }
+  return out
+})()
+
+// Backward-compat alias: pre-refactor code used `sourceTriggers[source]` to
+// resolve a Source to its AlertType list (always one element). Derived from
+// `alertTypeForSource` to keep one source of truth. New code should use
+// alertTypeForSource directly.
+export const sourceTriggers: Record<Source, AlertType[]> = (() => {
+  const out = {} as Record<Source, AlertType[]>
+  for (const [src, type] of Object.entries(alertTypeForSource)) {
+    out[src as Source] = [type]
+  }
+  return out
+})()
 
 export enum PollingFormat {
   XML  = 'XML',
@@ -59,33 +119,34 @@ export enum Formatting {
 export const DEFAULT_FORMAT_FOR_POLLING = Formatting.PollingDefault
 export const DEFAULT_FORMAT_FOR_WEBHOOK = Formatting.Unformatted
 
-export enum Trigger{
-  Webhook = 'Webhook',
-  Polling = 'Polling',
-  MsgOlvid = 'Message Olvid'
-}
-
 export enum AlertStatus {
   Draft    = 'draft',
   Inactive = 'inactive',
   Active   = 'active',
 }
 
-// Which triggers each input source supports.
-export const sourceTriggers: Record<Source, Trigger[]> = {
-  [Source.GitHubPush]:        [Trigger.Webhook],
-  [Source.GitHubPullRequest]: [Trigger.Webhook],
-  [Source.SentryIssue]:       [Trigger.Webhook],
-  [Source.GrafanaAlert]:      [Trigger.Webhook],
-  [Source.GitLabPipeline]:    [Trigger.Webhook],
-  [Source.GenericWebhook]:    [Trigger.Webhook],
-  [Source.Polling]:           [Trigger.Polling],
+// `input` now stores an AlertType value, but legacy rows in the DB (and
+// older in-memory shapes) carry a Source name there. This helper normalises:
+//   - 'Polling' / 'Webhook' / 'Message Olvid' → returned as-is
+//   - 'Polling Source' / 'GitHub Push' / …    → mapped to their AlertType
+//   - anything unrecognised                    → AlertType.Webhook (safest)
+export function migrateAlertType(raw: any): AlertType {
+  const v = String(raw ?? '').trim()
+  if (v === AlertType.Polling || v === AlertType.Webhook || v === AlertType.MsgOlvid) {
+    return v as AlertType
+  }
+  return alertTypeForSource[v as Source] ?? AlertType.Webhook
 }
 
-// Sources whose trigger is polling-based (require URL/format/interval + condition).
-export const POLLING_SOURCES: ReadonlySet<Source> = new Set([Source.Polling])
-export const isPollingSource = (s: string): boolean =>
-  POLLING_SOURCES.has(s as Source)
+// True for the polling AlertType — replaces the old name-sniffing
+// `isPollingSource(s)`. Now an explicit type check.
+export const isPolling = (alertType: string | undefined | null): boolean =>
+  migrateAlertType(alertType) === AlertType.Polling
+
+// Backward-compat: existing call sites used isPollingSource(form.input)
+// when input was the source name. Same call shape, same result post-
+// migration thanks to migrateAlertType normalising legacy values.
+export const isPollingSource = isPolling
 
 // ── TriggerParams shapes ────────────────────────────────────────────────────
 // Stored as JSON in AlertTable.triggerParams.
@@ -163,15 +224,28 @@ export function compactCondition(c: PollingCondition): any {
   return out
 }
 
-// Unified shape stored in AlertTable.triggerParams for polling alerts.
+// ── alertParams shapes (per AlertType) ─────────────────────────────────────
+// All shapes carry `source` (the specific provider name). Polling additionally
+// carries url/format/interval/condition. `_`-prefixed keys are runtime state
+// managed by the polling engine — they survive serialization but the UI
+// ignores them.
+
 export type PollingParams = {
+  source:          Source           // e.g. Source.Polling — room for specialized variants later
   url:             string
   format:          PollingFormat
   intervalSeconds: number
   dailyAt?:        string
   condition:       PollingCondition
-  _lastHash?:      string          // runtime state, managed by the polling engine
+  _lastHash?:      string
+  _baseline?:      any
 }
+
+export type WebhookParams = {
+  source: Source                    // e.g. Source.GitHubPush, Source.GenericWebhook
+}
+
+export type AlertParams = PollingParams | WebhookParams | Record<string, any>
 
 // Lightweight model used in the frontend (JSON-safe, id as string)
 export type DiscussionModel = {
@@ -189,15 +263,16 @@ export type BundleModel = {
 }
 
 // Full alert as handled by the frontend.
+// `input` now stores AlertType. The specific provider lives in alertParams.source.
+// `triggerType` is gone — alertType IS the type discriminator.
 export type AlertModel = {
   id: number | null
   title: string
   description: string
-  input: string
-  triggerType: string
+  input: AlertType | string         // AlertType value at runtime; string for migration tolerance
   status: AlertStatus
   token: string
-  triggerParams?: Record<string, any>
+  alertParams?: AlertParams         // renamed from triggerParams
   bundles: BundleModel[]
 }
 
@@ -230,7 +305,7 @@ export const sampleData: Record<Source, TemplateData> = {
       ]
     },
     script: `🔧 **New Push in {{repository.name}}**
-User {{commits.[0].author.}} has pushed code to the {{commits.[0].modified}} branch.
+User {{commits.[0].author}} has pushed code to the {{repository.name}} repository.
 Latest commit: {{commits.[0].message}}`
   },
 

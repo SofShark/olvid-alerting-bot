@@ -1,6 +1,11 @@
 <script setup>
+import { onMounted, computed } from 'vue'
 const route = useRoute()
 const { alerts, fetchAlerts, fetchDiscussions } = useAlerts()
+
+// Language switching now lives inside <LanguageToggle/> — same chrome as
+// ThemeToggle, dropdown of available locales. Layout no longer needs to
+// know about i18n internals.
 
 onMounted(() => {
   fetchAlerts()
@@ -22,10 +27,14 @@ const selectedId = computed(() => {
         <div class="brand">
           <span class="logo-text">
             <img src="../assets/olvid_name_logo.png" alt="Olvid" class="olvid-logo-img" />
-            Alerting System
+            {{$t('topNav.title')}}
           </span>
         </div>
-        <ThemeToggle />
+
+        <div class="nav-actions">
+          <LanguageToggle />
+          <ThemeToggle />
+        </div>
       </div>
     </header>
 
@@ -73,6 +82,12 @@ const selectedId = computed(() => {
 }
 .olvid-logo-img { margin-left: 40px; width: 200px; height: auto; object-fit: contain; }
 
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .main-content {
   width: 100%;
   margin: 18px auto; padding: 0 18px;
@@ -92,4 +107,7 @@ const selectedId = computed(() => {
   min-height: 0;
   overflow-y: auto;
 }
+
+
+
 </style>
