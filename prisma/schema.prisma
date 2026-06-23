@@ -1,45 +1,56 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "postgresql"
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
-
 model AlertTable {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String?
-  input       String?                        // Source enum value (e.g. "GitHub Push")
-  status      String   @default("draft")    // draft | inactive | active
-  triggerType String?                        // Trigger enum value (e.g. "Webhook")
-  token         String?  @unique @default(uuid())
-  triggerParams Json?                        // source-specific config; _-prefixed keys are runtime state
-  createdAt     DateTime @default(now())
-  bundles       Bundle[]
+  id                Int                @id @default(autoincrement())
+  title             String
+  description       String?
+  // `input` now stores AlertType: "Polling" | "Webhook" | "Message Olvid".
+  // The specific provider (GitHub Push, Polling Source, …) lives in alertParams.source.
+  input             String?
+  status            String             @default("draft")
+  // Kept top-level (not inside alertParams) so the webhook handler can
+  // `findUnique` by token without hitting JSON path operators.
+  token             String?            @unique @default(uuid())
+  createdAt         DateTime           @default(now())
+  // Type-specific config (replaces former `triggerParams`):
+  //   Polling → { source, url, format, intervalSeconds, condition, _baseline?, _lastHash? }
+  //   Webhook → { source }
+  alertParams       Json?
+  bundles           Bundle[]
+  lastPayload       LastAlertPayload?
+  lastFailedPayload LastFailedPayload?
 }
 
-// A bundle is one output of an alert: a set of discussions + a formatting.
-// One alert can have many bundles (same event, different audiences/formats).
 model Bundle {
   id              Int        @id @default(autoincrement())
   name            String?
   alertId         Int
-  alert           AlertTable @relation(fields: [alertId], references: [id], onDelete: Cascade)
   discussion_list BigInt[]
   formating       String     @default("Unformatted")
   custom_script   String?
   createdAt       DateTime   @default(now())
+  alert           AlertTable @relation(fields: [alertId], references: [id], onDelete: Cascade)
 }
 
-// One row per input source — stores only the last successful webhook payload.
-// source is the primary key so upsert is a single operation.
-model LastSourcePayload {
-  source    String   @id   // e.g. "GitHub Push"
-  payload   Json
-  updatedAt DateTime @updatedAt
+model LastAlertPayload {
+  alertId    Int        @id
+  payload    Json
+  receivedAt DateTime   @updatedAt
+  alert      AlertTable @relation(fields: [alertId], references: [id], onDelete: Cascade)
+}
+
+model LastFailedPayload {
+  alertId  Int        @id
+  raw      String?
+  parsed   Json?
+  error    String
+  stage    String?
+  failedAt DateTime   @updatedAt
+  alert    AlertTable @relation(fields: [alertId], references: [id], onDelete: Cascade)
 }

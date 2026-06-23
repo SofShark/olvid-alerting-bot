@@ -24,9 +24,7 @@ export const daemonClient = {
   async getDiscussions(){
     try {
       const client = new OlvidClient()
-      const discussions = client.discussionList()
-      console.log("✅ [Daemon] Received getDiscussions async request.")
-      
+      const discussions = client.discussionList()      
   
       const arrayDiscussions: any[] = []
       
@@ -36,8 +34,6 @@ export const daemonClient = {
           if (!discussion || !discussion.id) continue
           
           arrayDiscussions.push(discussion)
-          
-          console.log(`➡️ Processed: ${discussion.title}`)
         }
       } catch (error) {
         console.warn("⚠️ Async request ended abruptly:", error)

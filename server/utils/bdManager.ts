@@ -58,11 +58,15 @@ function serializeAlert(alert: any) {
 }
 
 // Rules:
-// - draft     : input or trigger missing
+// - draft     : explicit client request OR alertType missing
 // - active    : complete, has >=1 bundle and caller asked for active
 // - inactive  : complete but not active (or no bundles)
-function computeStatus(input: any, triggerType: any, bundleCount: number, wantActive: boolean): AlertStatus {
-  if (!input || !triggerType) return AlertStatus.Draft
+//
+// `input` now stores the AlertType (post-refactor). `triggerType` is gone —
+// the AlertType IS the type discriminator.
+function computeStatus(input: any, bundleCount: number, wantActive: boolean, wantDraft: boolean): AlertStatus {
+  if (wantDraft) return AlertStatus.Draft
+  if (!input) return AlertStatus.Draft
   if (wantActive && bundleCount > 0) return AlertStatus.Active
   return AlertStatus.Inactive
 }
@@ -84,15 +88,15 @@ export const bdManager = {
   async createAlert(data: any) {
     const incomingBundles: any[] = Array.isArray(data.bundles) ? data.bundles : []
     const wantActive = data.status === AlertStatus.Active
-    const aStatus = computeStatus(data.input, data.triggerType, incomingBundles.length, wantActive)
+    const wantDraft  = data.status === AlertStatus.Draft
+    const aStatus = computeStatus(data.input, incomingBundles.length, wantActive, wantDraft)
 
     const newAlert = await prisma.alertTable.create({
       data: {
         title: data.title,
         description: data.description ?? null,
-        input: data.input ?? null,
-        triggerType: data.triggerType ?? null,
-        triggerParams: data.triggerParams ?? null,
+        input: data.input ?? null,            // AlertType
+        alertParams: data.alertParams ?? null, // type-specific config (incl. source)
         status: aStatus,
         bundles: {
           create: incomingBundles.map(toBundleCreate),
@@ -108,7 +112,8 @@ export const bdManager = {
   async updateAlert(id: number, data: any) {
     const incomingBundles: any[] = Array.isArray(data.bundles) ? data.bundles : []
     const wantActive = data.status === AlertStatus.Active
-    const status = computeStatus(data.input, data.triggerType, incomingBundles.length, wantActive)
+    const wantDraft  = data.status === AlertStatus.Draft
+    const status = computeStatus(data.input, incomingBundles.length, wantActive, wantDraft)
 
     // Replace the bundle set entirely (simplest correct strategy).
     await prisma.bundle.deleteMany({ where: { alertId: id } })
@@ -119,8 +124,7 @@ export const bdManager = {
         title: data.title,
         description: data.description ?? null,
         input: data.input ?? null,
-        triggerType: data.triggerType ?? null,
-        triggerParams: data.triggerParams ?? null,
+        alertParams: data.alertParams ?? null,
         status,
         bundles: {
           create: incomingBundles.map(toBundleCreate),
@@ -177,29 +181,67 @@ export const bdManager = {
     })
   },
 
-  // 7. Persist updated triggerParams (e.g. _lastSeenId, _lastHash) without touching other fields.
-  async updateTriggerParams(id: number, params: Record<string, any>) {
+  // 7. Persist updated alertParams (e.g. _lastSeenId, _lastHash, _baseline)
+  // without touching other fields. Used by the polling engine to keep
+  // runtime state attached to the alert.
+  async updateAlertParams(id: number, params: Record<string, any>) {
     await prisma.alertTable.update({
       where: { id },
-      data: { triggerParams: params },
+      data: { alertParams: params },
     })
   },
 
-  // 8. Upsert the last successful payload for a source (one row per source).
-  async upsertLastPayload(source: string, payload: any) {
-    await prisma.lastSourcePayload.upsert({
-      where:  { source },
-      create: { source, payload },
+  // 8. Upsert the last successful payload for an alert. Keyed by alertId so
+  // each alert has its own row (webhook body, or polling parse-result). The
+  // FK is set up with onDelete: Cascade — deleting the alert removes the
+  // payload row automatically.
+  async upsertLastAlertPayload(alertId: number, payload: any) {
+    await prisma.lastAlertPayload.upsert({
+      where:  { alertId },
+      create: { alertId, payload },
       update: { payload },
     })
   },
 
-  // 8. Retrieve the last successful payload for a source, or null if none yet.
-  async getLastPayloadForSource(source: string) {
-    const row = await prisma.lastSourcePayload.findUnique({
-      where: { source },
-      select: { payload: true },
+  // 8. Retrieve the last successful payload for a given alert, or null if
+  // we've never received/polled anything for it yet.
+  async getLastAlertPayload(alertId: number) {
+    const row = await prisma.lastAlertPayload.findUnique({
+      where:  { alertId },
+      select: { payload: true, receivedAt: true },
     })
-    return row?.payload ?? null
+    return row ?? null
+  },
+
+  // 9. Upsert the most recent FAILURE for an alert (admin debugging). This
+  // is intentionally independent of `lastAlertPayload` — a later success
+  // does not clear the row, so the diagnostic trail survives recoveries.
+  // `null`-ing fields is allowed when we don't have them (e.g. the response
+  // never arrived, so no raw text).
+  async upsertLastFailedPayload(
+    alertId: number,
+    info: { raw?: string | null; parsed?: any; error: string; stage?: string },
+  ) {
+    const data = {
+      raw:    info.raw ?? null,
+      parsed: info.parsed ?? null,
+      error:  info.error,
+      stage:  info.stage ?? null,
+    }
+    await prisma.lastFailedPayload.upsert({
+      where:  { alertId },
+      create: { alertId, ...data },
+      update: data,
+    })
+  },
+
+  // 9. Retrieve the most recent failure for an alert, or null if none on
+  // record.
+  async getLastFailedPayload(alertId: number) {
+    const row = await prisma.lastFailedPayload.findUnique({
+      where:  { alertId },
+      select: { raw: true, parsed: true, error: true, stage: true, failedAt: true },
+    })
+    return row ?? null
   },
 }

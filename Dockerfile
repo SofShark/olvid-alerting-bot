@@ -24,9 +24,13 @@ COPY --from=build /app/.output ./.output
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 
+# pre-install prisma pacakge (used to synchronize db schema)
+RUN npx prisma
+
 ENV PORT=3000
 ENV NODE_ENV=production
 EXPOSE 3000
 
+# Perform db migrations then start server
 # Arrancamos la aplicación directamente de forma eficiente
-CMD ["node", ".output/server/index.mjs"]
+CMD ["sh", "-c", "npx prisma db push --url ${DATABASE_URL} && node .output/server/index.mjs"]

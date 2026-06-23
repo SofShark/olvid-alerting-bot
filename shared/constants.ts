@@ -1,3 +1,24 @@
+// Two-level taxonomy:
+//   AlertType  ← top axis ("how does the trigger arrive")
+//   Source     ← the specific provider, scoped under an AlertType
+//
+// On the DB side this maps to:
+//   AlertTable.input        stores an AlertType value (e.g. "Polling", "Webhook")
+//   AlertTable.alertParams  stores a JSON object whose shape depends on AlertType.
+//                           For both types it carries `source` (the provider name);
+//                           polling additionally carries url/format/intervalSeconds/condition.
+
+export enum AlertType {
+  Polling  = 'Polling',
+  Webhook  = 'Webhook',
+  MsgOlvid = 'Message Olvid',   // reserved — Olvid-platform events; no sources yet
+}
+
+// Backward-compat alias for code still importing `Trigger`. New code should
+// use AlertType. Safe to delete after a full sweep.
+export const Trigger = AlertType
+export type Trigger = AlertType
+
 export enum Source {
   // ── Webhook sources ──────────────────────────────────────
   GitHubPush        = 'GitHub Push',
@@ -8,21 +29,95 @@ export enum Source {
   GenericWebhook    = 'Generic Webhook',
 
   // ── Polling sources ──────────────────────────────────────
-  RSSFeed           = 'RSS Feed',
-  GenericAPI        = 'Generic API',
+  Polling           = 'Polling Source',
 }
+
+// Grouping that drives the wizard's source selector and the `isPolling`
+// runtime check. Adding a new AlertType = add an entry here + a step-flow
+// branch in AlertWizard.
+export const sourcesByAlertType: Record<AlertType, Source[]> = {
+  [AlertType.Polling]: [Source.Polling],
+  [AlertType.Webhook]: [
+    Source.GenericWebhook,
+    Source.GitHubPush,
+    Source.GitHubPullRequest,
+    Source.SentryIssue,
+    Source.GrafanaAlert,
+    Source.GitLabPipeline,
+  ],
+  [AlertType.MsgOlvid]: [],
+}
+
+// Inverse: given a Source, what AlertType does it belong to? Used by the
+// legacy migration helper below — new code should branch on alertType, not
+// on source name.
+export const alertTypeForSource: Record<Source, AlertType> = (() => {
+  const out = {} as Record<Source, AlertType>
+  for (const [type, sources] of Object.entries(sourcesByAlertType)) {
+    for (const s of sources) out[s] = type as AlertType
+  }
+  return out
+})()
+
+// Backward-compat alias: pre-refactor code used `sourceTriggers[source]` to
+// resolve a Source to its AlertType list (always one element). Derived from
+// `alertTypeForSource` to keep one source of truth. New code should use
+// alertTypeForSource directly.
+export const sourceTriggers: Record<Source, AlertType[]> = (() => {
+  const out = {} as Record<Source, AlertType[]>
+  for (const [src, type] of Object.entries(alertTypeForSource)) {
+    out[src as Source] = [type]
+  }
+  return out
+})()
+
+export enum PollingFormat {
+  XML  = 'XML',
+  JSON = 'JSON',
+  HTML = 'HTML',
+}
+
+export enum ConditionKind {
+  None = 'none',
+  Rule = 'rule',
+}
+
+export enum ConditionOperator {
+  Changed     = 'changed',        // value differs from previous poll's snapshot
+  Equals      = 'equals',         // value === literal
+  GreaterThan = 'greater_than',   // numeric comparison
+  LessThan    = 'less_than',
+  Contains    = 'contains',       // substring match on string value
+}
+
+// How to combine the per-path verdicts when a rule watches more than one path.
+export enum ConditionAggregation {
+  All = 'all',   // every path must verify   (logical AND)
+  Any = 'any',   // at least one path        (logical OR)
+}
+
+// Operators that need a literal value to compare against. `Changed` doesn't —
+// it's always compared to the previous poll's snapshot.
+export const OPERATORS_NEEDING_VALUE: ReadonlySet<ConditionOperator> = new Set([
+  ConditionOperator.Equals,
+  ConditionOperator.GreaterThan,
+  ConditionOperator.LessThan,
+  ConditionOperator.Contains,
+])
 
 export enum Formatting {
-  Unformatted = 'Unformatted',
-  Simple      = 'Simple',
-  Custom      = 'Custom',
+  // Webhook-oriented options — work on the raw posted payload.
+  Unformatted    = 'Unformatted',
+  Simple         = 'Simple',
+  Custom         = 'Custom',
+  // Polling-oriented options — work on the parsed source + the alert's condition.
+  PollingDefault = 'PollingDefault',
+  PollingCustom  = 'PollingCustom',
 }
 
-export enum Trigger{
-  Webhook = 'Webhook',
-  Polling = 'Polling',
-  MsgOlvid = 'Message Olvid'
-}
+// Default formats expected for each trigger family.
+export const DEFAULT_FORMAT_FOR_POLLING = Formatting.PollingDefault
+export const DEFAULT_FORMAT_FOR_WEBHOOK = Formatting.Unformatted
 
 export enum AlertStatus {
   Draft    = 'draft',
@@ -30,36 +125,127 @@ export enum AlertStatus {
   Active   = 'active',
 }
 
-// Which triggers each input source supports.
-export const sourceTriggers: Record<Source, Trigger[]> = {
-  [Source.GitHubPush]:        [Trigger.Webhook],
-  [Source.GitHubPullRequest]: [Trigger.Webhook],
-  [Source.SentryIssue]:       [Trigger.Webhook],
-  [Source.GrafanaAlert]:      [Trigger.Webhook],
-  [Source.GitLabPipeline]:    [Trigger.Webhook],
-  [Source.GenericWebhook]:    [Trigger.Webhook],
-  [Source.RSSFeed]:           [Trigger.Polling],
-  [Source.GenericAPI]:        [Trigger.Polling],
+// `input` now stores an AlertType value, but legacy rows in the DB (and
+// older in-memory shapes) carry a Source name there. This helper normalises:
+//   - 'Polling' / 'Webhook' / 'Message Olvid' → returned as-is
+//   - 'Polling Source' / 'GitHub Push' / …    → mapped to their AlertType
+//   - anything unrecognised                    → AlertType.Webhook (safest)
+export function migrateAlertType(raw: any): AlertType {
+  const v = String(raw ?? '').trim()
+  if (v === AlertType.Polling || v === AlertType.Webhook || v === AlertType.MsgOlvid) {
+    return v as AlertType
+  }
+  return alertTypeForSource[v as Source] ?? AlertType.Webhook
 }
+
+// True for the polling AlertType — replaces the old name-sniffing
+// `isPollingSource(s)`. Now an explicit type check.
+export const isPolling = (alertType: string | undefined | null): boolean =>
+  migrateAlertType(alertType) === AlertType.Polling
+
+// Backward-compat: existing call sites used isPollingSource(form.input)
+// when input was the source name. Same call shape, same result post-
+// migration thanks to migrateAlertType normalising legacy values.
+export const isPollingSource = isPolling
 
 // ── TriggerParams shapes ────────────────────────────────────────────────────
 // Stored as JSON in AlertTable.triggerParams.
 // _-prefixed keys are runtime state managed by the polling engine.
 
-export type RSSParams = {
-  url:             string
-  intervalSeconds: number    // always 86400 when dailyAt is set
-  dailyAt?:        string    // "HH:MM" — only present when intervalSeconds === 86400
-  keyword?:        string    // optional filter on item title/description
-  _lastSeenId?:    string    // guid/id of the last item that fired an alert
+// Condition that decides whether a poll cycle actually fires the alert.
+//
+// Excel-style condition. Stored as a single homogeneous shape: every rule
+// field (paths/operator/value/aggregation) is present regardless of `kind`,
+// so flipping between None/Rule in the UI doesn't lose any in-progress
+// configuration. The minimal "kind: None only" shape is produced at *save
+// time* by `compactCondition` — see below.
+export type PollingCondition = {
+  kind:        ConditionKind
+  paths:       string[]                // dot-paths or wildcard patterns
+  operator:    ConditionOperator       // unused (but preserved) when kind === None
+  value?:      string                  // unused for `changed` and for kind === None
+  aggregation: ConditionAggregation    // unused (but preserved) when kind === None
 }
 
-export type GenericAPIParams = {
-  url:             string
-  intervalSeconds: number
-  dailyAt?:        string    // "HH:MM" — only present when intervalSeconds === 86400
-  _lastHash?:      string    // SHA-256 of last response body
+// Defaults used whenever we need a fresh-but-valid PollingCondition.
+const blankCondition = (): PollingCondition => ({
+  kind:        ConditionKind.None,
+  paths:       [],
+  operator:    ConditionOperator.Changed,
+  aggregation: ConditionAggregation.All,
+})
+
+// Normalize whatever shape comes from props / DB / older drafts into the new
+// homogeneous form. Legacy `{ kind: 'field_changed', field: 'x' }` is also
+// upgraded here. Missing fields are filled with defaults; unknown `kind`
+// values fall back to None.
+export function migrateCondition(c: any): PollingCondition {
+  const out = blankCondition()
+  if (!c || typeof c !== 'object') return out
+
+  // Legacy: { kind: 'field_changed', field: 'x.y.z' } → single-path Rule.
+  if (c.kind === 'field_changed' && typeof c.field === 'string') {
+    return {
+      kind:        ConditionKind.Rule,
+      paths:       c.field ? [c.field] : [],
+      operator:    ConditionOperator.Changed,
+      aggregation: ConditionAggregation.All,
+    }
+  }
+
+  out.kind = (c.kind === ConditionKind.Rule || c.kind === ConditionKind.None)
+    ? c.kind
+    : ConditionKind.None
+  if (Array.isArray(c.paths)) out.paths = c.paths.filter(Boolean)
+  if (c.operator)             out.operator = c.operator as ConditionOperator
+  if (typeof c.value === 'string') out.value = c.value
+  if (c.aggregation)          out.aggregation = c.aggregation as ConditionAggregation
+
+  return out
 }
+
+// Serialize for DB storage / API payload. When kind === None we drop the
+// other fields (they're meaningless without a rule) to save bytes. When
+// operator doesn't need a value, drop it too. Anything still attached after
+// this function is meaningful.
+export function compactCondition(c: PollingCondition): any {
+  if (c.kind === ConditionKind.None) {
+    return { kind: ConditionKind.None }
+  }
+  const out: any = {
+    kind:        ConditionKind.Rule,
+    paths:       c.paths,
+    operator:    c.operator,
+    aggregation: c.aggregation,
+  }
+  if (OPERATORS_NEEDING_VALUE.has(c.operator) && c.value) {
+    out.value = c.value
+  }
+  return out
+}
+
+// ── alertParams shapes (per AlertType) ─────────────────────────────────────
+// All shapes carry `source` (the specific provider name). Polling additionally
+// carries url/format/interval/condition. `_`-prefixed keys are runtime state
+// managed by the polling engine — they survive serialization but the UI
+// ignores them.
+
+export type PollingParams = {
+  source:          Source           // e.g. Source.Polling — room for specialized variants later
+  url:             string
+  format:          PollingFormat
+  intervalSeconds: number
+  dailyAt?:        string
+  condition:       PollingCondition
+  _lastHash?:      string
+  _baseline?:      any
+}
+
+export type WebhookParams = {
+  source: Source                    // e.g. Source.GitHubPush, Source.GenericWebhook
+}
+
+export type AlertParams = PollingParams | WebhookParams | Record<string, any>
 
 // Lightweight model used in the frontend (JSON-safe, id as string)
 export type DiscussionModel = {
@@ -77,25 +263,26 @@ export type BundleModel = {
 }
 
 // Full alert as handled by the frontend.
+// `input` now stores AlertType. The specific provider lives in alertParams.source.
+// `triggerType` is gone — alertType IS the type discriminator.
 export type AlertModel = {
   id: number | null
   title: string
   description: string
-  input: string
-  triggerType: string
+  input: AlertType | string         // AlertType value at runtime; string for migration tolerance
   status: AlertStatus
   token: string
-  triggerParams?: Record<string, any>
+  alertParams?: AlertParams         // renamed from triggerParams
   bundles: BundleModel[]
 }
 
-// 🌟 Type the structure so TypeScript can help us
+// Type the structure so TypeScript can help us
 export interface TemplateData {
   payload: object;
   script: string;
 }
 
-// 🌟 Merge everything into a single master object
+// Merge everything into a single master object
 export const sampleData: Record<Source, TemplateData> = {
   [Source.GitHubPush]: {
     payload:{
@@ -117,9 +304,9 @@ export const sampleData: Record<Source, TemplateData> = {
         }
       ]
     },
-    script: `🔧 **New Push in {{repository.full_name}}**
-User {{pusher.name}} has pushed code to the {{ref}} branch.
-Latest commit ({{commits.[0].id}}): {{commits.[0].message}}`
+    script: `🔧 **New Push in {{repository.name}}**
+User {{commits.[0].author}} has pushed code to the {{repository.name}} repository.
+Latest commit: {{commits.[0].message}}`
   },
 
   [Source.GitHubPullRequest]: {
@@ -181,7 +368,21 @@ Event type: {{event}}
 Primary key: {{data.key}}`
   },
 
-  [Source.RSSFeed]: {
+  [Source.Polling]: {
+    payload: {
+      // Sample XML entry, parsed into a generic JSON shape at poll time.
+      entry: {
+        title:   'New release: v2.4.0',
+        link:    'https://example.com/blog/release-v2-4-0',
+        updated: '2026-06-11T10:00:00Z',
+        summary: 'This release includes performance improvements and bug fixes.',
+      },
+    },
+    script: `📡 **Polling update**
+{{entry.title}}`
+  },
+
+  /*[Source.RSSFeed]: {
     payload: {
       item: {
         title:       'New release: v2.4.0',
@@ -211,5 +412,5 @@ Primary key: {{data.key}}`
 Updated: {{updatedAt}}
 {{#each components}}• {{name}}: {{status}}
 {{/each}}`
-  },
+  },*/
 }

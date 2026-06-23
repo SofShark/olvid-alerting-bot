@@ -1,5 +1,7 @@
 <script setup lang="ts">
-const route  = useRoute()
+import { AlertStatus } from '#shared/constants'
+
+const route  = ref(useRoute())
 const { alerts, alertsLoading, fetchAlerts } = useAlerts()
 
 // Fetch on hard-refresh if the layout hasn't populated the list yet.
@@ -8,26 +10,40 @@ onMounted(() => {
 })
 
 const alert = computed(() =>
-  alerts.value.find(a => a.id === Number(route.params.id)) ?? null
+  alerts.value.find(a => a.id === Number(route.value.params.id)) ?? null
 )
+
+const isDraft = computed(() => alert.value?.status === AlertStatus.Draft)
+// Explicit edit request via query (?edit=1) puts a non-draft alert into the
+// wizard for full reconfiguration. Drafts always open in the wizard.
+const isEditing = computed(() => route.value.query.edit === '1')
 </script>
 
 <template>
   <div v-if="alertsLoading || !alert" class="loading-panel">
-    <span v-if="alertsLoading">Loading…</span>
-    <span v-else>Alert not found.</span>
+    <span v-if="alertsLoading">{{ $t('alertPage.loading') }}</span>
+    <span v-else>{{ $t('alertPage.notFound') }}</span>
   </div>
-  <AlertEditor v-else :key="alert.id?.toString()" :alerta-inicial="alert" />
+  <AlertWizard
+    v-else-if="isEditing"
+    :key="`wizard-${alert.id?.toString()}`"
+    :alerta-inicial="alert"
+  />
+  <AlertEditor
+    v-else
+    :key="`editor-${alert.id?.toString()}`"
+    :alerta-inicial="alert"
+  />
 </template>
 
 <style scoped>
 .loading-panel {
   height: 100%;
   display: flex; align-items: center; justify-content: center;
-  background: #0b1120;
-  border: 1px dashed #1e293b;
-  border-radius: 8px;
-  color: #475569;
+  background: var(--color-bg-card);
+  border: 1px dashed var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  color: var(--color-text-faint);
   font-size: 14px;
 }
 </style>
