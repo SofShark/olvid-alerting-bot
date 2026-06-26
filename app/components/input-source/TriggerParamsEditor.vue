@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { PollingFormat, Trigger } from '#shared/constants'
+import { PollingFormat, Source, 
+       // Trigger 
+      }  from '#shared/constants'
 
+// The alert's source IS the only type discriminator — `triggerType` here
+// receives `form.input` (a Source value) from the wizard. No separate
+// `source` prop: it would be the same string.
 const props = defineProps<{
-  source:      string
   triggerType: string
   modelValue:  Record<string, any>
 }>()
@@ -21,7 +25,7 @@ function setMany(patch: Record<string, any>) {
   emit('update:modelValue', { ...p.value, ...patch })
 }
 
-const isPolling = computed(() => props.triggerType === Trigger.Polling)
+const isPolling = computed(() => props.triggerType === Source.Polling)
 
 // ── Poll interval ───────────────────────────────────────────────────────────
 
@@ -95,20 +99,20 @@ const selectedFormat = computed(() => (p.value.format as PollingFormat) ?? Polli
 
     <!-- URL -->
     <div class="field">
-      <label class="field-label">{{ $t('triggerParamsEditor.url.label') }} <span class="field-required">*</span></label>
+      <label class="field-label">{{ $t('alertParamsEditor.url.label') }} <span class="field-required">*</span></label>
       <input
         type="url"
         :value="p.url ?? ''"
-        :placeholder="$t('triggerParamsEditor.url.placeholder')"
+        :placeholder="$t('alertParamsEditor.url.placeholder')"
         class="field-input"
         @input="set('url', ($event.target as HTMLInputElement).value)"
       />
-      <span class="field-hint">{{ $t('triggerParamsEditor.url.hint') }}</span>
+      <span class="field-hint">{{ $t('alertParamsEditor.url.hint') }}</span>
     </div>
 
     <!-- Format -->
     <div class="field">
-      <label class="field-label">{{ $t('triggerParamsEditor.format.label') }} <span class="field-required">*</span></label>
+      <label class="field-label">{{ $t('alertParamsEditor.format.label') }} <span class="field-required">*</span></label>
       <select
         :value="selectedFormat"
         class="field-input"
@@ -116,16 +120,16 @@ const selectedFormat = computed(() => (p.value.format as PollingFormat) ?? Polli
       >
         <option v-for="f in FORMATS" :key="f" :value="f">{{ f }}</option>
       </select>
-      <span class="field-hint">{{ $t('triggerParamsEditor.format.hint') }}</span>
+      <span class="field-hint">{{ $t('alertParamsEditor.format.hint') }}</span>
     </div>
 
     <!-- Interval -->
     <div class="field">
-      <label class="field-label">{{ $t('triggerParamsEditor.interval.label') }} <span class="field-required">*</span></label>
+      <label class="field-label">{{ $t('alertParamsEditor.interval.label') }} <span class="field-required">*</span></label>
       <div class="interval-row">
 
         <template v-if="!isDaily">
-          <span class="interval-label">{{ $t('triggerParamsEditor.interval.every') }}</span>
+          <span class="interval-label">{{ $t('alertParamsEditor.interval.every') }}</span>
           <input
             type="number"
             :value="intervalValue"
@@ -136,7 +140,7 @@ const selectedFormat = computed(() => (p.value.format as PollingFormat) ?? Polli
         </template>
 
         <template v-else>
-          <span class="interval-label">{{ $t('triggerParamsEditor.interval.at') }}</span>
+          <span class="interval-label">{{ $t('alertParamsEditor.interval.at') }}</span>
           <input
             type="time"
             :value="p.dailyAt ?? '08:00'"
@@ -150,7 +154,7 @@ const selectedFormat = computed(() => (p.value.format as PollingFormat) ?? Polli
           class="field-input interval-unit"
           @change="onUnitChange(($event.target as HTMLSelectElement).value as UnitLabel)"
         >
-          <option v-for="u in UNITS" :key="u.label" :value="u.label">{{ $t(`triggerParamsEditor.units.${u.label}`) }}</option>
+          <option v-for="u in UNITS" :key="u.label" :value="u.label">{{ $t(`alertParamsEditor.units.${u.label}`) }}</option>
         </select>
 
       </div>

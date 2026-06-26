@@ -1,0 +1,8 @@
+{
+  "event": {
+    "title": "ZeroDivisionError",
+    "culprit": "app/views.py in divide",
+    "level": "error"
+  },
+  "url": "https://sentry.io/org/project/issues/123/"
+}

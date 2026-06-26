@@ -146,6 +146,9 @@
   },
 
   "editor": {
+    "header": {
+      "editAlert": "Modifier l'alerte"
+    },
     "view": {
       "fields": {
         "source": "Source",
@@ -222,11 +225,6 @@
       "discardWarning": "⚠ Abandonner les modifications non enregistrées de ce lot ?",
       "keepEditingButton": "Continuer l'édition",
       "discardButton": "Abandonner"
-    },
-
-    "footer": {
-      "delete": "Supprimer",
-      "editAlert": "Modifier l'alerte"
     },
 
     "errors": {
@@ -390,7 +388,7 @@
     "changeButton": "Changer"
   },
 
-  "triggerParamsEditor": {
+  "alertParamsEditor": {
     "url": {
       "label": "URL",
       "placeholder": "https://example.com/feed.xml",

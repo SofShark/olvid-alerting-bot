@@ -13,6 +13,9 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faPencil,
           faPenToSquare,
           faCopy,
+          faTrashCan,
+          faChevronRight,
+          faChevronLeft,
         } from '@fortawesome/free-solid-svg-icons'
 
 import { faGithub } from '@fortawesome/free-brands-svg-icons'
@@ -30,10 +33,14 @@ config.autoAddCss = false
 
 // Register every icon the app uses. Adding new icons later: import them
 // here, append to library.add(...).
-library.add(faPencil, 
-            faPenToSquare, 
+library.add(faPencil,
+            faPenToSquare,
             faCopy,
-            faGithub)
+            faGithub,
+            faTrashCan,
+            faChevronRight,
+            faChevronLeft,
+          )
 
 export default defineNuxtPlugin((nuxtApp) => {
   // Component name is PascalCase here; Vue will also resolve it as

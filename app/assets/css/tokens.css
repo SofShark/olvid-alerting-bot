@@ -28,32 +28,13 @@
   --color-bg-code-header: #302c2c;
   --color-bg-code-soft:   #262626;
   
-  /*
-
-  --color-bg-app:         #0f172a;
-  --color-bg-nav:         #0e1327;
-  --color-bg-panel:       #1d242e;
-  --color-bg-card:        #0f172a;
-  --color-bg-card-soft:   #131a24;
-  --color-bundle-card:    #1d1f26;
-  --color-bg-input:       #090d16;
-  --color-bg-code:        #1e1e1e;
-  --color-bg-code-header: #2d2d2d;
-  --color-bg-code-soft:   #262626;
-  --color-bundle-card:    #1d1f26;*/
- 
 
   /* ── Borders ──────────────────────────────────── */
   --color-border-subtle:  #272B34;
   --color-border-default: #3A3F4B;
   --color-border-strong:  #4E5562;
   --color-border-code:    #272B34;
-  /*
-  --color-border-subtle:  #1e293b;
-  --color-border-default: #334155;
-  --color-border-strong:  #475569;
-  --color-border-code:    #2d2d2d;
-  */
+
 
   /* ── Text ─────────────────────────────────────── */
   --color-text-primary:   #F9FAFB;
@@ -65,16 +46,6 @@
   --color-text-on-accent: #FFFFFF;
   --color-text-webhook:   #80e0e4;       /* unchanged — informational sky blue */
 
-/*
-  --color-text-primary:   #f1f5f9;
-  --color-text-secondary: #cbd5e1;
-  --color-text-muted:     #94a3b8;
-  --color-text-dim:       #64748b;
-  --color-text-faint:     #475569;
-  --color-text-code:      #d4d4d4;
-  --color-text-on-accent: #ffffff;
-  --color-text-webhook:   #38bdf8; 
-*/
   /* ── Status ───────────────────────────────────── */
   --color-success:        #22c55e;
   --color-success-text:   #4ade80;

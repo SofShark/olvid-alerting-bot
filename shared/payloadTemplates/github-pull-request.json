@@ -1,0 +1,9 @@
+{
+  "action": "opened",
+  "number": 42,
+  "pull_request": {
+    "title": "Add feature X",
+    "user": { "login": "bob" },
+    "html_url": "https://github.com/org/repo/pull/42"
+  }
+}

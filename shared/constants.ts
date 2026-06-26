@@ -1,75 +1,13 @@
-// Two-level taxonomy:
-//   AlertType  ← top axis ("how does the trigger arrive")
-//   Source     ← the specific provider, scoped under an AlertType
-//
-// On the DB side this maps to:
-//   AlertTable.input        stores an AlertType value (e.g. "Polling", "Webhook")
-//   AlertTable.alertParams  stores a JSON object whose shape depends on AlertType.
-//                           For both types it carries `source` (the provider name);
-//                           polling additionally carries url/format/intervalSeconds/condition.
-
-export enum AlertType {
-  Polling  = 'Polling',
-  Webhook  = 'Webhook',
-  MsgOlvid = 'Message Olvid',   // reserved — Olvid-platform events; no sources yet
-}
-
-// Backward-compat alias for code still importing `Trigger`. New code should
-// use AlertType. Safe to delete after a full sweep.
-export const Trigger = AlertType
-export type Trigger = AlertType
+// Single-axis taxonomy: every alert is either a polling or a webhook alert,
+// captured by `Source`. The DB column `AlertTable.input` stores the Source
+// value verbatim — that single field is the source of truth. `alertParams`
+// carries only TYPE-SPECIFIC config (URL/format/interval/condition for
+// polling; empty for webhook) — it does NOT duplicate `source`.
 
 export enum Source {
-  // ── Webhook sources ──────────────────────────────────────
-  GitHubPush        = 'GitHub Push',
-  GitHubPullRequest = 'GitHub Pull Request',
-  SentryIssue       = 'Sentry Issue',
-  GrafanaAlert      = 'Grafana Alert',
-  GitLabPipeline    = 'GitLab Pipeline',
-  GenericWebhook    = 'Generic Webhook',
-
-  // ── Polling sources ──────────────────────────────────────
-  Polling           = 'Polling Source',
+  Webhook = 'Webhook Source',
+  Polling = 'Polling Source',
 }
-
-// Grouping that drives the wizard's source selector and the `isPolling`
-// runtime check. Adding a new AlertType = add an entry here + a step-flow
-// branch in AlertWizard.
-export const sourcesByAlertType: Record<AlertType, Source[]> = {
-  [AlertType.Polling]: [Source.Polling],
-  [AlertType.Webhook]: [
-    Source.GenericWebhook,
-    Source.GitHubPush,
-    Source.GitHubPullRequest,
-    Source.SentryIssue,
-    Source.GrafanaAlert,
-    Source.GitLabPipeline,
-  ],
-  [AlertType.MsgOlvid]: [],
-}
-
-// Inverse: given a Source, what AlertType does it belong to? Used by the
-// legacy migration helper below — new code should branch on alertType, not
-// on source name.
-export const alertTypeForSource: Record<Source, AlertType> = (() => {
-  const out = {} as Record<Source, AlertType>
-  for (const [type, sources] of Object.entries(sourcesByAlertType)) {
-    for (const s of sources) out[s] = type as AlertType
-  }
-  return out
-})()
-
-// Backward-compat alias: pre-refactor code used `sourceTriggers[source]` to
-// resolve a Source to its AlertType list (always one element). Derived from
-// `alertTypeForSource` to keep one source of truth. New code should use
-// alertTypeForSource directly.
-export const sourceTriggers: Record<Source, AlertType[]> = (() => {
-  const out = {} as Record<Source, AlertType[]>
-  for (const [src, type] of Object.entries(alertTypeForSource)) {
-    out[src as Source] = [type]
-  }
-  return out
-})()
 
 export enum PollingFormat {
   XML  = 'XML',
@@ -125,40 +63,20 @@ export enum AlertStatus {
   Active   = 'active',
 }
 
-// `input` now stores an AlertType value, but legacy rows in the DB (and
-// older in-memory shapes) carry a Source name there. This helper normalises:
-//   - 'Polling' / 'Webhook' / 'Message Olvid' → returned as-is
-//   - 'Polling Source' / 'GitHub Push' / …    → mapped to their AlertType
-//   - anything unrecognised                    → AlertType.Webhook (safest)
-export function migrateAlertType(raw: any): AlertType {
-  const v = String(raw ?? '').trim()
-  if (v === AlertType.Polling || v === AlertType.Webhook || v === AlertType.MsgOlvid) {
-    return v as AlertType
-  }
-  return alertTypeForSource[v as Source] ?? AlertType.Webhook
-}
+// True when the alert's `input` is the polling Source. Takes the alert's
+// source string directly — no AlertType layer to normalise through.
+export const isPolling = (source: string | undefined | null): boolean =>
+  source === Source.Polling
 
-// True for the polling AlertType — replaces the old name-sniffing
-// `isPollingSource(s)`. Now an explicit type check.
-export const isPolling = (alertType: string | undefined | null): boolean =>
-  migrateAlertType(alertType) === AlertType.Polling
-
-// Backward-compat: existing call sites used isPollingSource(form.input)
-// when input was the source name. Same call shape, same result post-
-// migration thanks to migrateAlertType normalising legacy values.
+// Same predicate under the older name. Existing call sites pass the alert's
+// `input` string; both names resolve to the same check.
 export const isPollingSource = isPolling
 
 // ── TriggerParams shapes ────────────────────────────────────────────────────
-// Stored as JSON in AlertTable.triggerParams.
+// Stored as JSON in AlertTable.alertParams.
 // _-prefixed keys are runtime state managed by the polling engine.
 
 // Condition that decides whether a poll cycle actually fires the alert.
-//
-// Excel-style condition. Stored as a single homogeneous shape: every rule
-// field (paths/operator/value/aggregation) is present regardless of `kind`,
-// so flipping between None/Rule in the UI doesn't lose any in-progress
-// configuration. The minimal "kind: None only" shape is produced at *save
-// time* by `compactCondition` — see below.
 export type PollingCondition = {
   kind:        ConditionKind
   paths:       string[]                // dot-paths or wildcard patterns
@@ -224,14 +142,13 @@ export function compactCondition(c: PollingCondition): any {
   return out
 }
 
-// ── alertParams shapes (per AlertType) ─────────────────────────────────────
-// All shapes carry `source` (the specific provider name). Polling additionally
-// carries url/format/interval/condition. `_`-prefixed keys are runtime state
-// managed by the polling engine — they survive serialization but the UI
-// ignores them.
+// ── alertParams shapes (per Source) ────────────────────────────────────────
+// The Source itself lives on the alert (`AlertTable.input` / `AlertModel.input`)
+// — it is NOT duplicated inside alertParams. These shapes only describe the
+// type-specific config. `_`-prefixed keys are runtime state managed by the
+// polling engine — they survive serialization but the UI ignores them.
 
 export type PollingParams = {
-  source:          Source           // e.g. Source.Polling — room for specialized variants later
   url:             string
   format:          PollingFormat
   intervalSeconds: number
@@ -241,9 +158,10 @@ export type PollingParams = {
   _baseline?:      any
 }
 
-export type WebhookParams = {
-  source: Source                    // e.g. Source.GitHubPush, Source.GenericWebhook
-}
+// Webhook alerts carry no type-specific config: their identity comes from the
+// alert's `input` (the Source) and `token` (the webhook URL). Reserved as a
+// named empty shape so future per-provider config has a place to land.
+export type WebhookParams = Record<string, never>
 
 export type AlertParams = PollingParams | WebhookParams | Record<string, any>
 
@@ -263,154 +181,17 @@ export type BundleModel = {
 }
 
 // Full alert as handled by the frontend.
-// `input` now stores AlertType. The specific provider lives in alertParams.source.
-// `triggerType` is gone — alertType IS the type discriminator.
+// `input` stores the Source ("Polling Source" | "Webhook Source") — it IS the
+// source of truth for the alert's type. alertParams holds only the type-
+// specific config; it does not duplicate the source.
 export type AlertModel = {
   id: number | null
   title: string
   description: string
-  input: AlertType | string         // AlertType value at runtime; string for migration tolerance
+  input: Source | string         // Source value; `string` for migration tolerance only
   status: AlertStatus
   token: string
-  alertParams?: AlertParams         // renamed from triggerParams
+  alertParams?: AlertParams
   bundles: BundleModel[]
 }
 
-// Type the structure so TypeScript can help us
-export interface TemplateData {
-  payload: object;
-  script: string;
-}
-
-// Merge everything into a single master object
-export const sampleData: Record<Source, TemplateData> = {
-  [Source.GitHubPush]: {
-    payload:{
-      ref: "refs/heads/main",
-      repository: {
-        name: "mi-proyecto-genial",
-        // ... otros datos ...
-      },
-      commits: [
-        {
-          author: { "name": "Sofia" },
-          modified: ["src/styles/main.css", "index.html"],
-          message: "defined new interface"
-        },
-        {
-          author: { "name": "tu-usuario" },
-          modified: ["readme.md"],
-          message: "deleted outdated box definition"
-        }
-      ]
-    },
-    script: `🔧 **New Push in {{repository.name}}**
-User {{commits.[0].author}} has pushed code to the {{repository.name}} repository.
-Latest commit: {{commits.[0].message}}`
-  },
-
-  [Source.GitHubPullRequest]: {
-    payload: {
-      action: 'opened',
-      number: 42,
-      pull_request: { title: 'Add feature X', user: { login: 'bob' }, html_url: 'https://github.com/org/repo/pull/42' },
-    },
-    script: `🔄 **Pull Request #{{number}} {{action}}**
-Title: {{pull_request.title}}
-Author: {{pull_request.user.login}}
-Link: {{pull_request.html_url}}`
-  },
-
-  [Source.GrafanaAlert]: {
-    
-    payload: {
-      status: 'firing',
-      labels: { severity: 'critical', instance: 'database-node-01' },
-      annotations: { summary: 'CPU overload detected (> 95%)' },
-    },
-    script: `🚨 **Grafana Alert: {{status}}**
-Severity: {{labels.severity}}
-Affected instance: {{labels.instance}}
-Details: {{annotations.summary}}`
-  },
-
-  [Source.SentryIssue]: { 
-     
-    payload: {
-      event: { title: 'ZeroDivisionError', culprit: 'app/views.py in divide', level: 'error' },
-      url: 'https://sentry.io/org/project/issues/123/',
-    },
-    script: `🐞 **Sentry Error ({{event.level}})**
-Failure: {{event.title}}
-Location: {{event.culprit}}
-View issue: {{url}}`
-  },
-
-  [Source.GitLabPipeline]: {
-    payload: {
-      object_kind: 'pipeline',
-      object_attributes: { status: 'failed', ref: 'main', duration: 34 },
-      project: { name: 'my-app', web_url: 'https://gitlab.com/org/my-app' },
-    },
-    script: `🚀 **GitLab Pipeline: {{object_attributes.status}}**
-Project: {{project.name}}
-Branch: {{object_attributes.ref}}
-Duration: {{object_attributes.duration}} seconds`
-  },
-
-  [Source.GenericWebhook]: {
-    payload: {
-      event: 'triggered',
-      data: { key: 'value' },
-    },
-    script: `🔔 **Webhook Event Received**
-Event type: {{event}}
-Primary key: {{data.key}}`
-  },
-
-  [Source.Polling]: {
-    payload: {
-      // Sample XML entry, parsed into a generic JSON shape at poll time.
-      entry: {
-        title:   'New release: v2.4.0',
-        link:    'https://example.com/blog/release-v2-4-0',
-        updated: '2026-06-11T10:00:00Z',
-        summary: 'This release includes performance improvements and bug fixes.',
-      },
-    },
-    script: `📡 **Polling update**
-{{entry.title}}`
-  },
-
-  /*[Source.RSSFeed]: {
-    payload: {
-      item: {
-        title:       'New release: v2.4.0',
-        link:        'https://example.com/blog/release-v2-4-0',
-        pubDate:     '2026-06-11T10:00:00Z',
-        contentSnippet: 'This release includes performance improvements and bug fixes.',
-        guid:        'https://example.com/blog/release-v2-4-0',
-      },
-      feedTitle: 'Example Project Blog',
-    },
-    script: `📰 **{{feedTitle}}**
-{{item.title}}
-{{item.pubDate}}
-{{item.link}}`
-  },
-
-  [Source.GenericAPI]: {
-    payload: {
-      status:    'degraded',
-      updatedAt: '2026-06-11T10:00:00Z',
-      components: [
-        { name: 'API', status: 'operational' },
-        { name: 'Dashboard', status: 'degraded' },
-      ],
-    },
-    script: `⚠️ **API status changed: {{status}}**
-Updated: {{updatedAt}}
-{{#each components}}• {{name}}: {{status}}
-{{/each}}`
-  },*/
-}

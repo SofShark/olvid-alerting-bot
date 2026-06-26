@@ -1,6 +1,6 @@
 // Default polling message builder. Used by:
 //   - BundleCard       (preview of what will be sent on fire)
-//   - alertManager     (actual message generation on the server)
+//   - notifierService  (actual message generation on the server)
 //
 // Pure: no IO, no DOM. Safe in both Nuxt server and browser contexts.
 // All evaluation logic lives in `./conditionEval` — this module only formats.
@@ -53,9 +53,9 @@ export function buildPollingDefaultMessage(
 ): string { 
   const title = alert?.title ?? 'Polling alert'
   // Support both shapes during the transition: new `alertParams.condition`,
-  // legacy `triggerParams.condition`. Both eventually pass through
+  // legacy `alertParams.condition`. Both eventually pass through
   // migrateCondition inside evaluateCondition anyway.
-  const cond = alert?.alertParams?.condition ?? alert?.triggerParams?.condition
+  const cond = alert?.alertParams?.condition ?? alert?.alertParams?.condition
   const result = evaluateCondition(cond, payload, baseline)
 
   if (result.kind === ConditionKind.None) {

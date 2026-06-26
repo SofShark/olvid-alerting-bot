@@ -1,0 +1,26 @@
+{
+  "action": "opened",
+  "issue": {
+    "number": 137,
+    "title": "Login page crashes on Safari 17",
+    "user": { "login": "alice-dev" },
+    "labels": [
+      { "name": "bug" },
+      { "name": "priority:high" }
+    ],
+    "assignees": [
+      { "login": "bob-eng" }
+    ],
+    "state": "open",
+    "html_url": "https://github.com/org/repo/issues/137",
+    "body": "Steps to reproduce: open the login page in Safari 17.0+ and click 'Sign in'. The page crashes with a TypeError."
+  },
+  "repository": {
+    "name": "frontend-app",
+    "full_name": "org/frontend-app",
+    "html_url": "https://github.com/org/frontend-app"
+  },
+  "sender": {
+    "login": "alice-dev"
+  }
+}

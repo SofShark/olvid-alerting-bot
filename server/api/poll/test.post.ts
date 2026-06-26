@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'alertId is required' })
   }
 
-  const alert = await bdManager.getAlertById(id)
+  const alert = await alertRepository.getById(id)
   if (!alert) {
     throw createError({ statusCode: 404, statusMessage: `Alert #${id} not found` })
   }
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const bundles = (alert.bundles ?? []) as any[]
   const bundleMessages = bundles.map((bundle, index) => {
     try {
-      const message = alertManager.formatMessage(alert, bundle, result.parsed)
+      const message = notifierService.formatMessage(alert, bundle, result.parsed)
       return {
         index,
         bundleId:        bundle.id ?? null,

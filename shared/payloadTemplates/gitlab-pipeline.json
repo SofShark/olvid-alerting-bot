@@ -1,0 +1,12 @@
+{
+  "object_kind": "pipeline",
+  "object_attributes": {
+    "status": "failed",
+    "ref": "main",
+    "duration": 34
+  },
+  "project": {
+    "name": "my-app",
+    "web_url": "https://gitlab.com/org/my-app"
+  }
+}

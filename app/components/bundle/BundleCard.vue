@@ -7,6 +7,7 @@ import {
   type DiscussionModel,
 } from '#shared/constants'
 import { buildPollingDefaultMessage } from '#shared/pollingMessage'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 const { t } = useI18n()
 
@@ -26,7 +27,7 @@ const props = withDefaults(defineProps<{
   /** Polling alerts pass their condition + a live payload so we can preview the default message. */
   alertContext?: any
   pollPayload?: any
-  triggerParams?: any
+  alertParams?: any
 }>(), {
   availableDiscussions: () => [],
   discussionsLoading: false,
@@ -36,13 +37,20 @@ const props = withDefaults(defineProps<{
   editable: false,
   alertContext: null,
   pollPayload: null,
-  triggerParams: null,
+  alertParams: null,
 })
 
 const emit = defineEmits(['update:bundle', 'remove', 'edit'])
 
 const patch = (changes: Partial<BundleModel>) =>
   emit('update:bundle', { ...props.bundle, ...changes })
+
+// Bundle title — surfaces the Bundle.name DB column in the edit UI.
+// Optional; the view-mode falls back to "Bundle N" when empty.
+const bundleName = computed<string>({
+  get: () => props.bundle.name ?? '',
+  set: (val) => patch({ name: val.trim() || undefined }),
+})
 
 const discussions = computed<DiscussionModel[]>({
   get: () => props.bundle.discussion_list,
@@ -119,7 +127,7 @@ const pollingPreview = computed(() => {
       v-if="isEditorOpen"
       :initial-script="bundle.custom_script || ''"
       :input-source="inputSource"
-      :trigger-params="triggerParams ?? alertContext?.triggerParams"
+      :alert-params="alertParams ?? alertContext?.alertParams"
       :alert-id="alertContext?.id ?? null"
       @save="saveScript"
       @close="isEditorOpen = false"
@@ -140,7 +148,21 @@ const pollingPreview = computed(() => {
         class="card-edit"
         :title="$t('bundleCard.editTitle')"
         @click="emit('edit')"
-      >{{ $t('bundleCard.editButton') }}</button>
+      > <FontAwesomeIcon :icon="['fas', 'pencil']" />{{ $t('bundleCard.editButton') }}</button>
+    </div>
+
+    <!-- Title — optional. Surfaces Bundle.name. Falls back to "Bundle N"
+         in view mode when left blank. Raw strings here per project's
+         current "no i18n on new copy" pass. -->
+    <div class="field">
+      <label class="field-label">Title</label>
+      <input
+        v-model="bundleName"
+        type="text"
+        class="field-input"
+        :placeholder="`Bundle ${index + 1}`"
+        :disabled="readonly"
+      />
     </div>
 
     <!-- Discussions -->

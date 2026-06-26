@@ -4,21 +4,16 @@ import {onBeforeRouteLeave, onBeforeRouteUpdate, type RouteLocationNormalized} f
 import {
   Formatting,
   AlertStatus,
-  AlertType,
   ConditionKind,
   PollingFormat,
   Source,
-  alertTypeForSource,
-  isPolling as isPollingType,
   compactCondition,
-  migrateAlertType,
   migrateCondition,
   type AlertModel,
   type BundleModel,
   type DiscussionModel,
 } from '#shared/constants'
 import { alertService } from '~/utils/alertService';
-import { snapshot } from 'node:test';
 
 const { t } = useI18n()
 
@@ -42,26 +37,17 @@ const bypassGuard = ref(false)
 const currentStep = ref(1)
 const saving = ref(false)
 const showDiscardWarning = ref(false)
-const confirmingDelete = ref(false)
-const deleting = ref(false)
-
 
 const isDirty = computed(() => {
-  //if (!editing.value) return false
   return JSON.stringify(form.value) !== formSnapshot.value
 })
 
 
-// Intercept ANY route change. Two hooks are needed: Leave fires when the
-// route DEFINITION changes (e.g. /alerts/[id] → /, /alerts/new), Update fires
-// when the same definition is reused with different params/query
-// (e.g. /alerts/123?edit=1 → /alerts/456 — sidebar click — or the post-save
-// nav stripping ?edit=1). Without Update, leaving edit mode for ANOTHER
-// alert in the sidebar would slip through silently.
+// Intercept ANY route change. Leave fires when the route DEFINITION changes
+// Update fires when the same definition is reused with different params/query
 const guardNavigation = (to: RouteLocationNormalized) => {
   if (bypassGuard.value) { bypassGuard.value = false; return true }
   if (!isDirty.value) return true
-  //if (!hasAnyInput.value) return true
   pendingLeave.value = to
   showDiscardWarning.value = true
   return false
@@ -71,16 +57,9 @@ const guardNavigation = (to: RouteLocationNormalized) => {
 onBeforeRouteLeave(guardNavigation)
 onBeforeRouteUpdate(guardNavigation)
 
-// Browser-level: tab close, hard refresh, address bar nav. We set BOTH
-// preventDefault AND returnValue — preventDefault is the modern trigger but
-// older browsers (and some current Safari builds) still require returnValue
-// to be truthy for the native "Leave site?" dialog to actually show. The
-// `returnValue` setter is marked @deprecated, but every browser still honors
-// it; skipping it costs reliability for no real gain.
+// Browser-level: tab close, hard refresh, address bar nav.
 const onBeforeUnload = (e: BeforeUnloadEvent) => {
-  //if (!hasAnyInput.value) return
   if (isDirty.value) e.preventDefault()
-  e.preventDefault()
 }
 
 const snapform = () =>{
@@ -98,10 +77,10 @@ const blankForm = (): AlertModel => ({
   id: null,
   title: '',
   description: '',
-  input: '',                         // AlertType — set when the user picks a source
+  input: '',                         // Source — set when the user picks a source
   status: AlertStatus.Draft,
   token: '',
-  alertParams: {},                   // renamed from triggerParams
+  alertParams: {},                   // renamed from alertParams
   bundles: [],
 })
 
@@ -129,22 +108,13 @@ const resolveDiscussions = (ids: any[]): DiscussionModel[] =>
 
 const fillFrom = (a: AlertModel | null) => {
   if (a && a.id) {
-    // Normalize incoming shape: `input` should hold an AlertType value, not a
-    // legacy source name. `alertParams` is the new key; fall back to
-    // `triggerParams` for pre-migration in-flight data.
-    const rawParams = (a as any).alertParams ?? (a as any).triggerParams ?? {}
-    const alertType = migrateAlertType(a.input)
-    const alertParams = { ...rawParams } as Record<string, any>
-    // If migrating from the legacy shape, `a.input` was the source name —
-    // tuck it into alertParams.source so the UI dropdown can pre-select it.
-    if (!alertParams.source && a.input && a.input !== alertType) {
-      alertParams.source = a.input
-    }
+    const alertParams = { ...(a.alertParams ?? {}) } as Record<string, any>
+
     form.value = {
       id: a.id,
       title: a.title || '',
       description: a.description || '',
-      input: alertType,
+      input: a.input,
       status: a.status || AlertStatus.Draft,
       token: a.token || '',
       alertParams,
@@ -191,27 +161,25 @@ const hasEmptyBundle = computed(() =>
 )
 
 // ── Derived state ─────────────────────────────────────────────────────────
-const isPolling = computed(() => isPollingType(form.value.input))
-const isWebhook = computed(() => form.value.input === AlertType.Webhook)
+const isPolling = computed(() => form.value.input === Source.Polling)
+const isWebhook = computed(() => form.value.input === Source.Webhook)
 
-// Source picker binding — getter reads alertParams.source, setter takes the
-// picked Source, classifies it into an AlertType (writes to form.input),
-// and resets alertParams to a sensible default shape for that type while
-// preserving any existing polling config the user already entered.
+// Source picker binding. The setter resets
+// `alertParams` to the default shape for the picked source while preserving
+// any polling config the user already entered. `source` is NOT written
+// inside `alertParams` — it lives at the alert root only.
 const selectedSource = computed<string>({
-  get: () => (form.value.alertParams as any)?.source ?? '',
+  get: () => form.value.input,
   set: (src) => {
     if (!src) {
       form.value.input = ''
       form.value.alertParams = {}
       return
     }
-    const at = alertTypeForSource[src as Source] ?? AlertType.Webhook
-    form.value.input = at
-    if (at === AlertType.Polling) {
+    form.value.input = src
+    if (src === Source.Polling) {
       const prev = (form.value.alertParams ?? {}) as any
       form.value.alertParams = {
-        source: src,
         url:             prev.url             ?? '',
         format:          prev.format          ?? PollingFormat.XML,
         intervalSeconds: prev.intervalSeconds ?? 300,
@@ -221,8 +189,8 @@ const selectedSource = computed<string>({
         ...(prev._lastHash !== undefined ? { _lastHash: prev._lastHash } : {}),
       }
     } else {
-      // Webhook / other: only `source` matters at this layer.
-      form.value.alertParams = { source: src }
+      // Webhook (or any future non-polling source): no extra config yet.
+      form.value.alertParams = {}
     }
   },
 })
@@ -241,10 +209,7 @@ const isPollingConfigComplete = computed(() => {
 })
 
 const isStep1Complete = computed(
-  () => !!form.value.title
-        && !!form.value.input
-        && !!(form.value.alertParams as any)?.source
-        && isPollingConfigComplete.value,
+  () => !!form.value.input && isPollingConfigComplete.value,
 )
 
 const isConditionComplete = computed(() => {
@@ -314,7 +279,6 @@ const canAdvance = computed(() => {
   }
 })
 
-
 // ── Navigation ────────────────────────────────────────────────────────────
 const hasAnyInput = computed(
   () =>
@@ -343,26 +307,6 @@ const discardAndExit = () => {
 const dismissDiscard = () => {
   showDiscardWarning.value = false
   pendingLeave.value = null
-}
-
-// Delete the currently-loaded alert. Available in the wizard for ANY existing
-// alert (drafts, inactive, active) — drafts open in the wizard, so without
-// this they'd have nowhere to be deleted from.
-const doDelete = async () => {
-  if (!form.value.id) return
-  deleting.value = true
-  try {
-    await alertService.delete(form.value.id as number)
-    confirmingDelete.value = false
-    await fetchAlerts()
-    bypassGuard.value = true
-    navigateTo('/')
-  } catch (error: any) {
-    console.error('Error deleting:', error)
-    alert(`${t('wizard.errors.deleting')}\n\n${error?.data?.message || error?.message || t('common.unknownError')}`)
-  } finally {
-    deleting.value = false
-  }
 }
 
 // Modal "Save as draft": persist, then continue to wherever the user was
@@ -400,9 +344,9 @@ const buildPayload = (status: AlertStatus) => {
     id: form.value.id,
     title: form.value.title,
     description: form.value.description,
-    input: form.value.input,        // AlertType — DB stores it here now
+    input: form.value.input,        // Source — DB stores it here now
     status,
-    alertParams: ap,                // renamed from triggerParams
+    alertParams: ap,                // renamed from alertParams
     bundles: bundles.value.map(b => ({
       id: b.id,
       name: b.name,
@@ -415,10 +359,8 @@ const buildPayload = (status: AlertStatus) => {
 
 const canSaveDraft = computed(() => !!form.value.title)
 
-// Would the form, as it stands right now, save as a complete (non-Draft)
-// alert? Used by the per-step Save button so it can offer "Save alert"
-// instead of "Save as draft" the moment everything's in place — no need to
-// wait until the user reaches the bundle step.
+// Determines if the form as it is should save the alert as a functional alert
+// or as a draft. 
 const wouldBeComplete = computed(() =>
   !!form.value.title &&
   !!form.value.input &&
@@ -428,15 +370,13 @@ const wouldBeComplete = computed(() =>
   !hasEmptyBundle.value,
 )
 
-// Resolves to the status the alert SHOULD have after this save. Drafts when
-// the form isn't complete; otherwise preserve the alert's existing status —
-// editing an Active alert that's still complete must NOT silently demote it
-// to Inactive (it would stop firing).
+// Resolves to the status the alert should have after this save.
 const effectiveFinalStatus = computed<AlertStatus>(() => {
   if (!wouldBeComplete.value) return AlertStatus.Draft
   if (isExisting.value && form.value.status === AlertStatus.Active) {
     return AlertStatus.Active
   }
+  // TODO determine wether newly created alert should be automatically activated or not
   return AlertStatus.Inactive
 })
 
@@ -456,8 +396,7 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
       form.value.id     = saved.id     ?? form.value.id
       form.value.status = saved.status ?? form.value.status
       form.value.token  = saved.token  ?? form.value.token
-      // Stamp returned ids back onto local bundles so subsequent saves
-      // update-in-place instead of recreating.
+      
       const savedBundles: any[] = saved.bundles ?? []
       bundles.value = bundles.value.map((b, i) => ({
         ...b,
@@ -498,20 +437,6 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
       </div>
     </div>
 
-    <!-- Delete confirmation — for existing alerts (drafts included). -->
-    <div v-if="confirmingDelete" class="overlay">
-      <div class="overlay-box">
-        <h4>{{ $t('wizard.deleteModal.title') }}</h4>
-        <p>{{ $t('wizard.deleteModal.message') }}</p>
-        <div class="overlay-actions">
-          <button type="button" class="btn btn-ghost" @click="confirmingDelete = false">{{ $t('button.cancel') }}</button>
-          <button type="button" class="btn btn-danger" :disabled="deleting" @click="doDelete">
-            {{ deleting ? $t('common.deleting') : $t('button.delete') }}
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- Stepper-->
     <div class="wizard-stepper">
       <Stepper v-model="currentStep" :steps="stepDefs" />
@@ -530,10 +455,7 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
               class="title-input"
               :aria-label="$t('wizard.alertTitleAria')"
             />
-            <span v-if="isExisting && form.status === AlertStatus.Draft" class="status-badge draft">{{ $t('alertStatusBadge.draft') }}</span>
-            <span v-else-if="isExisting && form.status === AlertStatus.Inactive" class="status-badge inactive">{{ $t('alertStatusBadge.inactive') }}</span>
-            <span v-else-if="isExisting && form.status === AlertStatus.Active" class="status-badge active">{{ $t('alertStatusBadge.active') }}</span>
-          </div>
+            </div>
           <input
             v-model="form.description"
             type="text"
@@ -552,8 +474,8 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
       <template v-if="currentStepKey === 'general'">
         <div class="field">
           <label class="field-label">{{ $t('wizard.fieldLabels.inputSource') }} <span class="field-required">*</span></label>
-          <!-- Bound to selectedSource: setter classifies the picked source into
-               an AlertType, writes form.input + alertParams.source. -->
+          <!-- Picking a source writes form.input and resets alertParams to the right
+               shape for that source. -->
           <InputSourceSelector v-model="selectedSource" />
           <p v-if="form.input" class="field-hint">
             {{ $t('wizard.communicationHint') }}<strong>{{ form.input }}</strong>{{ $t('wizard.communicationHintSuffix') }}
@@ -564,7 +486,6 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
         <div v-if="isPolling" class="field">
           <label class="field-label">{{ $t('wizard.fieldLabels.pollingConfiguration') }} <span class="field-required">*</span></label>
           <TriggerParamsEditor
-            :source="selectedSource"
             :trigger-type="form.input"
             :model-value="form.alertParams ?? {}"
             @update:model-value="form.alertParams = $event"
@@ -615,7 +536,7 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
             :input-source="selectedSource"
             :alert-context="form"
             :poll-payload="lastPollPayload"
-            :trigger-params="form.alertParams"
+            :alert-params="form.alertParams"
             @update:bundle="updateBundle(i, $event)"
             @remove="removeBundle(i)"
           />
@@ -818,33 +739,6 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
   border-bottom-color: var(--color-accent);
   border-bottom-style: solid;
   color: var(--color-text-primary);
-}
-
-/* Status badge — colour reflects the alert's current saved status. The
- * .draft variant keeps the original draft-badge styling. */
-.status-badge {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  padding: 2px 7px;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-  border: 1px solid transparent;
-}
-.status-badge.draft {
-  background: var(--color-warning-soft);
-  border-color: var(--color-warning-border);
-  color: var(--color-warning-text);
-}
-.status-badge.inactive {
-  background: var(--color-border-subtle);
-  border-color: var(--color-border-default);
-  color: var(--color-text-dim);
-}
-.status-badge.active {
-  background: var(--color-success-soft);
-  border-color: var(--color-success-border);
-  color: var(--color-success-text);
 }
 
 /* Step-body callouts. */

@@ -123,7 +123,7 @@ function evalOne(
 /**
  * Evaluate a polling condition against a parsed payload.
  *
- * @param rawCondition  The raw condition from triggerParams (any shape — migrated internally).
+ * @param rawCondition  The raw condition from alertParams (any shape — migrated internally).
  * @param payload       The parsed source object (parsed XML tree, JSON body, etc.).
  * @param baseline      Optional previous-poll snapshot for `changed` comparisons.
  *                      Omit for previews; required server-side for accurate Changed evaluation.

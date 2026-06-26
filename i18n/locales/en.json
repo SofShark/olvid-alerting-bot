@@ -146,6 +146,9 @@
   },
 
   "editor": {
+    "header": {
+      "editAlert": "Edit Alert"
+    },
     "view": {
       "fields": {
         "source": "Source",
@@ -224,10 +227,7 @@
       "discardButton": "Discard"
     },
 
-    "footer": {
-      "delete": "Delete",
-      "editAlert": "Edit Alert"
-    },
+    
 
     "errors": {
       "savingBundle": "Error saving bundle:",
@@ -367,7 +367,7 @@
     "previewPlaceholder": "Default polling message — fills in the watched paths and their observed values when the alert fires.",
     "removeTitle": "Remove bundle",
     "editTitle": "Edit this bundle",
-    "editButton": "✎ Edit"
+    "editButton": "Edit"
   },
 
   "discussionSelector": {
@@ -390,7 +390,7 @@
     "changeButton": "Change"
   },
 
-  "triggerParamsEditor": {
+  "alertParamsEditor": {
     "url": {
       "label": "URL",
       "placeholder": "https://example.com/feed.xml",

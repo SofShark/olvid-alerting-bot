@@ -2,6 +2,7 @@
 import { AlertStatus, type AlertModel } from '#shared/constants'
 
 const { t } = useI18n()
+const { collapsed, toggle } = useSidebar()
 
 withDefaults(defineProps<{
   alerts?: AlertModel[]
@@ -14,9 +15,9 @@ withDefaults(defineProps<{
 const emit = defineEmits(['select', 'new'])
 
 const statusClass = (status: string) => ({
-  'st-active': status === AlertStatus.Active,
+  'st-active':   status === AlertStatus.Active,
   'st-inactive': status === AlertStatus.Inactive,
-  'st-draft': status === AlertStatus.Draft,
+  'st-draft':    status === AlertStatus.Draft,
 })
 
 const statusLabel = (status: string) => {
@@ -24,13 +25,37 @@ const statusLabel = (status: string) => {
   if (status === AlertStatus.Inactive) return t('sidebar.statusLabel.inactive')
   return t('sidebar.statusLabel.draft')
 }
+
+// First 3 characters of the alert's title, uppercased — shown next to the
+// status dot when the sidebar is collapsed. 
+const initials = (title: string): string => {
+  const t = (title ?? '').trim().slice(0, 3).toUpperCase()
+  return t.length > 0 ? t : '·'
+}
 </script>
 
 <template>
-  <aside class="sidebar">
+  <aside class="sidebar" :class="{ collapsed }">
     <div class="sidebar-head">
-      <span class="sidebar-title">{{$t('sidebar.title')}}</span>
-      <!---- ><span class="sidebar-count">{{ alerts.length }}</span>-->
+      <span v-if="!collapsed" class="sidebar-title">{{ $t('sidebar.title') }}</span>
+      <button
+        type="button"
+        class="btn-collapse"
+        :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        :aria-expanded="!collapsed"
+        @click="toggle"
+      >
+        
+        <!-- Always the chevron-LEFT icon; we rotate 180° via CSS when the
+             sidebar is collapsed so the same glyph points right. Saves
+             registering both icons. -->
+        <FontAwesomeIcon
+          class="chev-icon"
+          :icon="['fas', 'chevron-left']"
+          aria-hidden="true"
+        />
+      </button>
     </div>
 
     <div class="sidebar-body">
@@ -40,20 +65,36 @@ const statusLabel = (status: string) => {
         type="button"
         class="alert-row"
         :class="{ selected: a.id === selectedId }"
+        :title="collapsed ? a.title : undefined"
         @click="emit('select', a)"
       >
         <span class="status-dot" :class="statusClass(a.status)" :title="statusLabel(a.status)"></span>
-        <span class="row-title">{{ a.title }}</span>
+        <span v-if="collapsed" class="row-initials">{{ initials(a.title) }}</span>
+        <span v-else class="row-title">{{ a.title }}</span>
       </button>
 
-      <div v-if="alerts.length === 0" class="sidebar-empty">
+      <div v-if="alerts.length === 0 && !collapsed" class="sidebar-empty">
         {{ $t('sidebar.empty') }}
-      </div>
-    </div>
 
-    <button type="button" class="btn-new-bottom" @click="emit('new')">
-      <span class="plus">+</span> {{ $t('button.newAlert') }}
-    </button>
+
+      </div>
+        <button
+          type="button"
+          class="btn-new-bottom"
+          :title="collapsed ? $t('button.newAlert') : undefined"
+          @click="emit('new')"
+        >
+          <span class="plus">+</span>
+          <span v-if="!collapsed" class="btn-new-label">{{ $t('button.newAlert') }}</span>
+        </button>
+      </div>
+
+      
+      
+    
+
+
+    
   </aside>
 </template>
 
@@ -61,39 +102,12 @@ const statusLabel = (status: string) => {
 .sidebar {
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-card);
+  background: transparent;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-xl);
   overflow: hidden;
   height: 100%;
   min-height: 0;
-}
-
-.sidebar-head {
-  display: flex; 
-  align-items: center;
-  justify-content: center;
- 
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-6);
-  background: var(--color-border-subtle);
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-.sidebar-title { 
-  font-size: var(--text-base); 
-  font-weight: 600; 
-  color: var(--color-text-primary); 
-}
-
-
-.sidebar-count {
-  margin-left: auto;
-  background: var(--color-border-subtle);
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  padding: 1px var(--space-3);
-  border-radius: 10px;
 }
 
 .sidebar-body {
@@ -103,14 +117,92 @@ const statusLabel = (status: string) => {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  background: var(--color-bg-panel); /* <-- Cambiado de var(--color-bg-card) */
   min-height: 0;
 }
 
+/* ── Head ───────────────────────────────────────────────────────────
+ * Expanded: title on the left, collapse-toggle on the right.
+ * Collapsed: title hidden, toggle centered (only thing in the head). */
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.sidebar.collapsed .sidebar-head {
+  justify-content: center;
+  padding: var(--space-3) 0;
+}
+.sidebar-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Collapse toggle — neutral button, the chevron rotates with state. */
+.btn-collapse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--color-accent-soft);;
+  border: 1px solid var(--color-accent-border);
+  border-radius: 9999px;
+  color: var(--color-text-dim);
+  cursor: pointer;
+  transition: background-color .15s, color .15s;
+ 
+}
+.btn-collapse:hover {
+  background: var(--color-accent-hover);
+  color: var(--color-text-primary);
+  
+}
+
+/* Chevron for collapse button */
+.chev-icon {
+  font-size: 10px;
+  line-height: 1;
+  transition: transform .18s ease;
+  color:var(--color-accent)
+}
+
+.sidebar.collapsed .chev-icon {
+  transform: rotate(180deg);
+}
+
+.btn-collapse:hover .chev-icon {
+  color: var(--color-accent-soft);
+}:var(--color-accent-soft)
+
+
+/* ── Body / rows ────────────────────────────────────────────────── */
+.sidebar-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--color-bg-card);
+  min-height: 0;
+  
+}
+
 .alert-row {
-  display: flex; align-items: center; gap: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   width: 100%;
   text-align: left;
-  background: transparent;
+  background:transparent ;
   border: none;
   border-left: 1px solid transparent;
   color: var(--color-text-secondary);
@@ -120,15 +212,36 @@ const statusLabel = (status: string) => {
   font-size: var(--text-base);
   transition: background-color .15s;
 }
+.sidebar.collapsed .alert-row {
+  padding: 9px var(--space-3);
+  justify-content: flex-start;
+}
 .alert-row:hover { background: var(--color-bg-card-soft); }
 .alert-row.selected {
   background: var(--color-bg-card-soft);
   border-left-color: var(--color-accent);
   color: var(--color-text-primary);
 }
-.row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ── Status dots ─────────────────────────────────────────────────── */
+.row-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The 3-char prefix shown when collapsed.*/
+.row-initials {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: inherit;
+  white-space: nowrap;
+}
+
+/* ── Status dots — unchanged ─────────────────────────────────────── */
 .status-dot {
   width: 13px; height: 13px;
   border-radius: 50%;
@@ -147,17 +260,28 @@ const statusLabel = (status: string) => {
   font-style: italic;
 }
 
+/* ── New-alert button at the bottom ───────────────────────────────
+ * Expanded: full pill with "+ New alert" label.
+ * Collapsed: square with just "+", same affordance. */
 .btn-new-bottom {
-  margin: var(--space-3);
+  margin-top: auto;
+  margin-left: var(--space-3);
+  margin-right: var(--space-3);
+  margin-bottom: var(--space-3);
+
   padding: 9px;
   background: var(--color-border-subtle);
   color: var(--color-text-secondary);
   border: 1px dashed var(--color-border-default);
   border-radius: var(--radius-lg);
+
   cursor: pointer;
   font-size: var(--text-base);
   font-weight: 600;
-  display: flex; align-items: center; justify-content: center;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: var(--space-2);
   transition: background-color .15s, border-color .15s, color .15s;
 }
@@ -166,5 +290,10 @@ const statusLabel = (status: string) => {
   color: var(--color-text-primary);
   border-color: var(--color-border-strong);
 }
+
+.sidebar.collapsed .btn-new-bottom {
+  padding: 9px 0;
+}
+.btn-new-label { white-space: nowrap; }
 .plus { font-size: var(--text-xl); line-height: 1; }
 </style>

@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   }
 
   console.log("getting alert element from http request")
-  const alert = await bdManager.getAlertByToken(token) as any
+  const alert = await alertRepository.getByToken(token) as any
 
 
   if (!alert) {
@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
     payload = await readBody(event)
   } catch (parseErr: any) {
     try { rawBody = (await readRawBody(event, 'utf-8')) ?? null } catch { /* body already consumed */ }
-    await bdManager.upsertLastFailedPayload(alert.id, {
+    await alertRepository.upsertLastFailedPayload(alert.id, {
       raw:    rawBody,
       error:  parseErr?.message ?? 'Failed to read request body',
       stage:  'parse',
@@ -39,18 +39,18 @@ export default defineEventHandler(async (event) => {
   console.log(`📥 [Webhook] Token ${token} — alert #${alert.id} with ${alert.bundles.length} bundle(s)`)
 
   try {
-    await alertManager.processAlert(alert, payload)
+    await notifierService.processAlert(alert, payload)
     // Persist the body as this alert's last-received payload. Keyed by alert
     // id, so two webhook alerts with the same source no longer overwrite each
     // other's history.
-    await bdManager.upsertLastAlertPayload(alert.id, payload)
+    await alertRepository.upsertLastAlertPayload(alert.id, payload)
   } catch (error: any) {
     console.error('❌ [Webhook] Unexpected error:', error.message)
     // Persist the failure for admin debugging. The body did parse, so we
     // have a structured `parsed` value; `raw` is left null since we'd have
     // to re-serialize (which would lose info for non-JSON bodies anyway).
     try {
-      await bdManager.upsertLastFailedPayload(alert.id, {
+      await alertRepository.upsertLastFailedPayload(alert.id, {
         parsed: payload ?? null,
         error:  error?.message ?? 'Unknown error during processAlert',
         stage:  'process',

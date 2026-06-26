@@ -32,18 +32,30 @@ export default defineNuxtConfig({
     // autoimport works for pages components etc but not necessarily for every other folder
     "@": resolve(__dirname, "/")
   },
-  /*
-  nitro:{
+
+  // Auto-import the layered server-side architecture. Matches the implicit
+  // auto-import that `server/utils/` already had (bdManager / alertManager
+  // / daemonClient were used without explicit imports) — extended to the
+  // new repositories / services / clients folders so the existing
+  // convention keeps working after the split.
+  nitro: {
+    imports: {
+      dirs: [
+        'server/db',
+        'server/repositories',
+        'server/services',
+        'server/clients',
+      ],
+    },
+    /*
     experimental : {tasks: true},
     scheduledTasks :{
       '* * * * *': ['cron:heartbeat'] // Ticks every minute
     }
-  }
-  */
+    */
+  },
 
-  modules: [
-    '@nuxtjs/i18n',
-  ],
+  modules: ['@nuxtjs/i18n', '@nuxt/eslint'],
   i18n: {
     
     bundle: {

@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   // 1. GET — all alerts with bundles
   if (method === 'GET') {
     try {
-      return await bdManager.getAllAlerts()
+      return await alertRepository.getAll()
     } catch (error: any) {
       console.error('❌ [GET /api/backend]', error)
       throw createError({ statusCode: 500, statusMessage: error.message || 'Failed to fetch alerts' })
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
     try {
       const body = await readBody(event)
       console.log('📥 [POST /api/backend] Creating alert:', body.title)
-      const data = await bdManager.createAlert(body)
+      const data = await alertService.createAlert(body)
       // If the new alert is already active (e.g. saved as active), register it.
       //if (data.status === AlertStatus.Active) triggerEngine.register(data)
       return { success: true, data }
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
       const body = await readBody(event)
       console.log('📥 [PUT /api/backend] Updating alert #' + body.id)
       const id = Number(body.id)
-      const data = await bdManager.updateAlert(id, body)
+      const data = await alertService.updateAlert(id, body)
       // Re-register to pick up any changed alertParams / intervalSeconds.
       //triggerEngine.unregister(id)
       //if (data.status === AlertStatus.Active) triggerEngine.register(data)
@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
       const body = await readBody(event)
       console.log('📥 [PATCH /api/backend] Toggling status for #' + body.id, '->', body.status)
       const id = Number(body.id)
-      const data = await bdManager.updateStatus(id, body.status)
+      const data = await alertService.setStatus(id, body.status)
       //triggerEngine.unregister(id)
       //if (data?.status === AlertStatus.Active) triggerEngine.register(data)
       return { success: true, data }
@@ -68,7 +68,7 @@ export default defineEventHandler(async (event) => {
       console.log('📥 [DELETE /api/backend] Deleting alert #' + body.id)
       const id = Number(body.id)
       //triggerEngine.unregister(id)
-      await bdManager.deleteAlert(id)
+      await alertRepository.delete(id)
       return { success: true }
     } catch (error: any) {
       console.error('❌ [DELETE /api/backend]', error)

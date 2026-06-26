@@ -1,0 +1,18 @@
+{
+  "ref": "refs/heads/main",
+  "repository": {
+    "name": "mi-proyecto-genial"
+  },
+  "commits": [
+    {
+      "author": { "name": "Sofia" },
+      "modified": ["src/styles/main.css", "index.html"],
+      "message": "defined new interface"
+    },
+    {
+      "author": { "name": "tu-usuario" },
+      "modified": ["readme.md"],
+      "message": "deleted outdated box definition"
+    }
+  ]
+}

@@ -167,7 +167,7 @@ defineEmits<{ (e: 'update:modelValue', v: number): void }>()
   background: var(--color-border-subtle);
   margin: 0 var(--space-1);
   min-width: 18px;
-  transition: background .2s;
+  transition: background-color .2s;
 }
 .stepper-separator[data-state='completed'] {
   background: linear-gradient(90deg, var(--color-accent-border), var(--color-accent));

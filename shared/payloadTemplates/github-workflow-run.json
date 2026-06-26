@@ -1,0 +1,22 @@
+{
+  "action": "completed",
+  "workflow_run": {
+    "id": 8123456789,
+    "name": "CI",
+    "head_branch": "main",
+    "head_sha": "abc123def4567890",
+    "status": "completed",
+    "conclusion": "failure",
+    "run_number": 247,
+    "event": "push",
+    "html_url": "https://github.com/org/repo/actions/runs/8123456789",
+    "actor": {
+      "login": "alice-dev"
+    }
+  },
+  "repository": {
+    "name": "frontend-app",
+    "full_name": "org/frontend-app",
+    "html_url": "https://github.com/org/frontend-app"
+  }
+}

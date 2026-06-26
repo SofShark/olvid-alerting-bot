@@ -10,7 +10,7 @@
 //
 // When the scheduled-cycles engine is added later, it will reuse retrieve()
 // + the evaluator, and add the missing pieces (baseline persistence + bundle
-// firing via alertManager.processAlert).
+// firing via notifierService.processAlert).
 
 import { getParser } from './parsers'
 import { evaluate } from './conditions/evaluator'
@@ -49,9 +49,9 @@ export const pollingEngine = {
   },
 
   async test(alert: any): Promise<RunResult> {
-    // alertParams is the new name (post-refactor); fall back to triggerParams
+    // alertParams is the new name (post-refactor); fall back to alertParams
     // for any in-flight legacy alert that hasn't been re-saved yet.
-    const params = (alert?.alertParams ?? alert?.triggerParams ?? {}) as any
+    const params = (alert?.alertParams ?? alert?.alertParams ?? {}) as any
     const url    = params.url
     const format = params.format
     const r = await this.retrieve(url, format)
@@ -69,7 +69,7 @@ export const pollingEngine = {
       
       if (!r.ok) {
         try {
-          await bdManager.upsertLastFailedPayload(alert.id, {
+          await alertRepository.upsertLastFailedPayload(alert.id, {
             raw:    r.raw ?? null,
             parsed: r.parsed ?? null,
             error:  r.error ?? 'Unknown error',
@@ -83,7 +83,7 @@ export const pollingEngine = {
       if (r.parsed !== undefined) {
         
         try {
-          await bdManager.upsertLastAlertPayload(alert.id, r.parsed)
+          await alertRepository.upsertLastAlertPayload(alert.id, r.parsed)
         } catch (e: any) {
           console.error('[pollingEngine] failed to persist last payload:', e?.message ?? e)
         }

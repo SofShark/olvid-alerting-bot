@@ -3,20 +3,18 @@ import { ref, computed, watch } from 'vue'
 import {
   Formatting,
   AlertStatus,
-  AlertType,
   ConditionKind,
   ConditionOperator,
   ConditionAggregation,
   OPERATORS_NEEDING_VALUE,
   migrateCondition,
-  migrateAlertType,
   isPolling as isPollingType,
+  Source,
   type DiscussionModel,
   type BundleModel,
   type AlertModel,
 } from '#shared/constants'
 import { alertService } from '~/utils/alertService'
-import { pollingService } from '~/utils/pollingService'
 
 const { t } = useI18n()
 
@@ -39,7 +37,7 @@ const blankForm = (): AlertModel => ({
   id: null,
   title: '',
   description: '',
-  input: '',                       // AlertType (post-refactor)
+  input: '',                       // Source — the alert's source of truth
   status: AlertStatus.Draft,
   token: '',
   alertParams: {},
@@ -57,19 +55,13 @@ const resolveDiscussions = (ids: any[]): DiscussionModel[] =>
 
 const fillFrom = (a: AlertModel | null) => {
   if (a && a.id) {
-    // Normalize legacy shape: input may carry a source name from older rows,
-    // and triggerParams may still be the field name in transit.
-    const rawParams = (a as any).alertParams ?? (a as any).triggerParams ?? {}
-    const alertType = migrateAlertType(a.input)
-    const alertParams = { ...rawParams } as Record<string, any>
-    if (!alertParams.source && a.input && a.input !== alertType) {
-      alertParams.source = a.input
-    }
+    // `a.input` IS the Source; alertParams carries only type-specific config.
+    const alertParams = { ...((a as any).alertParams ?? {}) } as Record<string, any>
     form.value = {
       id: a.id,
       title: a.title || '',
       description: a.description || '',
-      input: alertType,
+      input: a.input,
       status: a.status || AlertStatus.Draft,
       token: a.token || '',
       alertParams,
@@ -104,10 +96,35 @@ watch(availableDiscussions, (available) => {
 const isExisting  = computed(() => form.value.id !== null)
 const canActivate = computed(() => form.value.bundles.length > 0)
 const isPolling   = computed(() => isPollingType(form.value.input))
-const isWebhook   = computed(() => form.value.input === AlertType.Webhook)
-// Specific provider name (e.g. 'GitHub Push', 'Polling Source'). Lives in
-// alertParams.source post-refactor; displayed in the view-mode "Source" row.
-const sourceName  = computed(() => (form.value.alertParams as any)?.source ?? '')
+const isWebhook   = computed(() => form.value.input === Source.Webhook)
+// Source name surfaced in the view-mode "Source" row. With the binary
+// Source enum, this IS just `form.input`.
+const sourceName  = computed(() => form.value.input ?? '')
+
+// View-mode INPUT block title. The source IS the heading — "Polling Alert"
+// or "Webhook Alert" — no separate label + tag dance. Extending: another
+// branch here per future Source ("Cron Alert", "Olvid Message Alert", …).
+const inputTitle  = computed(() => {
+  if (isPolling.value) return 'Polling Alert'
+  if (isWebhook.value) return 'Webhook Alert'
+  return form.value.input ? `${form.value.input} Alert` : 'Alert'
+})
+
+// Per-bundle readiness signal shown next to the title in the OUTPUT table.
+// "ready"      — at least one destination AND any required script is set.
+// "no-dest"    — no discussion picked → bundle wouldn't deliver anywhere.
+// "no-script"  — Custom-format bundle with an empty script → would render blank.
+// The pip's tooltip carries the human-readable reason.
+type BundleStatus = { kind: 'ready' | 'no-dest' | 'no-script', label: string }
+const bundleStatus = (b: BundleModel): BundleStatus => {
+  if (b.discussion_list.length === 0) return { kind: 'no-dest',   label: 'No destinations' }
+  const needsScript = b.formating === Formatting.Custom || b.formating === Formatting.PollingCustom
+  if (needsScript && !(b.custom_script ?? '').trim()) return { kind: 'no-script', label: 'Custom format set but no script' }
+  return { kind: 'ready', label: 'Ready' }
+}
+
+// Names of the bundle's destinations, one per line, for the count-badge tooltip.
+const destNames = (b: BundleModel) => b.discussion_list.map(d => d.title).join('\n')
 
 const webhookUrl = computed(() => {
   if (!form.value.token) return ''
@@ -250,9 +267,6 @@ const bundleDirty = computed(() => {
   return JSON.stringify(editingBundleDraft.value) !== bundleSnapshot.value
 })
 
-// Real close (always discards). Use `requestCloseBundleEditor` from any UI
-// affordance — it gates on `bundleDirty` and pops the confirmation prompt
-// when there are unsaved changes.
 const closeBundleEditor = () => {
   editingBundleIndex.value   = null
   editingBundleDraft.value   = null
@@ -282,9 +296,9 @@ const saveBundle = async () => {
       id: form.value.id,
       title: form.value.title,
       description: form.value.description,
-      input: form.value.input,                    // AlertType
+      input: form.value.input,
       status: form.value.status,
-      alertParams: form.value.alertParams ?? {},  // renamed from triggerParams
+      alertParams: form.value.alertParams ?? {},
       bundles: updated.map(b => ({
         id: b.id,
         name: b.name,
@@ -302,24 +316,6 @@ const saveBundle = async () => {
     alert(`${t('editor.errors.savingBundle')}\n\n${error.data?.message || error.message || t('common.unknownError')}`)
   } finally {
     bundleSaving.value = false
-  }
-}
-
-// ── Manual test poll (polling alerts, inactive only) ──────────────────────
-const testing    = ref(false)
-const testResult = ref<any>(null)
-
-const runTestPoll = async () => {
-  if (!form.value.id) return
-  testing.value = true
-  try {
-    // `await` is critical — without it testResult holds the Promise, not
-    // the resolved RunResult, and the template renders nothing useful.
-    testResult.value = await pollingService.testOnScreen(form.value.id)
-  } catch (error: any) {
-    testResult.value = { ok: false, error: error?.data?.statusMessage ?? error?.message ?? t('editor.errors.testFailed') }
-  } finally {
-    testing.value = false
   }
 }
 </script>
@@ -340,12 +336,6 @@ const runTestPoll = async () => {
     </div>
 
     <!-- ── Per-bundle edit modal ────────────────────────────── -->
-    <!-- All close affordances (backdrop / × / Cancel) go through
-         `requestCloseBundleEditor`. If the draft is dirty, an inline confirm
-         strip takes over the footer until the user picks Discard or Keep
-         editing — no silent loss of edits.
-         Backdrop clicks fire `@click.self` only; inner clicks keep bubbling
-         to `document` so child dropdowns can detect outside-clicks. -->
     <div
       v-if="editingBundleIndex !== null && editingBundleDraft"
       class="overlay"
@@ -364,7 +354,7 @@ const runTestPoll = async () => {
             :discussions-loading="discussionsLoading"
             :input-source="sourceName"
             :alert-context="form"
-            :trigger-params="form.alertParams"
+            :alert-params="form.alertParams"
             :hide-remove="true"
             @update:bundle="editingBundleDraft = $event"
           />
@@ -383,328 +373,222 @@ const runTestPoll = async () => {
       </div>
     </div>
 
-    <!-- ── Test-poll result modal ──────────────────────────────── -->
-    <!-- Auto-opens when `testResult` is set by runTestPoll. Backdrop click /
-         × / Close button all clear testResult to dismiss. No "dirty" state
-         here — the data is a snapshot from the server, nothing to lose. -->
-    <div
-      v-if="testResult"
-      class="overlay"
-      @click.self="testResult = null"
-    >
-      <div class="overlay-box test-modal">
-        <div class="modal-head">
-          <h4>{{ $t('editor.testModal.title') }}</h4>
-          <button type="button" class="modal-close" :title="$t('editor.bundleModal.closeTitle')" @click="testResult = null">✕</button>
-        </div>
-        <div class="modal-body">
-
-          <!-- Top-level error envelope (fetch/parse failure, etc.) -->
-          <div v-if="testResult.error" class="test-error">
-            ⚠ {{ testResult.error }}
-          </div>
-
-          <template v-else>
-            <!-- Overall verdict -->
-            <!--div class="test-verdict" :class="testResult.condition?.fired ? 'fired' : 'not-fired'">
-              <span class="bullet">●</span>
-              <span v-if="testResult.condition?.fired">Condition met — alert would fire.</span>
-              <span v-else>Condition not met — alert would not fire.</span>
-            </div>
-            <p class="test-reason">{{ testResult.condition?.reason }}</p-->
-
-            <div
-              class="preview-strip"
-              :class="testResult.condition?.fired ? 'ok' : 'no'"
-            >
-              <span class="bullet">●</span>
-              <span v-if="testResult.condition?.fired">{{ $t('editor.testModal.conditionMet') }}</span>
-              <span v-else>{{ $t('editor.testModal.conditionNotMet') }}</span>
-              <p class="test-reason">{{ testResult.condition?.reason }}</p>
-
-              <details v-if="testResult.condition?.baselineValue?.length" class="preview-detail">
-                <summary>{{ $t('editor.testModal.perFieldBreakdown') }}</summary>
-                <ul>
-
-                  <li
-                      v-for="(v, i) in testResult.condition.baselineValue"
-                      :key="i"
-                      :class="v.fired ? 'fired' : 'not-fired'"
-                    >
-                      <span class="verdict-icon">{{ v.fired ? '✓' : '✗' }}</span>
-                      <code class="verdict-path">{{ v.path }}</code>
-                      <span class="verdict-detail">{{ v.detail }}</span>
-                    </li>
-  
-                </ul>
-              </details>
-            </div>
-
-
-            <!-- Per-field breakdown (reads from the verdict array we now
-                 ride on `baselineValue` per the EvalResult contract) -->
-            <template v-if="testResult.condition?.baselineValue?.length">
-
-              
-              <!--details class="preview-detail">
-                <summary>Per-field breakdown</summary>
-                  <ul class="verdict-list">
-                    <li
-                      v-for="(v, i) in testResult.condition.baselineValue"
-                      :key="i"
-                      :class="v.fired ? 'fired' : 'not-fired'"
-                    >
-                      <span class="verdict-icon">{{ v.fired ? '✓' : '✗' }}</span>
-                      <code class="verdict-path">{{ v.path }}</code>
-                      <span class="verdict-detail">{{ v.detail }}</span>
-                    </li>
-                  </ul>
-              </details-->
-              
-            </template>
-
-            <!-- Per-bundle messages — exactly what each bundle would send -->
-            <template v-if="testResult.bundleMessages?.length">
-              <div class="divider"><span>{{ $t('editor.view.dividers.messagesPerBundle') }}</span></div>
-              <div class="bundle-messages">
-                <div
-                  v-for="bm in testResult.bundleMessages"
-                  :key="bm.index"
-                  class="bundle-message"
-                >
-                  <div class="bundle-message-head">
-                    <span class="bundle-tag">{{ $t('editor.view.bundleTag', { n: bm.index + 1 }) }}</span>
-                    <span class="bundle-message-meta">
-                      {{ bm.discussionCount === 1
-                          ? $t('editor.testModal.discussionsCount',       { n: bm.discussionCount })
-                          : $t('editor.testModal.discussionsCountPlural', { n: bm.discussionCount }) }}
-                      · {{ formatLabel(bm.formating) }}
-                    </span>
-                  </div>
-                  <pre v-if="!bm.error" class="bundle-message-body">{{ bm.message }}</pre>
-                  <pre v-else class="bundle-message-error">⚠ {{ bm.error }}</pre>
-                </div>
-              </div>
-            </template>
-
-            <!-- Raw parsed payload — collapsed by default, opt-in debug -->
-            <details class="test-raw">
-              <summary>{{ $t('editor.testModal.parsedSourceRaw') }}</summary>
-              <pre>{{ JSON.stringify(testResult.parsed, null, 2) }}</pre>
-            </details>
-          </template>
-        </div>
-        <div class="modal-foot">
-          <ButtonPrimary @click="testResult = null">{{ $t('editor.testModal.closeButton') }}</ButtonPrimary>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Header ─────────────────────────────────────────────── -->
-    <!-- Title + description form an "identity block": what is this alert,
-         what does it do. Status toggle stays on the right. Configuration
-         details (source, URL, etc.) live in the body, not here. -->
-    <div class="panel-head">
-      <div class="head-left">
-        <div class="head-title-block">
+    <div class="panel-head view-head">
+      <div class="head-main">
+        <div class="head-titlebar">
           <h2 class="view-title">{{ form.title || $t('common.untitled') }}</h2>
-          <p v-if="form.description" class="view-subtitle">{{ form.description }}</p>
-      </div>
-      </div>
-      <div class="head-right">
-        <Toggle v-if="isExisting" 
-          v-model:status="form.status"
-          :canActivate="canActivate"
-          @update:state="toggleStatus"
-        /> 
-      </div>
-      
-    </div>
-
-    <!-- ── Body ──────────────────────────────────────────────── -->
-    <!-- Compact info-rows: a single label-on-left / value-on-right pattern
-         used everywhere. No fake textareas, no accent-soft badges except
-         where they carry meaning (chips, the toggle, the primary CTA). -->
-    <div class="panel-body">
-
-      <dl class="info-list">
-        <!--div v-if="form.description" class="info-row">
-          <dt class="field-label">Description</dt>
-          <dd class="info-value">{{ form.description }}</dd>
-      </div-->
-
-        <div v-if="sourceName" class="info-row">
-          <dt class="field-label">{{ $t('editor.view.fields.source') }}</dt>
-          <dd class="info-value">
-            <!-- Specific provider on the badge; AlertType as the muted "via" suffix.
-                 Reads "Polling Source · via Polling" or "GitHub Push · via Webhook". -->
-            <span class="source-badge">
-              {{ sourceName }}
-              <span v-if="form.input" class="source-via">{{ $t('common.via') }} {{ form.input }}</span>
-            </span>
-          </dd>
-        </div>
-
-        <!-- Webhook URL — webhook alerts only. -->
-        <div v-if="isWebhook && webhookUrl" class="info-row">
-          <dt class="field-label">{{ $t('editor.view.fields.endpoint') }}</dt>
-          <dd class="info-value">
-            <URLCopyBox :url="webhookUrl"></URLCopyBox>
-          </dd>
-        </div>
-      </dl>
-
-      <!-- ── Trigger details (polling only) ─────────────────── -->
-      <template v-if="isPolling">
-        <div class="divider"><span>{{ $t('editor.view.dividers.triggerConfiguration') }}</span></div>
-
-        <dl class="info-list">
-          <div class="info-row">
-            <dt class="field-label">{{ $t('editor.view.fields.url') }}</dt>
-            <dd class="info-value">
-              <URLCopyBox :url="(form.alertParams as any)?.url || '——'"></URLCopyBox>
-            </dd>
-            </div>
-          <div class="info-row">
-            <dt class="field-label">{{ $t('editor.view.fields.polling') }}</dt>
-            <dd class="info-value">
-              {{ (form.alertParams as any)?.format || $t('editor.interval.empty') }}
-              <span class="info-secondary">· {{ intervalLabel }}</span>
-            </dd>
-          </div>
-          <div class="info-row">
-            <dt class="field-label">{{ $t('editor.view.fields.condition') }}</dt>
-            <dd class="info-value">
-              <p class="condition-text">{{ conditionSummary.headline }}</p>
-              <div v-if="conditionSummary.paths.length > 0" class="path-list">
-                <code v-for="p in conditionSummary.paths" :key="p" class="path-tag">{{ p }}</code>
-          </div>
-            </dd>
-        </div>
-        </dl>
-      </template>
-
-      <!-- ── Bundles — compact rows, not full cards ──────────── -->
-      <div class="divider"><span>{{ $t('editor.view.dividers.bundles', { count: form.bundles.length }) }}</span></div>
-
-      <div v-if="form.bundles.length === 0" class="bundles-hint">
-        <i18n-t keypath="editor.view.noBundles" tag="span">
-          <template #editAlert><strong>{{ $t('editor.view.noBundlesEditAlert') }}</strong></template>
-        </i18n-t>
-      </div>
-
-      <div v-else class="bundle-list">
-        <div v-for="(b, i) in form.bundles" :key="i" class="bundle-card">
-          <div class="bundle-card-head">
-            <span class="field-label">{{ $t('editor.view.bundleTag', { n: i + 1 }) }}</span>
-            <button type="button" class="btn-mini" @click="openBundleEditor(i)">
-              <span class="btn-mini-icon">✎</span> {{ $t('editor.view.bundleEdit') }}
+          <div class="head-actions">
+            <button type="button" class="btn btn-primary btn-sm" @click="openEditAlert">
+              {{ $t('editor.header.editAlert') }}
+            </button>
+            <button type="button" class="btn btn-danger-ghost btn-sm" :title="$t('button.delete')" @click="confirmingDelete = true">
+              <FontAwesomeIcon :icon="['fas', 'trash-can']" />
             </button>
           </div>
-          <dl class="info-list info-list-tight">
-            <div class="info-row info-row-tight">
-              <dt class="field-label">{{ $t('editor.view.fields.discussions') }}</dt>
-              <dd class="info-value">
-                <span v-if="b.discussion_list.length === 0" class="info-empty">{{ $t('editor.view.discussionsEmpty') }}</span>
-                <span v-else class="discussion-list">
-                  <span v-for="d in b.discussion_list" :key="d.id" class="mini-tag">{{ d.title }}</span>
-                </span>
+        </div>
+
+        <!-- Meta strip: status toggle + source kind + bundle count. -->
+        <div class="head-meta">
+          <Toggle v-if="isExisting"
+            v-model:status="form.status"
+            :canActivate="canActivate"
+            @update:state="toggleStatus"
+          />
+          <span class="meta-sep" aria-hidden="true" />
+          <span class="meta-tag">{{ inputTitle }}</span>
+          <span class="meta-sep" aria-hidden="true" />
+          <span class="meta-dim">
+            {{ form.bundles.length }}
+            {{ form.bundles.length === 1 ? 'bundle' : 'bundles' }}
+          </span>
+        </div>
+
+        
+
+        <p v-if="form.description" class="view-subtitle">{{ form.description }}</p>
+      </div>
+    </div>
+
+
+    <div class="panel-body">
+
+      <!-- ── INPUT block ───────────────────────────────────────── -->
+      <div class="data-block">
+        <h3 class="data-title">{{ inputTitle }}</h3>
+        <dl class="data-grid">
+          <template v-if="isWebhook">
+            <div v-if="webhookUrl" class="data-row">
+              <dt class="data-label">{{ $t('editor.view.fields.endpoint') }}</dt>
+              <dd class="data-value">
+                <URLCopyBox :url="webhookUrl"></URLCopyBox>
               </dd>
             </div>
-            <div class="info-row info-row-tight">
-              <dt class="field-label">{{ $t('editor.view.fields.format') }}</dt>
-              <dd class="info-value">{{ formatLabel(b.formating) }}</dd>
+          </template>
+
+          <template v-else-if="isPolling">
+            <div class="data-row">
+              <dt class="data-label">{{ $t('editor.view.fields.url') }}</dt>
+              <dd class="data-value">
+                <URLCopyBox :url="(form.alertParams as any)?.url || '——'"></URLCopyBox>
+              </dd>
             </div>
-          </dl>
+            <div class="data-row">
+              <dt class="data-label">{{ $t('editor.view.fields.polling') }}</dt>
+              <dd class="data-value">
+                {{ (form.alertParams as any)?.format || $t('editor.interval.empty') }}
+                <span class="dim">· {{ intervalLabel }}</span>
+              </dd>
+            </div>
+            <div class="data-row">
+              <dt class="data-label">{{ $t('editor.view.fields.condition') }}</dt>
+              <dd class="data-value">
+                <p class="condition-text">{{ conditionSummary.headline }}</p>
+                <div v-if="conditionSummary.paths.length > 0" class="path-list">
+                  <code v-for="p in conditionSummary.paths" :key="p" class="path-tag">{{ p }}</code>
+                </div>
+              </dd>
+            </div>
+          </template>
+        </dl>
+      </div>
+
+      <!-- ── OUTPUT block ────────────────────────────────────────-->
+      <div class="data-block">
+        <h3 class="data-title">Bundles ({{ form.bundles.length }})</h3>
+
+        <div v-if="form.bundles.length === 0" class="bundles-hint">
+          <i18n-t keypath="editor.view.noBundles" tag="span">
+            <template #editAlert><strong>{{ $t('editor.view.noBundlesEditAlert') }}</strong></template>
+          </i18n-t>
+        </div>
+
+        <div v-else class="bundles-table">
+          <div class="bundles-row bundles-head">
+            <div>#</div>
+            <div>Title</div>
+            <div>Format</div>
+            <div class="cell-num">Destinations</div>
+            <div></div>
+          </div>
+          <div
+            v-for="(b, i) in form.bundles"
+            :key="b.id ?? i"
+            class="bundles-row"
+          >
+            <div class="cell-index">{{ String(i + 1).padStart(2, '0') }}</div>
+
+            <div class="cell-title-wrap">
+              <span
+                class="status-pip"
+                :class="`pip-${bundleStatus(b).kind}`"
+                :title="bundleStatus(b).label"
+                aria-hidden="true"
+              />
+              <span class="cell-title" :title="b.name || `Bundle ${i + 1}`">
+                {{ b.name || `Bundle ${i + 1}` }}
+              </span>
+            </div>
+
+            <div class="cell-format">
+              <span class="format-chip">{{ formatLabel(b.formating) }}</span>
+            </div>
+
+            <div class="cell-num">
+              <span
+                v-if="b.discussion_list.length === 0"
+                class="dest-count dest-count-empty"
+                title="No destinations set"
+              >0</span>
+              <span
+                v-else
+                class="dest-count"
+                :title="destNames(b)"
+              >{{ b.discussion_list.length }}</span>
+            </div>
+
+            <button
+              type="button"
+              class="cell-edit"
+              title="Edit bundle"
+              @click="openBundleEditor(i)"
+            >
+              <FontAwesomeIcon :icon="['fas', 'pencil']" />
+            </button>
+          </div>
         </div>
       </div>
 
-
-      <!-- ── Test poll — polling alerts only, while inactive ──
-           Inline panel kept minimal: intro + button. The rich result
-           (verdict, per-field breakdown, per-bundle messages, raw payload)
-           lives in a modal that auto-opens when testResult arrives. -->
-      <template v-if="isPolling && form.status === AlertStatus.Inactive">
-        <div class="divider"><span>{{ $t('editor.view.dividers.testPolling') }}</span></div>
-        <div class="test-panel">
-          <p class="test-intro">
-            {{ $t('editor.testPanel.intro') }}
-          </p>
-          <button
-            type="button"
-            class="btn btn-secondary btn-sm test-btn"
-            :disabled="testing"
-            @click="runTestPoll"
-          >
-            {{ testing ? $t('editor.testPanel.pollingButton') : $t('editor.testPanel.runButton') }}
-          </button>
-        </div>
-      </template>
-
+      <TestPoll v-if="isPolling && form.status === AlertStatus.Inactive"
+        :alertId="form.id"
+      />
 
     </div>
-    
-
-    
-
-    <!-- ── Footer ─────────────────────────────────────────────── -->
-    <div class="panel-foot">
-      <button type="button" class="btn btn-danger-ghost" @click="confirmingDelete = true">{{ $t('editor.footer.delete') }}</button>
-      <div class="foot-spacer"></div>
-      <ButtonPrimary @click="openEditAlert">{{ $t('editor.footer.editAlert') }}</ButtonPrimary>
-    </div>
-
   </div>
 </template>
 
 <style scoped>
-/* Surfaces (.panel / .panel-head / .panel-body / .panel-foot / .field* /
- * .btn* / .overlay* / .card-add / .chip / .chips) come from the global
- * stylesheet. Only editor-specific patterns live here: the view-mode detail rows, the test-poll panel,
- * the trigger details grid, the bundle-edit modal, and the divider.
- */
-
-/* Header composition — same recipe as the wizard. */
-.head-left  { display: flex; align-items: center; gap: var(--space-3); flex: 1; min-width: 0;}
-.head-right { display: flex; align-items: center; gap: var(--space-5); flex-shrink: 0; }
-.head-tag {
-  background: var(--color-border-subtle);
-  color: var(--color-text-dim);
-  font-size: var(--text-md);
-  font-weight: 700;
-  font-family: var(--font-mono);
-  padding: 2px var(--space-3);
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
+/* ── View-mode header ──────────────────────────────────────────── */
+.view-head {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
 }
-.head-subtitle{
-  display: flex;
-  align-self: flex-start;
-  margin-left: var(--space-1);
-  color: var(--color-text-dim);
-  font-size: var(--text-md);
-
-}
-/* Title block — stacks the title and (when present) a muted subtitle
- * representing the description. Gives the header an "article masthead"
- * feel without growing when there's no description. */
-.head-title-block {
+.head-main {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  flex: 1;
-  min-width: 0;            /* allow ellipsis on the title */
-  padding-left: var(--space-4);
+  gap: var(--space-2);
+  min-width: 0;
+}
+.head-titlebar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.head-actions {
+  display: flex;
+  align-items:center;
+  margin-left: auto;
+  flex-shrink: 0;
+  gap: var(--space-2);
 }
 .view-title {
   margin: 0;
   font-size: var(--text-xl);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 1.2;
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+}
+.head-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  font-size: var(--text-sm);
+}
+.meta-tag {
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent-border);
+  color: var(--color-accent-text);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-sm);
+}
+.meta-dim {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.meta-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--color-border-default);
 }
 .view-subtitle {
   margin: 0;
@@ -713,140 +597,164 @@ const runTestPoll = async () => {
   font-style: italic;
   color: var(--color-text-faint);
   line-height: 1.4;
-  /* Allow up to 2 lines, ellipsize after — keeps the header compact
-   * even with long descriptions, while still showing more than one line
-   * of context. */
   display: -webkit-box;
-  /* Standard property for line clamping (when supported) */
   line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-/* ── Active/inactive toggle ─────────────────────────────────
- * Track + thumb animate together with a spring-out easing
- * (cubic-bezier with slight overshoot near the end). On activation, the
- * track adds an accent glow and the thumb's shadow deepens for a sense
- * of "lifted". Hover slightly enlarges the thumb shadow for feedback. */
-.toggle-wrap { display: flex; align-items: center; gap: var(--space-3); }
-.toggle {
-  width: 42px;
-  height: 22px;
-  border-radius: 11px;
-  background: var(--color-border-default);
-  border: none;
-  position: relative;
-  cursor: pointer;
-  padding: 0;
-  /* Smooth ease-out — the colour fades faster than the thumb travels,
-   * so the eye reads the track changing first, then the thumb settling. */
-  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow      0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.toggle.on {
-  background: var(--color-accent);
-  /* Soft glow ring — only visible on activation, fades cleanly on toggle off. */
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 18%, transparent);
-}
-.toggle:disabled { opacity: .4; cursor: not-allowed; }
-.toggle:disabled.on { box-shadow: none; }
+.bundles-hint { color: var(--color-text-dim); font-size: var(--text-md); font-style: italic; margin: var(--space-3) 0; }
 
-.knob {
-  position: absolute;
-  top: 2px; left: 2px;
-  width: 18px; height: 18px;
-  border-radius: 50%;
-  background: var(--color-text-on-accent);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  /* Spring-out: ease past the target slightly, then settle. Makes the
-   * toggle feel physical without being bouncy. */
-  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
-              box-shadow 0.2s ease-out;
-}
-.toggle.on .knob {
-  transform: translateX(20px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-}
-.toggle:hover:not(:disabled) .knob {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.40);
-}
-.toggle-label {
-  font-size: var(--text-md);
-  color: var(--color-text-muted);
-  font-weight: 600;
-  min-width: 54px;
+/* ── Flat view-mode blocks ──────────────────────────────────────
+ * No card layer, no nested section frames. Each block is just:
+ *   1. A title (the source IS the heading).
+ *   2. A flat table of rows divided by thin lines. */
+.data-block { margin-bottom: var(--space-8); }
+.data-block:last-child { margin-bottom: 0; }
+
+.data-title {
+  margin: 0;
+  padding: 0 0 var(--space-3);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-default);
 }
 
-/* ── Info-list pattern (label / value definition list) ────────
- * Used for description, source, URL, polling, condition, and inside each
- * bundle row. One unified rhythm replaces the patchwork of fake textareas,
- * accent badges, and ad-hoc grids that lived here before. */
-.info-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-  margin: 0;
+.data-grid {
+  margin: 0; padding: var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-5);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
-.info-row {
-  display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: var(--space-6);
-  align-items: start;
+.data-row {
+  display: flex; flex-direction: column;
+  gap: var(--space-2);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px dashed var(--color-border-subtle);
 }
- 
-.info-value {
+.data-row:last-child { border-bottom: none; padding-bottom: 0; }
+.data-label {
+  margin: 0; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+.data-value {
   margin: 0;
-  min-width: 0;              /* prevent overflow inside grid cell */
   color: var(--color-text-primary);
   font-size: var(--text-base);
   line-height: 1.5;
+  min-width: 0;
 }
-.info-secondary {
-  margin-left: var(--space-1);
-  color: var(--color-text-dim);
-  font-size: var(--text-md);
-}
-.info-empty {
-  color: var(--color-text-faint);
-  font-style: italic;
-}
+.data-value .dim { color: var(--color-text-dim); margin-left: var(--space-2); }
 
-/* Source badge — kept as an accent-soft pill because it's the most
- * load-bearing piece of meta-data ("what feeds this alert"). The accent
- * elsewhere in view mode is reserved for actions, so this is the only
- * non-action accent surface. */
-.source-badge {
-  display: inline-flex;
+/* OUTPUT — bundle table */
+.bundles-table {
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+.bundles-head { display: none; }
+.bundles-row {
+  display: grid;
+  grid-template-columns: 40px 1.4fr 130px 1.6fr 36px;
+  gap: var(--space-4); align-items: center;
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.bundles-row:hover {
+  border-color: var(--color-border-default);
+  box-shadow: var(--shadow-sm);
+}
+.cell-index {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text-faint);
+  letter-spacing: 0.5px;
+}
+.cell-title-wrap {
+  display: flex;
   align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.status-pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pip-ready     { background: var(--color-success); }
+.pip-no-dest   { background: var(--color-warning); }
+.pip-no-script { background: var(--color-warning); }
+.cell-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.cell-format { min-width: 0; }
+.format-chip {
+  display: inline-block;
   background: var(--color-accent-soft);
   border: 1px solid var(--color-accent-border);
   color: var(--color-accent-text);
-  font-size: var(--text-base);
-  font-weight: 500;
-  padding: 5px var(--space-4);
-  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
 }
-.source-via {
-  margin-left: var(--space-2);
-  color: var(--color-text-dim);
+.cell-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
   font-size: var(--text-sm);
-  font-weight: 400;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+.dest-count {
+  display: inline-block;
+  padding: 1px var(--space-3);
+  background: var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: help;
+}
+.dest-count-empty {
+  color: var(--color-text-faint);
+  background: transparent;
+  border: 1px dashed var(--color-border-default);
+}
+.cell-edit {
+  background: transparent;
+  border: 1px solid var(--color-border-default);
+  color: var(--color-text-secondary);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color .15s, color .15s, border-color .15s;
+}
+.cell-edit:hover {
+  background: var(--color-border-subtle);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
 }
 
-/* Tight variant — used inside bundle rows (narrower label column, smaller
- * vertical rhythm). Same pattern, dense layout. */
-.info-list-tight { gap: var(--space-3); }
-.info-row-tight  { grid-template-columns: 120px 1fr; gap: var(--space-4); }
-.info-row-tight .field-label { padding-top: 2px; font-size: var(--text-sm); }
-.info-row-tight .info-value { font-size: var(--text-md); }
-
-
-/* ── Condition summary text + path tags ───────────────────────
- * Plain paragraph, not a coloured badge — the surrounding info-row already
- * delineates the section. Watched paths render as muted monospace tags
- * (neutral border-subtle background), not accent-soft chips, so the
- * accent colour stays meaningful elsewhere. */
+/* ── Condition summary text + path tags ─────────────────────── */
 .condition-text {
   margin: 0 0 var(--space-2);
   color: var(--color-text-primary);
@@ -858,21 +766,6 @@ const runTestPoll = async () => {
   flex-wrap: wrap;
   gap: var(--space-2);
 }
-
-/*
-.source-badge {
-  display: inline-flex;
-  align-items: center;
-  background: var(--color-accent-soft);
-  border: 1px solid var(--color-accent-border);
-  color: var(--color-accent-text);
-  font-size: var(--text-base);
-  font-weight: 500;
-  padding: 5px var(--space-4);
-  border-radius: var(--radius-md);
-}
-
-*/
 .path-tag {
   display: inline-block;
   background: var(--color-accent-soft);
@@ -884,274 +777,7 @@ const runTestPoll = async () => {
   border-radius: var(--radius-md);
 }
 
-/* ── Test poll panel ────────────────────────────── */
-/* align-items: flex-start keeps the button at its natural width — without it,
- * flex's default stretch makes the secondary button span the panel. */
-.test-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  align-items: center;
-
-}
-.test-intro { margin: 0; color: var(--color-text-muted); font-size: var(--text-md); line-height: 1.5; }
-.test-btn   { align-self: flex-start; }
-.test-result { width: 100%; box-sizing: border-box; }
-
-.test-result {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-5);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-}
-.test-error { color: var(--color-danger-bright); font-size: var(--text-md); font-family: var(--font-mono); }
-.test-verdict {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-size: var(--text-base);
-  font-weight: 600;
-}
-.test-verdict .bullet { font-size: var(--text-lg); }
-.test-verdict.fired              { color: var(--color-success-text); }
-.test-verdict.fired     .bullet  { color: var(--color-success); }
-.test-verdict.not-fired          { color: var(--color-text-secondary); }
-.test-verdict.not-fired .bullet  { color: var(--color-text-dim); }
-.test-reason { margin: 0; color: var(--color-text-muted); font-size: var(--text-md); }
-
-.test-value-block { display: flex; flex-direction: column; gap: var(--space-1); }
-.test-value-label {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--color-text-dim);
-}
-.test-value {
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-bg-code);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-code);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  white-space: pre-wrap;
-  max-height: 160px;
-  overflow-y: auto;
-}
-
-.test-raw { color: var(--color-text-dim); font-size: var(--text-md); }
-.test-raw summary { cursor: pointer; user-select: none; padding: 2px 0; }
-.test-raw summary:hover { color: var(--color-accent-text); }
-.test-raw pre {
-  margin: var(--space-2) 0 0;
-  padding: var(--space-4);
-  background: var(--color-bg-code);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-code);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  max-height: 240px;
-  overflow: auto;
-}
-
-/* ── Divider ────────────────────────────────────── */
-.divider { display: flex; align-items: center; gap: var(--space-3); margin: 2px 0; }
-.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--color-border-subtle); }
-.divider span {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--color-text-faint);
-}
-
-.bundles-hint { color: var(--color-text-dim); font-size: var(--text-md); font-style: italic; margin: 0; }
-
-/* ── Compact bundle rows (view mode) ─────────────────────────
- * Single-row card per bundle — header bar with the tag + Edit, and a
- * tight info-list underneath. No more 280px-min grid of full BundleCards;
- * those only show up in the edit modal where their full chrome makes sense. */
-.bundle-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-5);
-  /*display: flex;
-  flex-direction: column;
-  gap: var(--space-3);*/
-}
-.bundle-card {
-  background: var(--color-bundle-card);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4) var(--space-5);
-
-}
-.bundle-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-3);
-}
-.bundle-tag {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  color: var(--color-text-dim);
-}
-
-/* Neutral mini button — for "Edit" on bundle rows. Outlined rather than
- * solid so the only solid accent button in view mode is "Edit Alert"
- * (the primary footer CTA). */
-.btn-mini {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  background: transparent;
-  border: 1px solid var(--color-border-default);
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  padding: 3px var(--space-3);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background-color .15s, border-color .15s, color .15s;
-}
-.btn-mini:hover {
-  background: var(--color-border-subtle);
-  border-color: var(--color-border-strong);
-  color: var(--color-text-primary);
-}
-.btn-mini-icon { font-size: var(--text-md); }
-
-/* Discussion list inside a bundle row — small neutral tags, not blue chips. */
-.discussion-list {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-.mini-tag {
-  display: inline-block;
-  padding: 1px var(--space-3);
-  background: var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-}
-
 .foot-spacer { flex: 1; }
-
-/* ── Test-poll result modal ─────────────────────────────────
- * Wider than the bundle-edit modal because it stacks: verdict header,
- * per-field breakdown, per-bundle message previews, and the raw payload
- * debug. Internally-scrolling so a 10-bundle alert with long messages
- * doesn't blow past the viewport. */
-.test-modal {
-  width: 92vw;
-  max-width: 760px;
-  max-height: 88vh;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-.test-modal .modal-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-
-/* Per-field breakdown — checkmark / cross + path + detail */
-.verdict-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-.verdict-list li {
-  display: grid;
-  grid-template-columns: auto auto 1fr;
-  align-items: baseline;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  font-size: var(--text-md);
-}
-.verdict-icon {
-  font-weight: 700;
-  font-size: var(--text-base);
-  width: 1ch;
-}
-.verdict-list li.fired      .verdict-icon { color: var(--color-success); }
-.verdict-list li.not-fired  .verdict-icon { color: var(--color-text-dim); }
-.verdict-path {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  color: var(--color-accent-text);
-  background: var(--color-border-subtle);
-  padding: 1px var(--space-2);
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
-}
-.verdict-detail {
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-}
-
-/* Per-bundle messages — boxed code-like preview of the rendered string */
-.bundle-messages {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-.bundle-message {
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background: var(--color-bg-card);
-}
-.bundle-message-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-4);
-  background: var(--color-bg-card-soft);
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-.bundle-message-meta {
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-.bundle-message-body {
-  margin: 0;
-  padding: var(--space-4) var(--space-5);
-  background: var(--color-bg-code);
-  color: var(--color-text-code);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 280px;
-  overflow-y: auto;
-}
-.bundle-message-error {
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-danger-soft);
-  color: var(--color-danger-bright);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  white-space: pre-wrap;
-}
 
 /* ── Per-bundle edit modal ──────────────────────── */
 .bundle-edit-modal {
@@ -1200,10 +826,6 @@ const runTestPoll = async () => {
   padding: var(--space-4) var(--space-6);
   border-top: 1px solid var(--color-border-subtle);
 }
-
-
-/* Discard-confirm strip that takes over the footer when the user tries to
- * close while dirty. The warning message pushes the action buttons right. */
 .modal-foot.discard-foot { background: var(--color-warning-soft); }
 .discard-msg {
   flex: 1;

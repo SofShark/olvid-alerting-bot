@@ -2,6 +2,7 @@
 import { onMounted, computed } from 'vue'
 const route = useRoute()
 const { alerts, fetchAlerts, fetchDiscussions } = useAlerts()
+const { collapsed: sidebarCollapsed } = useSidebar()
 
 // Language switching now lives inside <LanguageToggle/> — same chrome as
 // ThemeToggle, dropdown of available locales. Layout no longer needs to
@@ -39,7 +40,7 @@ const selectedId = computed(() => {
     </header>
 
     <main class="main-content">
-      <div class="split">
+      <div class="split" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
 
         <div class="split-left">
           <AlertSidebar
@@ -63,13 +64,24 @@ const selectedId = computed(() => {
 </template>
 
 <style scoped>
-.layout-dark { min-height: 100vh; display: flex; flex-direction: column; }
+/* Lock the page to the viewport so nothing scrolls behind the nav. The
+ * nav sizes to its own content; the main area takes whatever's left.
+ * Internal scrolling happens INSIDE .split-left and .split-right, never
+ * at the document level — this is what was causing the "+ New" button
+ * to disappear off the bottom of the screen. */
+.layout-dark {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
 .top-nav {
   background-color: var(--color-bg-nav);
   border-bottom: 1px solid var(--color-border-subtle);
   padding: 14px 0;
-  position: sticky; top: 0; z-index: 100;
+  flex-shrink: 0;
+  z-index: 100;
 }
 .nav-content {
   width: 100%; margin: 0 auto; padding: 0 24px;
@@ -78,9 +90,9 @@ const selectedId = computed(() => {
 .brand { display: flex; align-items: center; gap: 12px; }
 .logo-text {
   display: flex; align-items: flex-end; gap: 15px;
-  font-size: 16px; color: var(--color-text-muted); font-weight: 500;
+  font-size: 14px; color: var(--color-text-muted); font-weight: 500;
 }
-.olvid-logo-img { margin-left: 40px; width: 200px; height: auto; object-fit: contain; }
+.olvid-logo-img { margin-left: 15px; width: 150px; height: auto; object-fit: contain; }
 
 .nav-actions {
   display: flex;
@@ -88,26 +100,53 @@ const selectedId = computed(() => {
   gap: 12px;
 }
 
+/* Main content absorbs the remaining viewport height; min-height: 0 is
+ * critical for flex children that themselves need to scroll internally. */
 .main-content {
   width: 100%;
-  margin: 18px auto; padding: 0 18px;
-  flex-grow: 1; box-sizing: border-box;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
+/* Grid columns driven by --sidebar-w so toggling animates smoothly.
+ * height: 100% (not 100vh) so the parent flex layout governs the height. */
 .split {
   display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 18px;
-  height: calc(100vh - 120px);
+  grid-template-columns: var(--sidebar-w, 200px) 1fr;
+  gap: 0;
+  height: 100%;
+  --sidebar-w: 200px;
+  transition: grid-template-columns 0.18s ease;
 }
-.split-left  { 
-  min-height: 0;
-  overflow-y: auto;
+
+
+.split.sidebar-collapsed {
+  --sidebar-w: 84px;
 }
-.split-right { 
+.split-left, .split-right {
   min-height: 0;
+  height: 100%;
   overflow-y: auto;
 }
 
+/* Sidebar reads as nav-chrome (same background as the top nav). Drop
+ * the rounded corners + outer borders inherited from the old padded-card
+ * version. The right border is the visual divider between rail and
+ * content; the top is already covered by the nav's bottom border. */
+.split-left :deep(.sidebar) {
+  background: var(--color-bg-nav);
+  border: none;
+  border-right: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+}
+
+/* Main content area gets breathing room; internal scroll lives in the
+ * routed component (AlertEditor / AlertWizard), not on this container. */
+.split-right {
+  padding: 18px 18px 0;
+}
 
 
 </style>

@@ -1,25 +1,27 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
-import Handlebars from 'handlebars'
+import { ref, computed, nextTick } from 'vue'
+import {formatMessage} from '#shared/handlebarsHelper'
 import {
-  sampleData,
   Source,
   isPollingSource,
   ConditionKind,
   PollingFormat,
   migrateCondition,
 } from '#shared/constants'
+import {
+  webhookTemplateList,
+  getWebhookPayloadJson,
+  getWebhookScript,
+  type WebhookTemplate,
+} from '#shared/payloadTemplates'
+import JsonNode from '../JsonNode.vue'
 
 const { t } = useI18n()
 
 const props = defineProps({
   initialScript: { type: String, default: '' },
-  inputSource:   { type: String, default: Source.GenericWebhook },
-  /** Polling alerts pass triggerParams so the editor can retrieve the live source
-   *  and offer shortcut chips for the configured watched paths. */
-  triggerParams: { type: Object, default: () => ({}) },
-  /** Alert id — required for the "Last received" toggle to fetch THIS
-   *  alert's most recent payload. Null on the create flow (no id yet). */
+  inputSource:   { type: String, default: Source.Webhook },
+  alertParams: { type: Object, default: () => ({}) },
   alertId:       { type: Number as () => number | null, default: null },
 })
 
@@ -27,37 +29,119 @@ const emit = defineEmits(['save', 'close'])
 
 const isPolling = computed(() => isPollingSource(props.inputSource))
 
-const scriptContent     = ref('')
+// Seed from `initialScript` so re-opening the editor on a saved bundle shows
+// the persisted Handlebars template. The editor is mounted fresh on every
+// open (parent uses `v-if="isEditorOpen"`), so reading the prop once at
+// construction time is the right place — no watcher needed.
+const scriptContent     = ref(props.initialScript ?? '')
 const scriptTextareaRef = ref<HTMLTextAreaElement | null>(null)
 
 // ── Webhook payload (JSON) state ─────────────────────────────────────────────
 const jsonPayload        = ref('')
-const payloadType        = ref<'example' | 'last'>('example')
+const parsedJson = computed(() => {
+  if (!jsonPayload.value.trim()) return null
+  try   { return JSON.parse(jsonPayload.value) }
+  catch { return null }
+})
+const jsonRootEntries = computed<Array<[string, any]>>(() => {
+  const p = parsedJson.value
+  if (!p || typeof p !== 'object') return []
+  return Array.isArray(p)
+    ? p.map((v, i) => [String(i), v])     // [0], [1], … become the top-level "keys"
+    : Object.entries(p)
+})
 const lastPayloadLoading = ref(false)
 const lastPayloadMissing = ref(false)
+const pickerMode          = ref(false)  // click-to-insert mode for JSON payload
 
-function loadExamplePayload(source: string) {
-  const data = sampleData[source as Source] ?? sampleData[Source.GenericWebhook]
-  jsonPayload.value = JSON.stringify(data.payload, null, 2)
+// ── Dropdown States ──────────────────────────────────────────────────────────
+const quickTemplatesOpen = ref(false)
+const loadDataOpen       = ref(false)
+
+// Closes every dropdown — used by the click-outside backdrop and by
+// any action that should dismiss the menus (load template, save, etc.).
+const closeDropdowns = () => {
+  quickTemplatesOpen.value = false
+  loadDataOpen.value = false
+}
+
+// ── Load Template dropdown positioning ─────────────────────────────────────
+// The button sits inside the payload code-block (which has overflow:hidden,
+// so a regular absolute-positioned dropdown would clip). The dropdown is
+// teleported to <body>; we calculate its top + right from the button's
+// bounding rect when it opens so it visually anchors under the button.
+const loadTemplateBtnRef = ref<HTMLButtonElement | null>(null)
+const loadTemplateDropdownStyle = ref<Record<string, string>>({})
+
+const positionLoadTemplateDropdown = async () => {
+  await nextTick()
+  const rect = loadTemplateBtnRef.value?.getBoundingClientRect()
+  if (!rect) return
+  loadTemplateDropdownStyle.value = {
+    position: 'fixed',
+    top:   `${rect.bottom + 6}px`,
+    right: `${Math.max(8, window.innerWidth - rect.right)}px`,
+    'z-index': '10510',
+  }
+}
+
+const toggleLoadData = () => {
+  loadDataOpen.value = !loadDataOpen.value
+  if (loadDataOpen.value) positionLoadTemplateDropdown()
+}
+
+// ── Webhook Toolbar Functions ────────────────────────────────────────────────
+const formatJson = () => {
+  try {
+    if (!jsonPayload.value.trim()) return
+    const parsed = JSON.parse(jsonPayload.value)
+    jsonPayload.value = JSON.stringify(parsed, null, 2)
+  } catch (e) {
+    alert("Invalid JSON: Cannot prettify.")
+  }
+}
+
+const clearPayloadPanel = () => {
+  jsonPayload.value = ''
   lastPayloadMissing.value = false
 }
 
-async function loadLastPayload(_source: string) {
-  // "Last received" is per-alert now (alertId), not per-source. Without an
-  // alert id (e.g. mid-creation) there's nothing to fetch — surface that as
-  // "missing" so the UI explains the state instead of looking broken.
+// Library load: fill the JSON panel from the registry, then ask whether to
+// also apply the matching Handlebars script (overwrites current script).
+const loadLibraryPayload = (id: WebhookTemplate['id']) => {
+  const payloadJson = getWebhookPayloadJson(id)
+  if (payloadJson === null) return
+  jsonPayload.value = payloadJson
+  lastPayloadMissing.value = false
+  closeDropdowns()
+
+  // Small delay so Vue paints the new payload before the confirm steals focus.
+  setTimeout(() => {
+    const script = getWebhookScript(id)
+    if (!script) return
+    const label = webhookTemplateList.find(t => t.id === id)?.label ?? id
+    if (window.confirm(`Loaded the ${label} payload. Apply its matching Handlebars template too? (This overwrites your current script.)`)) {
+      scriptContent.value = script
+    }
+  }, 50)
+}
+
+// Fetch the most recent payload for this alert from the server — either
+// the last successful one (when ?type=success) or the last failed one
+// (?type=failed). Returns null if the alert is brand new (no id yet) or
+// nothing has been received for it.
+async function loadLastPayload(type: 'success' | 'failed') {
+  closeDropdowns()
   if (!props.alertId) {
-    lastPayloadMissing.value = true
-    jsonPayload.value = ''
+    alert("This alert hasn't been saved yet. No payloads in database.")
     return
   }
   lastPayloadLoading.value = true
   lastPayloadMissing.value = false
   try {
-    const res = await $fetch<{ payload: any }>(`/api/payloads?type=last&alertId=${props.alertId}`)
+    const res = await $fetch<{ payload: any }>(`/api/payloads?type=${type}&alertId=${props.alertId}`)
     if (res.payload) {
       jsonPayload.value = JSON.stringify(res.payload, null, 2)
-      lastPayloadMissing.value = false
     } else {
       lastPayloadMissing.value = true
       jsonPayload.value = ''
@@ -70,10 +154,6 @@ async function loadLastPayload(_source: string) {
   }
 }
 
-async function refreshPayload(source: string, type: 'example' | 'last') {
-  if (type === 'last') await loadLastPayload(source)
-  else                  loadExamplePayload(source)
-}
 
 // ── Polling source (XML tree) state ─────────────────────────────────────────
 const parsedTree      = ref<any>(null)
@@ -85,13 +165,13 @@ const rootEntries = computed<Array<[string, any]>>(() =>
 )
 
 const watchedPaths = computed<string[]>(() => {
-  const c = migrateCondition(props.triggerParams?.condition)
+  const c = migrateCondition(props.alertParams?.condition)
   return c.kind === ConditionKind.Rule ? c.paths : []
 })
 
 async function retrievePolling() {
-  const url    = props.triggerParams?.url
-  const format = props.triggerParams?.format ?? PollingFormat.XML
+  const url    = props.alertParams?.url
+  const format = props.alertParams?.format ?? PollingFormat.XML
   if (!url) {
     pollingError.value = t('formatEditor.errors.noUrlPolling')
     return
@@ -117,8 +197,6 @@ async function retrievePolling() {
 }
 
 // ── Click-to-insert path into the Handlebars template ──────────────────────
-//   - dotted path → Handlebars expression
-//   - numeric segments get bracket syntax: foo.0.bar → {{foo.[0].bar}}
 function pathToHandlebars(path: string): string {
   return path
     .split('.')
@@ -147,26 +225,6 @@ function onPathSelect(path: string) {
   insertAtCursor(`{{${pathToHandlebars(path)}}}`)
 }
 
-// ── Lifecycle / source switching ─────────────────────────────────────────────
-watch(() => props.inputSource, (source) => {
-  payloadType.value = 'example'
-  if (!props.initialScript || props.initialScript === '') {
-    const data = sampleData[source as Source] ?? sampleData[Source.GenericWebhook]
-    scriptContent.value = data.script
-  } else {
-    scriptContent.value = props.initialScript
-  }
-  if (isPolling.value) {
-    retrievePolling()
-  } else {
-    loadExamplePayload(source)
-  }
-}, { immediate: true })
-
-watch(payloadType, (type) => {
-  if (!isPolling.value) refreshPayload(props.inputSource, type)
-})
-
 // ── Live preview ────────────────────────────────────────────────────────────
 const previewData = computed(() => {
   if (!scriptContent.value || scriptContent.value.trim() === '') {
@@ -180,19 +238,12 @@ const previewData = computed(() => {
     catch (err) { return { text: '', error: t('formatEditor.errors.jsonError', { message: (err as Error).message }) } }
   }
   try {
-
-    // Contains helper TODO => modularize
-        Handlebars.registerHelper('contains', function(this: any, texto: string, palabra: string, options: any) {
-          if (texto && typeof texto === 'string' && texto.toLowerCase().includes(palabra.toLowerCase())) {
-            return options.fn(this);
-          }
-          return options.inverse(this);
-        });
-    const template = Handlebars.compile(scriptContent.value)
+    const msg = formatMessage(scriptContent.value, context)
     return {
-      text:  template(context).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'),
-      error: null,
+      text: msg.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n-/g, '\n•'),  
+      error: null
     }
+    
   } catch (err) {
     return { text: '', error: t('formatEditor.errors.handlebarsError', { message: (err as Error).message }) }
   }
@@ -203,19 +254,20 @@ const close = () => emit('close')
 </script>
 
 <template>
-  <div class="editor-overlay" @click.self="close">
+  <!-- Modal overlay: fixed full-viewport scrim + centered window. The
+       parent (BundleCard) controls mounting via v-if. -->
+  <div class="editor-overlay">
+    <div v-if="quickTemplatesOpen || loadDataOpen" class="dropdown-backdrop" @click="closeDropdowns"></div>
+
     <div class="editor-window">
 
       <div class="window-header">
         <div class="header-titles">
           <h3>{{ $t('formatEditor.title') }}</h3>
-          <p v-if="isPolling">
-            {{ $t('formatEditor.intro.polling') }}
-          </p>
-          <p v-else>
-            {{ $t('formatEditor.intro.webhook') }}
-          </p>
+          <p v-if="isPolling">{{ $t('formatEditor.intro.polling') }}</p>
+          <p v-else>{{ $t('formatEditor.intro.webhook') }}</p>
         </div>
+
         <button class="btn-close-icon" :title="$t('formatEditor.buttons.closeTitle')" @click="close">✕</button>
       </div>
 
@@ -231,10 +283,7 @@ const close = () => emit('close')
             </div>
 
             <!-- Shortcuts row: watched paths from the alert's condition. Polling only. -->
-            <div
-              v-if="isPolling && watchedPaths.length > 0"
-              class="shortcuts"
-            >
+            <div v-if="isPolling && watchedPaths.length > 0" class="shortcuts">
               <span class="shortcuts-label">{{ $t('formatEditor.watchedPathsLabel') }}</span>
               <button
                 v-for="p in watchedPaths"
@@ -262,8 +311,8 @@ const close = () => emit('close')
               <span class="dot dot-red" /><span class="dot dot-yellow" /><span class="dot dot-green" />
               <span class="code-title">
                 {{ isPolling
-                  ? $t('formatEditor.sourceTitlePollingFormat', { format: (triggerParams?.format ?? 'xml').toLowerCase() })
-                  : $t('formatEditor.sourceTitleWebhook') }}
+                  ? $t('formatEditor.sourceTitlePollingFormat', { format: (alertParams?.format ?? 'xml').toLowerCase() })
+                  : 'payload.json (Test Data)' }}
               </span>
 
               <!-- Polling: refresh button -->
@@ -278,17 +327,26 @@ const close = () => emit('close')
                 {{ pollingLoading ? '…' : '⟳' }}
               </button>
 
-              <!-- Webhook: Example / Last received toggle -->
-              <div v-else class="payload-toggle">
+              <!-- Webhook: Toolbar Overhaul -->
+              <div v-else class="payload-toolbar">
                 <button
-                  :class="['toggle-btn', { active: payloadType === 'example' }]"
-                  @click="payloadType = 'example'"
-                >{{ $t('formatEditor.sourceExampleButton') }}</button>
-                <button
-                  :class="['toggle-btn', { active: payloadType === 'last' }]"
-                  @click="payloadType = 'last'"
-                >{{ $t('formatEditor.sourceLastReceivedButton') }}</button>
+                  ref="loadTemplateBtnRef"
+                  type="button"
+                  class="toggle-btn toggle-btn-wide"
+                  :class="{ 'is-open': loadDataOpen }"
+                  :aria-expanded="loadDataOpen"
+                  title="Load template payload"
+                  @click="toggleLoadData"
+                >
+                  <span>Load Template</span>
+                  <span class="caret" aria-hidden="true" />
+                </button>
+                <span class="toolbar-divider" aria-hidden="true" />
+                <button class="toggle-btn" title="Picker Mode"   @click="pickerMode = !pickerMode" > <img src="../../assets/eyedrop.png" alt="Picker Mode" class="eyedrop-icon"/> </button>
+                <button class="toggle-btn" title="Prettify JSON" @click="formatJson">{ }</button>
+                <button class="toggle-btn" title="Clear Payload" @click="clearPayloadPanel">Clear</button>
               </div>
+              
             </div>
 
             <!-- Polling: XML tree -->
@@ -303,7 +361,6 @@ const close = () => emit('close')
                 {{ $t('formatEditor.sourceEmptyPolling') }}
               </div>
               <div v-else class="tree-panel">
-
                 <XmlTreeNode
                   v-for="([k, v]) in rootEntries"
                   :key="k"
@@ -316,7 +373,25 @@ const close = () => emit('close')
               </div>
             </template>
 
-            <!-- Webhook: JSON textarea (unchanged) -->
+            <template v-else-if="pickerMode">
+              <div v-if="lastPayloadLoading" class="payload-notice">{{ $t('formatEditor.sourceLoadingWebhook') }}</div>
+              <div v-else-if="lastPayloadMissing" class="payload-empty">
+                {{ $t('formatEditor.sourceNoPayloads') }}
+              </div>
+              <div v-else class="tree-panel">
+                <JsonNode
+                  v-for="([k, v]) in jsonRootEntries"
+                  :key="k"
+                  :node-name="k"
+                  :node-value="v"
+                  :path="k"
+                  @select="onPathSelect"
+                />
+            </div>
+            
+            </template>
+
+            <!-- Webhook: JSON textarea (Editable) -->
             <template v-else>
               <div v-if="lastPayloadLoading" class="payload-notice">{{ $t('formatEditor.sourceLoadingWebhook') }}</div>
               <div v-else-if="lastPayloadMissing" class="payload-empty">
@@ -324,9 +399,8 @@ const close = () => emit('close')
               </div>
               <textarea
                 v-else
-                :value="jsonPayload"
+                v-model="jsonPayload"
                 class="editor-textarea json-color"
-                readonly
                 spellcheck="false"
               />
             </template>
@@ -353,21 +427,208 @@ const close = () => emit('close')
       </div>
 
       <div class="window-footer">
-        <button type="button" class="btn-cancel" @click="close">{{ $t('formatEditor.buttons.cancel') }}</button>
-        <button type="button" class="btn-save" @click="save">{{ $t('formatEditor.buttons.save') }}</button>
+        <button type="button" class="btn btn-ghost" @click="close">{{ $t('formatEditor.buttons.cancel') }}</button>
+        <ButtonPrimary @click="save">{{ $t('formatEditor.buttons.save') }}</ButtonPrimary>
       </div>
 
     </div>
+
+    <!-- ── Load Template dropdown ─────────────────────────────────────
+         Teleported to body so the .code-block's `overflow: hidden`
+         doesn't clip it. Position is computed from the button's
+         bounding rect on each open. -->
+    <Teleport to="body">
+      <div
+        v-if="loadDataOpen"
+        class="template-dropdown"
+        :style="loadTemplateDropdownStyle"
+      >
+        <div class="template-section">
+          <div class="template-section-label">From database</div>
+          <button class="template-item" @click="loadLastPayload('success')">
+            <span class="status-pip pip-ok" aria-hidden="true" />
+            <span class="template-item-label">Last successful payload</span>
+          </button>
+          <button class="template-item" @click="loadLastPayload('failed')">
+            <span class="status-pip pip-fail" aria-hidden="true" />
+            <span class="template-item-label">Last failed payload</span>
+          </button>
+        </div>
+        <div class="template-section">
+          <div class="template-section-label">From library</div>
+          <button
+            v-for="t in webhookTemplateList"
+            :key="t.id"
+            class="template-item"
+            @click="loadLibraryPayload(t.id)"
+          >
+            <span class="template-item-label">{{ t.label }}</span>
+          </button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <style scoped>
-/* The FormatEditor modal shell tracks the app theme via tokens — light app
- * gets a light shell, dark app gets a dark one. The interior code-blocks
- * stay dark either way ("code blocks read as embedded IDE panels", per the
- * token comments). Backdrop dims to the standard --color-overlay scrim.
- */
+/* ── Dropdown / Toolbars Styles ────────────────────────────────────────── */
+/* Backdrop covers the whole viewport AND the editor-window so a click
+ * anywhere outside the open dropdown closes it. Z-index sits above the
+ * editor-window (10502) but below the teleported dropdown (which lives
+ * at the body root with z-index 10510). */
+.dropdown-backdrop {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: 10509;
+}
+.title-with-actions {
+  display: flex; align-items: center; gap: 16px;
+}
+/*
+.btn-quick-template {
+  background: var(--color-bg-card); color: var(--color-accent);
+  border: 1px solid var(--color-accent); border-radius: var(--radius-sm);
+  padding: 4px 10px; font-size: var(--text-sm); font-weight: 600; cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-quick-template:hover { background: var(--color-accent-soft); }
+*/
+/* "Load Template" — extends .toggle-btn (dark IDE chrome) with extra
+ * horizontal padding so the label fits, plus a caret that rotates on
+ * open. Sits on the LEFT of the payload toolbar as the primary action;
+ * a thin divider separates it from the utility buttons (picker / { } /
+ * Clear). Visually unmistakable as "the main toolbar action" without
+ * breaking the dark code-block look. */
+.toggle-btn-wide {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px var(--space-3);
+  font-weight: 600;
+  letter-spacing: 0.1px;
+}
+.toggle-btn-wide .caret {
+  width: 0;
+  height: 0;
+  border-left:  4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top:   5px solid currentColor;
+  margin-top: 1px;
+  opacity: 0.7;
+  transition: transform .15s ease, opacity .15s ease;
+}
+.toggle-btn-wide.is-open {
+  background: #4a4a4a;
+  color: var(--color-text-code);
+  border-color: #6b6b6b;
+}
+.toggle-btn-wide.is-open .caret { transform: rotate(180deg); opacity: 1; }
 
+/* Vertical hairline between Load Template and the utility buttons —
+ * groups the toolbar into "primary" + "utilities" without adding a
+ * separate container. */
+.toolbar-divider {
+  width: 1px;
+  height: 18px;
+  background: #3a3a3a;
+  margin: 0 4px;
+}
+
+/* ── Dropdown menu ────────────────────────────────────────────────
+ * Two visually-grouped sections (Database / Library) separated by an
+ * inner divider. Items have a left accent-bar reveal on hover so the
+ * eye lands precisely on the focused row.
+ */
+.template-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 260px;
+  padding: 6px 0;
+  background: #1e1e22;
+  border: 1px solid #3f3f46;
+  border-radius: 10px;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.04) inset,
+    0 12px 32px rgba(0,0,0,0.55);
+  overflow: hidden;
+  font-family: inherit;
+}
+.template-dropdown.right-aligned { left: auto; right: 0; }
+
+.template-section {
+  padding: 4px 0 6px;
+}
+.template-section + .template-section {
+  border-top: 1px solid #2c2c30;
+  margin-top: 2px;
+  padding-top: 8px;
+}
+
+.template-section-label {
+  padding: 4px 16px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: #71717a;
+}
+
+.template-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 16px 8px 18px;
+  background: transparent;
+  color: #d4d4d8;
+  border: none;
+  border-left: 2px solid transparent;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background-color .12s ease, color .12s ease, border-color .12s ease;
+}
+.template-item:hover {
+  background: #2a2a30;
+  color: #fff;
+  border-left-color: var(--color-accent, #3b82f6);
+}
+.template-item:focus-visible {
+  outline: none;
+  background: #2a2a30;
+  color: #fff;
+  border-left-color: var(--color-accent, #3b82f6);
+}
+
+.template-item-label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Tiny coloured dot signaling DB row health — replaces the 🟢 / 🔴 emoji. */
+.status-pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.04);
+}
+.pip-ok   { background: #22c55e; }
+.pip-fail { background: #ef4444; }
+
+.payload-toolbar { display: flex; gap: 8px; margin-left: auto; align-items: center; }
+
+
+/* ── Modal shell ────────────────────────────────────────────────────────────
+ * Fixed full-viewport overlay with a centered fixed-size window. The
+ * parent (BundleCard) mounts this via v-if. Click-on-backdrop closes
+ * (handled by @click.self="close" on the overlay).
+ */
 .editor-overlay {
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100vh;
@@ -388,13 +649,16 @@ const close = () => emit('close')
   display: flex; flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--color-border-subtle);
+  position: relative; z-index: 10502;
 }
 
 .window-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: var(--space-7) 30px;
+  padding: var(--space-5) var(--space-7);
   border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-border-subtle);
 }
+.header-titles { flex: 1; min-width: 0; }
 .header-titles h3 { margin: 0; color: var(--color-text-primary); font-size: var(--text-xl); font-weight: 700; }
 .header-titles p  { margin: 4px 0 0 0; color: var(--color-text-muted); font-size: 14px; max-width: 720px; }
 
@@ -402,12 +666,21 @@ const close = () => emit('close')
   background: transparent; border: none; color: var(--color-text-dim);
   font-size: var(--text-xl);
   cursor: pointer; transition: color 0.2s;
+  flex-shrink: 0;
 }
 .btn-close-icon:hover { color: var(--color-danger); }
 
+.window-footer {
+  padding: var(--space-5) var(--space-7);
+  background: var(--color-border-subtle);
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex; justify-content: flex-end; gap: var(--space-4);
+  flex-shrink: 0;
+}
+
 .window-body {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 2fr 1fr;
   background: var(--color-bg-card);
   flex-grow: 1;
   overflow: hidden;
@@ -420,8 +693,6 @@ const close = () => emit('close')
   border-right: 1px solid var(--color-border-subtle);
 }
 
-/* Code-blocks here override the global min/max-height — they live inside
- * the fixed-height modal and need to size to their content. */
 .code-block {
   min-height: 0;
   max-height: none;
@@ -429,9 +700,17 @@ const close = () => emit('close')
   flex-shrink: 0;
 }
 
-/* Toggle pills + refresh button live in the code-block header. They're
- * dark-on-dark like the rest of the IDE chrome. */
-.payload-toggle { display: flex; gap: var(--space-1); margin-left: auto; }
+.code-header {
+  display: flex; align-items: center; padding: var(--space-3) 15px;
+  background: #1e1e1e; border-top-left-radius: 6px; border-top-right-radius: 6px;
+  border-bottom: 1px solid #333;
+}
+.dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; display: inline-block; }
+.dot-red { background-color: #ff5f56; }
+.dot-yellow { background-color: #ffbd2e; }
+.dot-green { background-color: #27c93f; }
+.code-title { color: #858585; font-family: var(--font-mono); font-size: 13px; margin-left: 10px; }
+
 .toggle-btn {
   background: #3a3a3a; color: #a3a3a3;
   border: 1px solid #555; border-radius: var(--radius-sm);
@@ -439,12 +718,12 @@ const close = () => emit('close')
   transition: background-color .15s, color .15s;
 }
 .toggle-btn:hover { background: #4a4a4a; color: var(--color-text-code); }
-.toggle-btn.active {
-  background: var(--color-accent);
-  color: var(--color-text-on-accent);
-  border-color: var(--color-accent);
-}
 
+.eyedrop-icon{
+  width: 14px;
+  height: 14px;
+  display:flex;
+}
 .payload-refresh {
   background: #3a3a3a;
   color: #a3a3a3;
@@ -530,8 +809,7 @@ const close = () => emit('close')
   max-height: 360px;
 }
 
-/* ── Preview column (mimics a messaging app — pale neutral surface so the
- *    speech bubble pops in both themes) ─────────────────────────────── */
+/* ── Preview column ─────────────────────────────────────────────── */
 .preview-column {
   display: flex; flex-direction: column;
   background: var(--color-bg-card-soft);
@@ -549,11 +827,14 @@ const close = () => emit('close')
 .chat-bubble {
   background: var(--color-bg-panel);
   max-width: 85%;
+  width: fit-content;
   padding: var(--space-4) var(--space-6);
   border-radius: 0 16px 16px 16px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.15);
   margin-bottom: var(--space-6);
   border: 1px solid var(--color-border-subtle);
+  overflow-wrap:break-word;
+  word-break: break-word;
 }
 .bubble-sender { color: var(--color-accent); font-weight: 700; font-size: var(--text-base); margin-bottom: 5px; }
 .bubble-text   { margin: 0; font-family: inherit; font-size: var(--text-lg); color: var(--color-text-primary); white-space: pre-wrap; line-height: 1.4; }
@@ -570,24 +851,4 @@ const close = () => emit('close')
   white-space: pre-wrap;
 }
 
-.window-footer {
-  padding: var(--space-6) 30px;
-  background: var(--color-bg-panel);
-  border-top: 1px solid var(--color-border-subtle);
-  display: flex; justify-content: flex-end; gap: var(--space-6);
-}
-.btn-cancel {
-  background: var(--color-border-subtle);
-  color: var(--color-text-secondary);
-  border: none; padding: var(--space-4) var(--space-7); border-radius: var(--radius-xl);
-  font-weight: 600; cursor: pointer; transition: background-color 0.2s;
-}
-.btn-cancel:hover { background: var(--color-border-default); color: var(--color-text-primary); }
-
-.btn-save {
-  background: var(--color-accent); color: var(--color-text-on-accent);
-  border: none; padding: var(--space-4) var(--space-8); border-radius: var(--radius-xl);
-  font-weight: 600; cursor: pointer; transition: background-color 0.2s;
-}
-.btn-save:hover { background: var(--color-accent-hover); }
 </style>
