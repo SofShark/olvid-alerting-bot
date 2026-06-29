@@ -7,23 +7,26 @@
   third button between Cancel and Discard). Emits `confirm` / `cancel` —
   the host wires the actual side effect.
 */
-withDefaults(defineProps<{
-  open:           boolean
-  title:          string
-  message?:       string
-  confirmLabel?:  string
-  cancelLabel?:   string
-  variant?:       'primary' | 'danger'
-}>(), {
-  confirmLabel: 'Confirm',
-  cancelLabel:  'Cancel',
-  variant:      'primary',
-})
+withDefaults(
+  defineProps<{
+    open: boolean;
+    title: string;
+    message?: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    variant?: "primary" | "danger";
+  }>(),
+  {
+    confirmLabel: "Confirm",
+    cancelLabel: "Cancel",
+    variant: "primary",
+  },
+);
 
 defineEmits<{
-  (e: 'confirm'): void
-  (e: 'cancel'):  void
-}>()
+  (e: "confirm"): void;
+  (e: "cancel"): void;
+}>();
 </script>
 
 <template>
@@ -32,13 +35,17 @@ defineEmits<{
     <p v-if="message">{{ message }}</p>
     <slot />
     <div class="overlay-actions">
-      <button type="button" class="btn btn-ghost" @click="$emit('cancel')">{{ cancelLabel }}</button>
+      <button type="button" class="btn btn-ghost" @click="$emit('cancel')">
+        {{ cancelLabel }}
+      </button>
       <button
         type="button"
         class="btn"
         :class="variant === 'danger' ? 'btn-danger' : 'btn-primary'"
         @click="$emit('confirm')"
-      >{{ confirmLabel }}</button>
+      >
+        {{ confirmLabel }}
+      </button>
     </div>
   </Modal>
 </template>

@@ -1,43 +1,48 @@
 <script setup lang="ts">
-import { AlertStatus, type AlertModel } from '#shared/types/alert'
+import { AlertStatus, type AlertModel } from "#shared/types/alert";
 
-const { t } = useI18n()
-const { collapsed, toggle } = useSidebar()
+const { t } = useI18n();
+const { collapsed, toggle } = useSidebar();
 
-withDefaults(defineProps<{
-  alerts?: AlertModel[]
-  selectedId?: number | null
-}>(), {
-  alerts: () => [],
-  selectedId: null
-})
+withDefaults(
+  defineProps<{
+    alerts?: AlertModel[];
+    selectedId?: number | null;
+  }>(),
+  {
+    alerts: () => [],
+    selectedId: null,
+  },
+);
 
-const emit = defineEmits(['select', 'new'])
+const emit = defineEmits(["select", "new"]);
 
 const statusClass = (status: string) => ({
-  'st-active':   status === AlertStatus.Active,
-  'st-inactive': status === AlertStatus.Inactive,
-  'st-draft':    status === AlertStatus.Draft,
-})
+  "st-active": status === AlertStatus.Active,
+  "st-inactive": status === AlertStatus.Inactive,
+  "st-draft": status === AlertStatus.Draft,
+});
 
 const statusLabel = (status: string) => {
-  if (status === AlertStatus.Active)   return t('sidebar.statusLabel.active')
-  if (status === AlertStatus.Inactive) return t('sidebar.statusLabel.inactive')
-  return t('sidebar.statusLabel.draft')
-}
+  if (status === AlertStatus.Active) return t("sidebar.statusLabel.active");
+  if (status === AlertStatus.Inactive) return t("sidebar.statusLabel.inactive");
+  return t("sidebar.statusLabel.draft");
+};
 
 // First 3 characters of the alert's title, uppercased — shown next to the
-// status dot when the sidebar is collapsed. 
+// status dot when the sidebar is collapsed.
 const initials = (title: string): string => {
-  const t = (title ?? '').trim().slice(0, 3).toUpperCase()
-  return t.length > 0 ? t : '·'
-}
+  const t = (title ?? "").trim().slice(0, 3).toUpperCase();
+  return t.length > 0 ? t : "·";
+};
 </script>
 
 <template>
   <aside class="sidebar" :class="{ collapsed }">
     <div class="sidebar-head">
-      <span v-if="!collapsed" class="sidebar-title">{{ $t('sidebar.title') }}</span>
+      <span v-if="!collapsed" class="sidebar-title">{{
+        $t("sidebar.title")
+      }}</span>
       <button
         type="button"
         class="btn-collapse"
@@ -46,7 +51,6 @@ const initials = (title: string): string => {
         :aria-expanded="!collapsed"
         @click="toggle"
       >
-        
         <!-- Always the chevron-LEFT icon; we rotate 180° via CSS when the
              sidebar is collapsed so the same glyph points right. Saves
              registering both icons. -->
@@ -68,36 +72,33 @@ const initials = (title: string): string => {
         :title="collapsed ? a.title : undefined"
         @click="emit('select', a)"
       >
+        <span
+          class="status-dot"
+          :class="statusClass(a.status)"
+          :title="statusLabel(a.status)"
+        ></span>
 
-
-        <span class="status-dot" :class="statusClass(a.status)" :title="statusLabel(a.status)"></span>
-        
-        <span v-if="collapsed" class="row-initials">{{ initials(a.title) }}</span>
+        <span v-if="collapsed" class="row-initials">{{
+          initials(a.title)
+        }}</span>
         <span v-else class="row-title">{{ a.title }}</span>
       </button>
 
       <div v-if="alerts.length === 0 && !collapsed" class="sidebar-empty">
-        {{ $t('sidebar.empty') }}
-
-
+        {{ $t("sidebar.empty") }}
       </div>
-        <button
-          type="button"
-          class="btn-new-bottom"
-          :title="collapsed ? $t('button.newAlert') : undefined"
-          @click="emit('new')"
-        >
-          <span class="plus">+</span>
-          <span v-if="!collapsed" class="btn-new-label">{{ $t('button.newAlert') }}</span>
-        </button>
-      </div>
-
-      
-      
-    
-
-
-    
+      <button
+        type="button"
+        class="btn-new-bottom"
+        :title="collapsed ? $t('button.newAlert') : undefined"
+        @click="emit('new')"
+      >
+        <span class="plus">+</span>
+        <span v-if="!collapsed" class="btn-new-label">{{
+          $t("button.newAlert")
+        }}</span>
+      </button>
+    </div>
   </aside>
 </template>
 
@@ -112,7 +113,6 @@ const initials = (title: string): string => {
   height: 100%;
   min-height: 0;
 }
-
 
 /* ── Head ───────────────────────────────────────────────────────────
  * Expanded: title on the left, collapse-toggle on the right.
@@ -145,28 +145,26 @@ const initials = (title: string): string => {
   justify-content: center;
   width: 24px;
   height: 24px;
-  background: var(--color-accent-soft);;
+  background: var(--color-accent-soft);
   border: 1px solid var(--color-accent-border);
   border-radius: 9999px;
   color: var(--color-text-dim);
   cursor: pointer;
-  transition: background-color .15s, color .15s;
- 
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 .btn-collapse:hover {
   background: var(--color-accent-hover);
   color: var(--color-text-primary);
-  
 }
 
 /* Chevron for collapse button */
 .chev-icon {
   font-size: 10px;
   line-height: 1;
-  transition: transform .18s ease;
-  color:var(--color-accent)
-
-  .btn-collapse:hover & {
+  transition: transform 0.18s ease;
+  color:var(--color-accent) .btn-collapse:hover & {
     color: var(--color-accent-soft);
   }
 }
@@ -174,7 +172,6 @@ const initials = (title: string): string => {
 .sidebar.collapsed .chev-icon {
   transform: rotate(180deg);
 }
-
 
 /* ── Body / rows ────────────────────────────────────────────────── */
 .sidebar-body {
@@ -186,11 +183,10 @@ const initials = (title: string): string => {
   gap: 2px;
   background: var(--color-bg-panel);
   min-height: 0;
-  
+
   .sidebar-collapsed & {
     padding: var(--space-1) 0;
   }
-
 }
 
 .alert-row {
@@ -203,16 +199,16 @@ const initials = (title: string): string => {
   box-sizing: border-box;
 
   text-align: left;
-  background:transparent ;
+  background: transparent;
   border: none;
   border-left: 1px solid transparent;
   color: var(--color-text-secondary);
-  
+
   padding-left: 9px;
   border-radius: var(--radius-md);
   cursor: pointer;
   font-size: var(--text-base);
-  transition: background-color .15s;
+  transition: background-color 0.15s;
 
   .sidebar-collapsed & {
     position: relative;
@@ -222,8 +218,9 @@ const initials = (title: string): string => {
   }
 }
 
-
-.alert-row:hover { background: var(--color-bg-card-soft); }
+.alert-row:hover {
+  background: var(--color-bg-card-soft);
+}
 .alert-row.selected {
   background: var(--color-bg-card-soft);
   border-left-color: var(--color-accent);
@@ -251,23 +248,34 @@ const initials = (title: string): string => {
 
 /* ── Status dots — unchanged ─────────────────────────────────────── */
 .status-dot {
-  width: 13px; height: 13px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   flex-shrink: 0;
   box-sizing: border-box;
 
-  .sidebar-collapsed & { /* 2. Status dot as an exponent in smaller size  */
+  .sidebar-collapsed & {
+    /* 2. Status dot as an exponent in smaller size  */
     position: absolute;
-    top: 6px;   
-    right: 6px;  
-    width: 8px; 
+    top: 6px;
+    right: 6px;
+    width: 8px;
     height: 8px;
   }
 }
 
-.st-active   { background: var(--color-accent); border: 1px solid var(--color-accent); }
-.st-inactive { background: transparent; border: 1px solid var(--color-text-dim); }
-.st-draft    { background: transparent; border: 1px dashed var(--color-text-dim); }
+.st-active {
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
+}
+.st-inactive {
+  background: transparent;
+  border: 1px solid var(--color-text-dim);
+}
+.st-draft {
+  background: transparent;
+  border: 1px dashed var(--color-text-dim);
+}
 
 .sidebar-empty {
   color: var(--color-text-faint);
@@ -295,12 +303,15 @@ const initials = (title: string): string => {
   cursor: pointer;
   font-size: var(--text-base);
   font-weight: 600;
-  
+
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  transition: background-color .15s, border-color .15s, color .15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
 }
 .btn-new-bottom:hover {
   background: var(--color-accent-soft);
@@ -309,6 +320,11 @@ const initials = (title: string): string => {
   border-color: var(--color-border-strong);
 }
 
-.btn-new-label { white-space: nowrap; }
-.plus { font-size: var(--text-xl); line-height: 1; }
+.btn-new-label {
+  white-space: nowrap;
+}
+.plus {
+  font-size: var(--text-xl);
+  line-height: 1;
+}
 </style>

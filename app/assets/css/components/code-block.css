@@ -37,9 +37,18 @@
 }
 
 .dot {
-  width: 11px; height: 11px; border-radius: 50%; display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
   flex-shrink: 0;
 }
-.dot-red    { background: #ff5f56; }
-.dot-yellow { background: #ffbd2e; }
-.dot-green  { background: #27c93f; }
+.dot-red {
+  background: #ff5f56;
+}
+.dot-yellow {
+  background: #ffbd2e;
+}
+.dot-green {
+  background: #27c93f;
+}

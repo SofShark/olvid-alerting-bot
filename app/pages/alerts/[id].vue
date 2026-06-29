@@ -1,28 +1,29 @@
 <script setup lang="ts">
-import { AlertStatus } from '#shared/types/alert'
+import { AlertStatus } from "#shared/types/alert";
 
-const route  = ref(useRoute())
-const { alerts, alertsLoading, fetchAlerts } = useAlerts()
+const route = ref(useRoute());
+const { alerts, alertsLoading, fetchAlerts } = useAlerts();
 
 // Fetch on hard-refresh if the layout hasn't populated the list yet.
 onMounted(() => {
-  if (alerts.value.length === 0 && !alertsLoading.value) fetchAlerts()
-})
+  if (alerts.value.length === 0 && !alertsLoading.value) fetchAlerts();
+});
 
-const alert = computed(() =>
-  alerts.value.find(a => a.id === Number(route.value.params.id)) ?? null
-)
+const alert = computed(
+  () =>
+    alerts.value.find((a) => a.id === Number(route.value.params.id)) ?? null,
+);
 
-const isDraft = computed(() => alert.value?.status === AlertStatus.Draft)
+const isDraft = computed(() => alert.value?.status === AlertStatus.Draft);
 // Explicit edit request via query (?edit=1) puts a non-draft alert into the
 // wizard for full reconfiguration. Drafts always open in the wizard.
-const isEditing = computed(() => route.value.query.edit === '1')
+const isEditing = computed(() => route.value.query.edit === "1");
 </script>
 
 <template>
   <div v-if="alertsLoading || !alert" class="loading-panel">
-    <span v-if="alertsLoading">{{ $t('alertPage.loading') }}</span>
-    <span v-else>{{ $t('alertPage.notFound') }}</span>
+    <span v-if="alertsLoading">{{ $t("alertPage.loading") }}</span>
+    <span v-else>{{ $t("alertPage.notFound") }}</span>
   </div>
   <AlertWizard
     v-else-if="isEditing"
@@ -39,7 +40,9 @@ const isEditing = computed(() => route.value.query.edit === '1')
 <style scoped>
 .loading-panel {
   height: 100%;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--color-bg-card);
   border: 1px dashed var(--color-border-subtle);
   border-radius: var(--radius-xl);

@@ -1,51 +1,56 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 
-type Option = { value: string; label: string }
+type Option = { value: string; label: string };
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const props = withDefaults(defineProps<{
-  modelValue: string
-  options: Option[]
-  disabled?: boolean
-  placeholder?: string
-}>(), {
-  disabled: false,
-  placeholder: () => '',
-})
+const props = withDefaults(
+  defineProps<{
+    modelValue: string;
+    options: Option[];
+    disabled?: boolean;
+    placeholder?: string;
+  }>(),
+  {
+    disabled: false,
+    placeholder: () => "",
+  },
+);
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', v: string): void
-}>()
+  (e: "update:modelValue", v: string): void;
+}>();
 
-const isOpen = ref(false)
-const containerRef = ref<HTMLElement | null>(null)
+const isOpen = ref(false);
+const containerRef = ref<HTMLElement | null>(null);
 
 const current = computed(() =>
-  props.options.find(o => o.value === props.modelValue),
-)
+  props.options.find((o) => o.value === props.modelValue),
+);
 
-const displayLabel = computed(() => current.value?.label ?? (props.placeholder || t('select.placeholder')))
+const displayLabel = computed(
+  () => current.value?.label ?? (props.placeholder || t("select.placeholder")),
+);
 
 function toggle() {
-  if (props.disabled) return
-  isOpen.value = !isOpen.value
+  if (props.disabled) return;
+  isOpen.value = !isOpen.value;
 }
 
 function select(opt: Option) {
-  emit('update:modelValue', opt.value)
-  isOpen.value = false
+  emit("update:modelValue", opt.value);
+  isOpen.value = false;
 }
 
 function onClickOutside(e: MouseEvent) {
   if (containerRef.value && !containerRef.value.contains(e.target as Node)) {
-    isOpen.value = false
+    isOpen.value = false;
   }
 }
 
-onMounted(() => document.addEventListener('click', onClickOutside))
-onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
+onMounted(() => document.addEventListener("click", onClickOutside));
+onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 </script>
 
 <template>
@@ -76,7 +81,10 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 </template>
 
 <style scoped>
-.select-wrap { position: relative; width: 100%; }
+.select-wrap {
+  position: relative;
+  width: 100%;
+}
 
 /* Trigger looks like a search-input in InputSourceSelector — same tokens, same
  * focus ring. The only addition is a chevron icon on the right that flips
@@ -97,7 +105,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  transition: border-color .15s, box-shadow .15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 .select-trigger:focus,
 .select-trigger.open {
@@ -120,18 +130,21 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 .select-chevron {
   color: var(--color-text-dim);
   font-size: 12px;
-  transition: transform .15s;
+  transition: transform 0.15s;
 }
-.select-chevron.open { transform: rotate(180deg); }
+.select-chevron.open {
+  transform: rotate(180deg);
+}
 
 .select-dropdown {
   position: absolute;
   top: calc(100% + 4px);
-  left: 0; right: 0;
+  left: 0;
+  right: 0;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
   max-height: 200px;
   overflow-y: auto;
   z-index: 50;
@@ -143,7 +156,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   cursor: pointer;
   border-bottom: 1px solid var(--color-border-subtle);
 }
-.select-item:last-child { border-bottom: none; }
+.select-item:last-child {
+  border-bottom: none;
+}
 .select-item:hover {
   background: var(--color-border-subtle);
   color: var(--color-text-primary);

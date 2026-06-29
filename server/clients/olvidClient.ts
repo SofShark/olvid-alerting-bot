@@ -10,51 +10,54 @@
 // of the server speaks our own domain (discussion ids, message strings).
 // If we ever swap providers (Slack, Discord, …), only this file changes.
 
-import { OlvidClient } from '@olvid/bot-node'
+import { OlvidClient } from "@olvid/bot-node";
 
 export const olvidClient = {
-
   async sendMessage(discussions: bigint[], message: string) {
     try {
-      const client = new OlvidClient()
+      const client = new OlvidClient();
 
       for (const discussionId of discussions) {
         await client.messageSend({
           discussionId: discussionId,
           body: message,
-        })
-        console.log(`✅ [Olvid] Message sent to discussion: ${discussionId}`)
+        });
+        console.log(`✅ [Olvid] Message sent to discussion: ${discussionId}`);
       }
-      return true
-
+      return true;
     } catch (error) {
-      console.error('❌ [Olvid] An error occurred while sending a message:', error)
-      return false
+      console.error(
+        "❌ [Olvid] An error occurred while sending a message:",
+        error,
+      );
+      return false;
     }
   },
 
   async getDiscussions() {
     try {
-      const client = new OlvidClient()
-      const discussions = client.discussionList()
+      const client = new OlvidClient();
+      const discussions = client.discussionList();
 
-      const arrayDiscussions: any[] = []
+      const arrayDiscussions: any[] = [];
 
       try {
         for await (const discussion of discussions) {
-          if (!discussion || !discussion.id) continue
-          arrayDiscussions.push(discussion)
+          if (!discussion || !discussion.id) continue;
+          arrayDiscussions.push(discussion);
         }
       } catch (error) {
-        console.warn('⚠️ Async request ended abruptly:', error)
+        console.warn("⚠️ Async request ended abruptly:", error);
       }
 
-      return arrayDiscussions
-
+      return arrayDiscussions;
     } catch (error) {
-      console.error('❌ [Olvid] A critical error occurred while getting discussions', error)
+      console.error(
+        "❌ [Olvid] A critical error occurred while getting discussions",
+        error,
+      );
       // Empty array on fatal failure — frontend keeps working with no destinations.
-      return []
+      return [];
     }
   },
-}
+};

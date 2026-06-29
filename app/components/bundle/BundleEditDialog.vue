@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import type { AlertModel }      from '#shared/types/alert'
-import type { BundleModel }     from '#shared/types/bundle'
-import type { DiscussionModel } from '#shared/types/discussion'
-import type { PollingParams }   from '#shared/types/polling'
+import { ref, computed, watch } from "vue";
+import type { AlertModel } from "#shared/types/alert";
+import type { BundleModel } from "#shared/types/bundle";
+import type { DiscussionModel } from "#shared/types/discussion";
+import type { PollingParams } from "#shared/types/polling";
 
 /*
   Per-bundle edit modal. Owns its own draft + dirty tracking; the parent
@@ -17,71 +17,76 @@ import type { PollingParams }   from '#shared/types/polling'
 */
 
 const props = defineProps<{
-  open:                 boolean
-  bundle:               BundleModel | null
-  index:                number | null
-  alertContext:         AlertModel
-  alertParams?:         PollingParams
-  inputSource:          string
-  availableDiscussions: DiscussionModel[]
-  discussionsLoading:   boolean
-  saving?:              boolean
-}>()
+  open: boolean;
+  bundle: BundleModel | null;
+  index: number | null;
+  alertContext: AlertModel;
+  alertParams?: PollingParams;
+  inputSource: string;
+  availableDiscussions: DiscussionModel[];
+  discussionsLoading: boolean;
+  saving?: boolean;
+}>();
 
 const emit = defineEmits<{
-  (e: 'save',   payload: { index: number; bundle: BundleModel }): void
-  (e: 'cancel'): void
-}>()
+  (e: "save", payload: { index: number; bundle: BundleModel }): void;
+  (e: "cancel"): void;
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const draft       = ref<BundleModel | null>(null)
-const snapshot    = ref('')
-const confirmDiscard = ref(false)
+const draft = ref<BundleModel | null>(null);
+const snapshot = ref("");
+const confirmDiscard = ref(false);
 
 // Snapshot the bundle every time the modal (re)opens.
-watch(() => [props.open, props.bundle] as const, ([open, b]) => {
-  if (!open || !b) {
-    draft.value = null
-    snapshot.value = ''
-    confirmDiscard.value = false
-    return
-  }
-  draft.value = { ...b, discussion_list: [...b.discussion_list] }
-  snapshot.value = JSON.stringify(draft.value)
-  confirmDiscard.value = false
-}, { immediate: true })
+watch(
+  () => [props.open, props.bundle] as const,
+  ([open, b]) => {
+    if (!open || !b) {
+      draft.value = null;
+      snapshot.value = "";
+      confirmDiscard.value = false;
+      return;
+    }
+    draft.value = { ...b, discussion_list: [...b.discussion_list] };
+    snapshot.value = JSON.stringify(draft.value);
+    confirmDiscard.value = false;
+  },
+  { immediate: true },
+);
 
-const isDirty = computed(() =>
-  !!draft.value && JSON.stringify(draft.value) !== snapshot.value,
-)
+const isDirty = computed(
+  () => !!draft.value && JSON.stringify(draft.value) !== snapshot.value,
+);
 
 const requestClose = () => {
   if (isDirty.value) {
-    confirmDiscard.value = true
-    return
+    confirmDiscard.value = true;
+    return;
   }
-  emit('cancel')
-}
+  emit("cancel");
+};
 
 const onSave = () => {
-  if (props.index === null || !draft.value) return
-  emit('save', { index: props.index, bundle: draft.value })
-}
+  if (props.index === null || !draft.value) return;
+  emit("save", { index: props.index, bundle: draft.value });
+};
 </script>
 
 <template>
   <Modal :open="open" :close-on-backdrop="false" @close="requestClose">
     <div class="bundle-edit-modal">
-
       <div class="modal-head">
-        <h4>{{ t('editor.bundleModal.title', { n: (index ?? 0) + 1 }) }}</h4>
+        <h4>{{ t("editor.bundleModal.title", { n: (index ?? 0) + 1 }) }}</h4>
         <button
           type="button"
           class="modal-close"
           :title="t('editor.bundleModal.closeTitle')"
           @click="requestClose"
-        >✕</button>
+        >
+          ✕
+        </button>
       </div>
 
       <div class="modal-body">
@@ -100,31 +105,37 @@ const onSave = () => {
       </div>
 
       <div v-if="confirmDiscard" class="modal-foot discard-foot">
-        <span class="discard-msg">{{ t('editor.bundleModal.discardWarning') }}</span>
+        <span class="discard-msg">{{
+          t("editor.bundleModal.discardWarning")
+        }}</span>
         <button
           type="button"
           class="btn btn-ghost"
           @click="confirmDiscard = false"
-        >{{ t('editor.bundleModal.keepEditingButton') }}</button>
-        <button
-          type="button"
-          class="btn btn-danger"
-          @click="emit('cancel')"
-        >{{ t('editor.bundleModal.discardButton') }}</button>
-      </div>
-      <div v-else class="modal-foot">
-        <button
-          type="button"
-          class="btn btn-ghost"
-          @click="requestClose"
-        >{{ t('editor.bundleModal.cancelButton') }}</button>
-        <button 
-type="button"
-class="btn btn-secondary" :disabled="saving" @click="onSave">
-          {{ saving ? t('editor.bundleModal.savingButton') : t('editor.bundleModal.saveButton') }}
+        >
+          {{ t("editor.bundleModal.keepEditingButton") }}
+        </button>
+        <button type="button" class="btn btn-danger" @click="emit('cancel')">
+          {{ t("editor.bundleModal.discardButton") }}
         </button>
       </div>
-
+      <div v-else class="modal-foot">
+        <button type="button" class="btn btn-ghost" @click="requestClose">
+          {{ t("editor.bundleModal.cancelButton") }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          :disabled="saving"
+          @click="onSave"
+        >
+          {{
+            saving
+              ? t("editor.bundleModal.savingButton")
+              : t("editor.bundleModal.saveButton")
+          }}
+        </button>
+      </div>
     </div>
   </Modal>
 </template>
@@ -178,7 +189,9 @@ class="btn btn-secondary" :disabled="saving" @click="onSave">
   padding: var(--space-4) var(--space-6);
   border-top: 1px solid var(--color-border-subtle);
 }
-.modal-foot.discard-foot { background: var(--color-warning-soft); }
+.modal-foot.discard-foot {
+  background: var(--color-warning-soft);
+}
 .discard-msg {
   flex: 1;
   color: var(--color-warning-text);

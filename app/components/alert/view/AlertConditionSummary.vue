@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from "vue";
 
 /*
   Condition row inside AlertInputSummary. Takes a raw condition (possibly
@@ -12,11 +12,11 @@ import { computed } from 'vue'
 */
 
 const props = defineProps<{
-  condition: any
-}>()
+  condition: any;
+}>();
 
-const { conditionSummary } = useConditionSummary()
-const summary = computed(() => conditionSummary(props.condition))
+const { conditionSummary } = useConditionSummary();
+const summary = computed(() => conditionSummary(props.condition));
 </script>
 
 <template>

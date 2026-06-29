@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertStatus } from '#shared/types/alert'
+import { AlertStatus } from "#shared/types/alert";
 
 /*
   Context-sensitive wizard footer. Three button shapes depending on which
@@ -16,22 +16,22 @@ import { AlertStatus } from '#shared/types/alert'
 */
 
 defineProps<{
-  showBack:               boolean
-  saving:                 boolean
-  isOnBundleStep:         boolean
-  isOnLastConfigStep:     boolean
-  canAdvance:             boolean
-  canSaveDraft:           boolean
-  wouldBeComplete:        boolean
-  effectiveFinalStatus:   AlertStatus
-}>()
+  showBack: boolean;
+  saving: boolean;
+  isOnBundleStep: boolean;
+  isOnLastConfigStep: boolean;
+  canAdvance: boolean;
+  canSaveDraft: boolean;
+  wouldBeComplete: boolean;
+  effectiveFinalStatus: AlertStatus;
+}>();
 
 defineEmits<{
-  (e: 'back'):       void
-  (e: 'next'):       void
-  (e: 'save'):       void
-  (e: 'save-draft'): void
-}>()
+  (e: "back"): void;
+  (e: "next"): void;
+  (e: "save"): void;
+  (e: "save-draft"): void;
+}>();
 </script>
 
 <template>
@@ -41,22 +41,27 @@ defineEmits<{
       type="button"
       class="btn btn-ghost"
       @click="$emit('back')"
-    >{{ $t('button.back') }}</button>
+    >
+      {{ $t("button.back") }}
+    </button>
 
     <div class="foot-spacer" />
 
     <!-- Bundle step: final save lives here as the primary CTA. -->
     <template v-if="isOnBundleStep">
-      <button 
+      <button
         type="button"
-        class="btn btn-primary" 
-        :disabled="saving" 
-        @click="$emit('save')">
-        {{ saving
-          ? $t('common.saving')
-          : (effectiveFinalStatus === AlertStatus.Draft
-              ? $t('wizard.footer.saveAsDraft')
-              : $t('wizard.footer.saveAlert')) }}
+        class="btn btn-primary"
+        :disabled="saving"
+        @click="$emit('save')"
+      >
+        {{
+          saving
+            ? $t("common.saving")
+            : effectiveFinalStatus === AlertStatus.Draft
+              ? $t("wizard.footer.saveAsDraft")
+              : $t("wizard.footer.saveAlert")
+        }}
       </button>
       <!--ButtonPrimary :disabled="saving" @click="$emit('save')">
         {{ saving
@@ -68,43 +73,55 @@ defineEmits<{
     </template>
 
     <template v-else>
-      <button 
-type="button"
-class="btn btn-primary"
+      <button
+        type="button"
+        class="btn btn-primary"
         v-if="wouldBeComplete"
         :disabled="saving"
         :title="$t('wizard.footer.saveAlertTitle')"
         @click="$emit('save')"
       >
-        {{ saving ? $t('common.saving') : $t('wizard.footer.saveAlert') }}
-    </button>
+        {{ saving ? $t("common.saving") : $t("wizard.footer.saveAlert") }}
+      </button>
       <button
         v-else
         type="button"
         class="btn btn-secondary"
         :disabled="!canSaveDraft || saving"
-        :title="canSaveDraft ? $t('wizard.footer.saveAsDraftTitle') : $t('wizard.footer.saveAsDraftNoTitle')"
+        :title="
+          canSaveDraft
+            ? $t('wizard.footer.saveAsDraftTitle')
+            : $t('wizard.footer.saveAsDraftNoTitle')
+        "
         @click="$emit('save-draft')"
-      >{{ saving ? $t('common.saving') : $t('wizard.footer.saveAsDraft') }}</button>
+      >
+        {{ saving ? $t("common.saving") : $t("wizard.footer.saveAsDraft") }}
+      </button>
 
-      <button 
+      <button
         type="button"
         class="btn btn-secondary"
         v-if="isOnLastConfigStep"
         :disabled="!canAdvance || saving"
         @click="$emit('next')"
-      >{{ $t('button.addBundles') }}</button>
+      >
+        {{ $t("button.addBundles") }}
+      </button>
       <button
         v-else
         type="button"
         class="btn btn-primary"
         :disabled="!canAdvance || saving"
         @click="$emit('next')"
-      >{{ $t('button.continue') }}</button>
+      >
+        {{ $t("button.continue") }}
+      </button>
     </template>
   </div>
 </template>
 
 <style scoped>
-.foot-spacer { flex: 1; }
+.foot-spacer {
+  flex: 1;
+}
 </style>

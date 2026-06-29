@@ -15,21 +15,21 @@
 //    The parent's `input` field tells you which case you're in:
 //      if (alert.input === Source.Polling) { alert.alertParams.url ... }
 
-import type { BundleModel } from './bundle'
-import type { PollingParams } from './polling'
-import type { Source } from './source'
+import type { BundleModel } from "./bundle";
+import type { PollingParams } from "./polling";
+import type { Source } from "./source";
 
 export const AlertStatus = {
-  Draft:    'draft',
-  Inactive: 'inactive',
-  Active:   'active',
-} as const
-export type AlertStatus = (typeof AlertStatus)[keyof typeof AlertStatus]
+  Draft: "draft",
+  Inactive: "inactive",
+  Active: "active",
+} as const;
+export type AlertStatus = (typeof AlertStatus)[keyof typeof AlertStatus];
 
 export type AlertModel = {
-  id:           number | null
-  title:        string
-  description:  string
+  id: number | null;
+  title: string;
+  description: string;
   /**
    * Source value, OR empty string for the blank-form initial state
    * (user hasn't picked a source yet). We could use `?:` and undefined,
@@ -37,9 +37,9 @@ export type AlertModel = {
    * checks `!form.input` — keeping `''` as the sentinel is the
    * minimum-change path.
    */
-  input:        Source | ''
-  status:       AlertStatus
-  token:        string
-  alertParams?: PollingParams      // present iff input === Source.Polling
-  bundles:      BundleModel[]
-}
+  input: Source | "";
+  status: AlertStatus;
+  token: string;
+  alertParams?: PollingParams; // present iff input === Source.Polling
+  bundles: BundleModel[];
+};

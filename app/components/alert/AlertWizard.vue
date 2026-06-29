@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, toRef } from 'vue'
-import { AlertStatus, type AlertModel } from '#shared/types/alert'
-import { compactCondition, migrateCondition } from '#shared/condition/migrate'
+import { computed, toRef } from "vue";
+import { AlertStatus, type AlertModel } from "#shared/types/alert";
+import { compactCondition, migrateCondition } from "#shared/condition/migrate";
 
 /*
   Thin orchestration container for the alert create / edit flow. Owns
@@ -23,17 +23,22 @@ import { compactCondition, migrateCondition } from '#shared/condition/migrate'
     - useWizardSteps   → stepDefs + canAdvance + step navigation
 */
 
-const props = withDefaults(defineProps<{
-  alertaInicial?: AlertModel | null
-}>(), {
-  alertaInicial: null,
-})
+const props = withDefaults(
+  defineProps<{
+    alertaInicial?: AlertModel | null;
+  }>(),
+  {
+    alertaInicial: null,
+  },
+);
 
-const { t } = useI18n()
-const { availableDiscussions, discussionsLoading, fetchAlerts } = useAlerts()
+const { t } = useI18n();
+const { availableDiscussions, discussionsLoading, fetchAlerts } = useAlerts();
 
-const { form, isExisting, isPolling, hasEmptyBundle } = useAlertForm(toRef(props, 'alertaInicial'))
-const { saving, saveAlert } = useAlertActions()
+const { form, isExisting, isPolling, hasEmptyBundle } = useAlertForm(
+  toRef(props, "alertaInicial"),
+);
+const { saving, saveAlert } = useAlertActions();
 const {
   isDirty,
   showDiscardPrompt,
@@ -41,7 +46,7 @@ const {
   takeSnapshot,
   allowNextLeave,
   dismissPrompt,
-} = useDirtyGuard(form)
+} = useDirtyGuard(form);
 const {
   currentStep,
   stepDefs,
@@ -53,41 +58,42 @@ const {
   isConditionComplete,
   next,
   back,
-} = useWizardSteps(form)
+} = useWizardSteps(form);
 
 // Last parsed payload from ConditionEditor — piped into BundleCard's
 // polling-default preview on the bundles step. Not persisted.
-const lastPollPayload = ref<any>(null)
+const lastPollPayload = ref<any>(null);
 
 // ── Save semantics ────────────────────────────────────────────────────────
-const canSaveDraft = computed(() => !!form.value.title)
+const canSaveDraft = computed(() => !!form.value.title);
 
 // Final status the alert SHOULD have after save (modulo the explicit
 // "save as draft" button which forces Draft).
-const wouldBeComplete = computed(() =>
-  !!form.value.title &&
-  !!form.value.input &&
-  isPollingConfigComplete.value &&
-  isConditionComplete.value &&
-  form.value.bundles.length > 0 &&
-  !hasEmptyBundle.value,
-)
+const wouldBeComplete = computed(
+  () =>
+    !!form.value.title &&
+    !!form.value.input &&
+    isPollingConfigComplete.value &&
+    isConditionComplete.value &&
+    form.value.bundles.length > 0 &&
+    !hasEmptyBundle.value,
+);
 const effectiveFinalStatus = computed<AlertStatus>(() => {
-  if (!wouldBeComplete.value) return AlertStatus.Draft
+  if (!wouldBeComplete.value) return AlertStatus.Draft;
   if (isExisting.value && form.value.status === AlertStatus.Active) {
-    return AlertStatus.Active
+    return AlertStatus.Active;
   }
   // TODO determine whether newly-created alerts should auto-activate.
-  return AlertStatus.Inactive
-})
+  return AlertStatus.Inactive;
+});
 
 const buildPayload = (status: AlertStatus) => {
   // Compact the polling condition on the way out: drop unused fields for
   // kind=None, drop `value` for operators that don't use it. Memory shape
   // preserves all fields so the user can flip modes without losing context.
-  const ap: any = { ...(form.value.alertParams ?? {}) }
+  const ap: any = { ...(form.value.alertParams ?? {}) };
   if (isPolling.value && ap.condition) {
-    ap.condition = compactCondition(migrateCondition(ap.condition))
+    ap.condition = compactCondition(migrateCondition(ap.condition));
   }
   return {
     id: form.value.id,
@@ -96,75 +102,78 @@ const buildPayload = (status: AlertStatus) => {
     input: form.value.input,
     status,
     alertParams: ap,
-    bundles: form.value.bundles.map(b => ({
+    bundles: form.value.bundles.map((b) => ({
       id: b.id,
       name: b.name,
       formating: b.formating,
       custom_script: b.custom_script,
-      discussion_list: b.discussion_list.map(d => d.id),
+      discussion_list: b.discussion_list.map((d) => d.id),
     })),
-  }
-}
+  };
+};
 
 const save = async (forceDraft: boolean, navigateAfter: boolean) => {
   if (!form.value.title) {
-    alert(t('wizard.validation.titleMandatory'))
-    return
+    alert(t("wizard.validation.titleMandatory"));
+    return;
   }
-  const status = forceDraft ? AlertStatus.Draft : effectiveFinalStatus.value
+  const status = forceDraft ? AlertStatus.Draft : effectiveFinalStatus.value;
   try {
-    const saved = await saveAlert(buildPayload(status), { isExisting: isExisting.value })
+    const saved = await saveAlert(buildPayload(status), {
+      isExisting: isExisting.value,
+    });
     if (saved) {
-      form.value.id     = saved.id     ?? form.value.id
-      form.value.status = saved.status ?? form.value.status
-      form.value.token  = saved.token  ?? form.value.token
-      const savedBundles: any[] = (saved as any).bundles ?? []
+      form.value.id = saved.id ?? form.value.id;
+      form.value.status = saved.status ?? form.value.status;
+      form.value.token = saved.token ?? form.value.token;
+      const savedBundles: any[] = (saved as any).bundles ?? [];
       form.value.bundles = form.value.bundles.map((b, i) => ({
         ...b,
         id: savedBundles[i]?.id ?? b.id,
-      }))
-      takeSnapshot()  // clean baseline after a successful persist
+      }));
+      takeSnapshot(); // clean baseline after a successful persist
     }
-    await fetchAlerts()
+    await fetchAlerts();
     if (navigateAfter && form.value.id) {
-      allowNextLeave()
-      await navigateTo('/alerts/' + form.value.id)
+      allowNextLeave();
+      await navigateTo("/alerts/" + form.value.id);
     }
   } catch (error: any) {
-    console.error('Error saving:', error.data || error)
-    alert(`${t('wizard.errors.saving')}\n\n${error.data?.message || error.message || t('common.unknownError')}`)
+    console.error("Error saving:", error.data || error);
+    alert(
+      `${t("wizard.errors.saving")}\n\n${error.data?.message || error.message || t("common.unknownError")}`,
+    );
   }
-}
+};
 
 // ── Header back / discard flow ────────────────────────────────────────────
 const onHeaderBack = () => {
   if (isDirty.value) {
-    showDiscardPrompt.value = true
+    showDiscardPrompt.value = true;
   } else {
-    navigateTo('/')
+    navigateTo("/");
   }
-}
+};
 const onDiscard = () => {
-  showDiscardPrompt.value = false
-  const target = pendingLeave.value
-  pendingLeave.value = null
-  allowNextLeave()
-  navigateTo(target ?? '/')
-}
+  showDiscardPrompt.value = false;
+  const target = pendingLeave.value;
+  pendingLeave.value = null;
+  allowNextLeave();
+  navigateTo(target ?? "/");
+};
 const onSaveDraftAndLeave = async () => {
-  await save(true, false)
-  if (!form.value.id) return  // save failed — keep the prompt up
-  showDiscardPrompt.value = false
-  const target = pendingLeave.value
-  pendingLeave.value = null
-  allowNextLeave()
-  navigateTo(target ?? '/alerts/' + form.value.id)
-}
+  await save(true, false);
+  if (!form.value.id) return; // save failed — keep the prompt up
+  showDiscardPrompt.value = false;
+  const target = pendingLeave.value;
+  pendingLeave.value = null;
+  allowNextLeave();
+  navigateTo(target ?? "/alerts/" + form.value.id);
+};
 </script>
 
 <template>
   <div class="wizard-root">
-
     <DiscardChangesDialog
       :open="showDiscardPrompt"
       :can-save-draft="canSaveDraft"
@@ -179,7 +188,6 @@ const onSaveDraftAndLeave = async () => {
     </div>
 
     <div class="panel wizard">
-
       <AlertWizardHeader
         :title="form.title"
         :description="form.description"
@@ -189,10 +197,7 @@ const onSaveDraftAndLeave = async () => {
       />
 
       <div class="panel-body">
-        <StepGeneral
-          v-if="currentStepKey === 'general'"
-          v-model="form"
-        />
+        <StepGeneral v-if="currentStepKey === 'general'" v-model="form" />
         <StepTrigger
           v-else-if="currentStepKey === 'trigger'"
           v-model="form"
@@ -221,7 +226,6 @@ const onSaveDraftAndLeave = async () => {
         @save="save(false, true)"
         @save-draft="save(true, true)"
       />
-
     </div>
   </div>
 </template>
@@ -236,7 +240,9 @@ const onSaveDraftAndLeave = async () => {
   min-height: 0;
 }
 
-.wizard.panel { flex: 1; }
+.wizard.panel {
+  flex: 1;
+}
 
 .wizard-stepper {
   padding: var(--space-2) var(--space-1);

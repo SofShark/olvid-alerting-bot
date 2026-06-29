@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, toRef } from 'vue'
-import { Source }                from '#shared/types/source'
-import { AlertStatus, type AlertModel } from '#shared/types/alert'
-import type { BundleModel }     from '#shared/types/bundle'
+import { ref, computed, toRef } from "vue";
+import { Source } from "#shared/types/source";
+import { AlertStatus, type AlertModel } from "#shared/types/alert";
+import type { BundleModel } from "#shared/types/bundle";
 
 /*
   Smart container for the view-mode alert page. Owns the state via
@@ -14,94 +14,113 @@ import type { BundleModel }     from '#shared/types/bundle'
       wizard via `/alerts/[id]?edit=1`).
 */
 
-const props = withDefaults(defineProps<{
-  alertaInicial?: AlertModel | null
-}>(), {
-  alertaInicial: null,
-})
+const props = withDefaults(
+  defineProps<{
+    alertaInicial?: AlertModel | null;
+  }>(),
+  {
+    alertaInicial: null,
+  },
+);
 
-const { t } = useI18n()
-const { alerts, availableDiscussions, discussionsLoading, fetchAlerts } = useAlerts()
-const { form, isExisting, isPolling, isWebhook } = useAlertForm(toRef(props, 'alertaInicial'))
-const { saving, saveAlert, deleteAlert, setStatus } = useAlertActions()
+const { t } = useI18n();
+const { alerts, availableDiscussions, discussionsLoading, fetchAlerts } =
+  useAlerts();
+const { form, isExisting, isPolling, isWebhook } = useAlertForm(
+  toRef(props, "alertaInicial"),
+);
+const { saving, saveAlert, deleteAlert, setStatus } = useAlertActions();
 
 // ── Derived for header / sections ──────────────────────────────────────────
-const canActivate = computed(() => form.value.bundles.length > 0)
+const canActivate = computed(() => form.value.bundles.length > 0);
 
 // Source name surfaced in the view-mode "Source" row. With the binary
 // Source enum, this IS just `form.input`.
 const inputTitle = computed(() => {
-  if (isPolling.value) return 'Polling Alert'
-  if (isWebhook.value) return 'Webhook Alert'
-  return form.value.input ? `${form.value.input} Alert` : 'Alert'
-})
+  if (isPolling.value) return "Polling Alert";
+  if (isWebhook.value) return "Webhook Alert";
+  return form.value.input ? `${form.value.input} Alert` : "Alert";
+});
 
 // Description is truncated to ~100 chars so a long debugging description
 // doesn't blow up the head into three lines. Full text lives in the wizard.
-const DESCRIPTION_MAX = 100
+const DESCRIPTION_MAX = 100;
 const truncatedDescription = computed(() => {
-  const d = (form.value.description ?? '').trim()
-  if (d.length <= DESCRIPTION_MAX) return d
-  return d.slice(0, DESCRIPTION_MAX).trimEnd() + '…'
-})
+  const d = (form.value.description ?? "").trim();
+  if (d.length <= DESCRIPTION_MAX) return d;
+  return d.slice(0, DESCRIPTION_MAX).trimEnd() + "…";
+});
 
 const webhookUrl = computed(() => {
-  if (!form.value.token) return ''
-  const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  return `${origin}/api/webhooks/${form.value.token}`
-})
+  if (!form.value.token) return "";
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  return `${origin}/api/webhooks/${form.value.token}`;
+});
 
 // ── Edit / delete / status ─────────────────────────────────────────────────
-const confirmingDelete = ref(false)
+const confirmingDelete = ref(false);
 
 const openEditAlert = () => {
-  if (!form.value.id) return
-  navigateTo(`/alerts/${form.value.id}?edit=1`)
-}
+  if (!form.value.id) return;
+  navigateTo(`/alerts/${form.value.id}?edit=1`);
+};
 
 const onToggleStatus = async () => {
-  if (!isExisting.value || !canActivate.value) return
-  const next = form.value.status === AlertStatus.Active ? AlertStatus.Inactive : AlertStatus.Active
+  if (!isExisting.value || !canActivate.value) return;
+  const next =
+    form.value.status === AlertStatus.Active
+      ? AlertStatus.Inactive
+      : AlertStatus.Active;
   try {
-    const newStatus = await setStatus(form.value.id as number, next)
+    const newStatus = await setStatus(form.value.id as number, next);
     // Optimistic local update. Mutating the alert in-place in the shared
     // alerts ref avoids re-evaluating the page's `alert` computed, which
     // would otherwise cascade through fillFrom and flash the form.
-    form.value.status = newStatus
-    const idx = alerts.value.findIndex(a => a.id === form.value.id)
-    if (idx >= 0 && alerts.value[idx]) alerts.value[idx].status = newStatus
+    form.value.status = newStatus;
+    const idx = alerts.value.findIndex((a) => a.id === form.value.id);
+    if (idx >= 0 && alerts.value[idx]) alerts.value[idx].status = newStatus;
   } catch (error: any) {
-    console.error('Error toggling:', error)
+    console.error("Error toggling:", error);
   }
-}
+};
 
 const onDelete = async () => {
   try {
-    await deleteAlert(form.value.id as number)
-    confirmingDelete.value = false
-    await fetchAlerts()
-    navigateTo('/')
+    await deleteAlert(form.value.id as number);
+    confirmingDelete.value = false;
+    await fetchAlerts();
+    navigateTo("/");
   } catch (error: any) {
-    console.error('Error deleting:', error)
+    console.error("Error deleting:", error);
   }
-}
+};
 
 // ── Per-bundle edit modal ──────────────────────────────────────────────────
-const editingBundleIndex = ref<number | null>(null)
-const editingBundle      = computed<BundleModel | null>(() =>
+const editingBundleIndex = ref<number | null>(null);
+const editingBundle = computed<BundleModel | null>(() =>
   editingBundleIndex.value !== null
-    ? form.value.bundles[editingBundleIndex.value] ?? null
+    ? (form.value.bundles[editingBundleIndex.value] ?? null)
     : null,
-)
+);
 
-const openBundleEditor   = (index: number) => { editingBundleIndex.value = index }
-const closeBundleEditor  = () => { editingBundleIndex.value = null }
+const openBundleEditor = (index: number) => {
+  editingBundleIndex.value = index;
+};
+const closeBundleEditor = () => {
+  editingBundleIndex.value = null;
+};
 
-const onSaveBundle = async ({ index, bundle }: { index: number; bundle: BundleModel }) => {
-  if (!form.value.id) return
+const onSaveBundle = async ({
+  index,
+  bundle,
+}: {
+  index: number;
+  bundle: BundleModel;
+}) => {
+  if (!form.value.id) return;
   // Patch only this bundle on the local form; the payload below carries
   // the user's intended state to the backend.
-  const updated = form.value.bundles.map((b, i) => (i === index ? bundle : b))
+  const updated = form.value.bundles.map((b, i) => (i === index ? bundle : b));
   const payload = {
     id: form.value.id,
     title: form.value.title,
@@ -109,28 +128,29 @@ const onSaveBundle = async ({ index, bundle }: { index: number; bundle: BundleMo
     input: form.value.input,
     status: form.value.status,
     alertParams: form.value.alertParams ?? {},
-    bundles: updated.map(b => ({
+    bundles: updated.map((b) => ({
       id: b.id,
       name: b.name,
       formating: b.formating,
       custom_script: b.custom_script,
-      discussion_list: b.discussion_list.map(d => d.id),
+      discussion_list: b.discussion_list.map((d) => d.id),
     })),
-  }
+  };
   try {
-    await saveAlert(payload, { isExisting: true })
-    await fetchAlerts()
-    closeBundleEditor()
+    await saveAlert(payload, { isExisting: true });
+    await fetchAlerts();
+    closeBundleEditor();
   } catch (error: any) {
-    console.error('Error saving bundle:', error)
-    alert(`${t('editor.errors.savingBundle')}\n\n${error.data?.message || error.message || t('common.unknownError')}`)
+    console.error("Error saving bundle:", error);
+    alert(
+      `${t("editor.errors.savingBundle")}\n\n${error.data?.message || error.message || t("common.unknownError")}`,
+    );
   }
-}
+};
 </script>
 
 <template>
   <div class="panel editor">
-
     <ConfirmDialog
       :open="confirmingDelete"
       :title="$t('wizard.deleteModal.title')"
@@ -187,7 +207,6 @@ const onSaveBundle = async ({ index, bundle }: { index: number; bundle: BundleMo
         :alertId="form.id"
       />
     </div>
-
   </div>
 </template>
 

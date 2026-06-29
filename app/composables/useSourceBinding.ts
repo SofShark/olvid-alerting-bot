@@ -1,8 +1,8 @@
-import { computed, type Ref, type WritableComputedRef } from 'vue'
-import { Source }                          from '#shared/types/source'
-import type { AlertModel }                 from '#shared/types/alert'
-import { PollingFormat }                   from '#shared/types/polling'
-import { blankCondition }                  from '#shared/condition/migrate'
+import { computed, type Ref, type WritableComputedRef } from "vue";
+import { Source } from "#shared/types/source";
+import type { AlertModel } from "#shared/types/alert";
+import { PollingFormat } from "#shared/types/polling";
+import { blankCondition } from "#shared/condition/migrate";
 
 /**
  * v-model binding for the source picker. Reading is `form.input` verbatim.
@@ -17,29 +17,35 @@ import { blankCondition }                  from '#shared/condition/migrate'
  *
  * The empty string represents the blank-form state (no source picked yet).
  */
-export const useSourceBinding = (form: Ref<AlertModel>): WritableComputedRef<string> =>
+export const useSourceBinding = (
+  form: Ref<AlertModel>,
+): WritableComputedRef<string> =>
   computed({
     get: () => form.value.input,
     set: (src) => {
       if (!src) {
-        form.value.input = ''
-        form.value.alertParams = undefined
-        return
+        form.value.input = "";
+        form.value.alertParams = undefined;
+        return;
       }
-      form.value.input = src as Source
+      form.value.input = src as Source;
       if (src === Source.Polling) {
-        const prev = form.value.alertParams
+        const prev = form.value.alertParams;
         form.value.alertParams = {
-          url:             prev?.url             ?? '',
-          format:          prev?.format          ?? PollingFormat.XML,
+          url: prev?.url ?? "",
+          format: prev?.format ?? PollingFormat.XML,
           intervalSeconds: prev?.intervalSeconds ?? 300,
-          condition:       prev?.condition       ?? blankCondition(),
+          condition: prev?.condition ?? blankCondition(),
           // Preserve any runtime state the engine may have left behind.
-          ...(prev?._baseline !== undefined ? { _baseline: prev._baseline } : {}),
-          ...(prev?._lastHash !== undefined ? { _lastHash: prev._lastHash } : {}),
-        }
+          ...(prev?._baseline !== undefined
+            ? { _baseline: prev._baseline }
+            : {}),
+          ...(prev?._lastHash !== undefined
+            ? { _lastHash: prev._lastHash }
+            : {}),
+        };
       } else {
-        form.value.alertParams = undefined
+        form.value.alertParams = undefined;
       }
     },
-  })
+  });

@@ -1,34 +1,37 @@
 <script setup>
-import { onMounted, computed } from 'vue'
-const route = useRoute()
-const { alerts, fetchAlerts, fetchDiscussions } = useAlerts()
-const { collapsed: sidebarCollapsed } = useSidebar()
+import { onMounted, computed } from "vue";
+const route = useRoute();
+const { alerts, fetchAlerts, fetchDiscussions } = useAlerts();
+const { collapsed: sidebarCollapsed } = useSidebar();
 
 // Language switching now lives inside <LanguageToggle/> — same chrome as
 // ThemeToggle, dropdown of available locales. Layout no longer needs to
 // know about i18n internals.
 
 onMounted(() => {
-  fetchAlerts()
-  fetchDiscussions()
-})
+  fetchAlerts();
+  fetchDiscussions();
+});
 
 // Highlight the sidebar row that matches the current route.
 const selectedId = computed(() => {
-  const id = route.params.id
-  return id ? Number(id) : null
-})
+  const id = route.params.id;
+  return id ? Number(id) : null;
+});
 </script>
 
 <template>
   <div class="layout-dark">
-
     <header class="top-nav">
       <div class="nav-content">
         <div class="brand">
           <span class="logo-text">
-            <img src="../assets/olvid_name_logo.png" alt="Olvid" class="olvid-logo-img" />
-            {{$t('topNav.title')}}
+            <img
+              src="../assets/olvid_name_logo.png"
+              alt="Olvid"
+              class="olvid-logo-img"
+            />
+            {{ $t("topNav.title") }}
           </span>
         </div>
 
@@ -41,25 +44,21 @@ const selectedId = computed(() => {
 
     <main class="main-content">
       <div class="split" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
-
         <div class="split-left">
           <AlertSidebar
             :alerts="alerts"
             :selected-id="selectedId"
-            @select="a => navigateTo('/alerts/' + a.id)"
+            @select="(a) => navigateTo('/alerts/' + a.id)"
             @new="navigateTo('/alerts/new')"
           />
         </div>
 
         <div class="split-right">
-          <slot 
-          :key="route.path"/>
+          <slot :key="route.path" />
           <!-- :key="route.path"-->
         </div>
-
       </div>
     </main>
-
   </div>
 </template>
 
@@ -84,15 +83,32 @@ const selectedId = computed(() => {
   z-index: 100;
 }
 .nav-content {
-  width: 100%; margin: 0 auto; padding: 0 24px;
-  display: flex; justify-content: space-between; align-items: center;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
-.brand { display: flex; align-items: center; gap: 12px; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 .logo-text {
-  display: flex; align-items: flex-end; gap: 15px;
-  font-size: 14px; color: var(--color-text-muted); font-weight: 500;
+  display: flex;
+  align-items: flex-end;
+  gap: 15px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  font-weight: 500;
 }
-.olvid-logo-img { margin-left: 15px; width: 150px; height: auto; object-fit: contain; }
+.olvid-logo-img {
+  margin-left: 15px;
+  width: 150px;
+  height: auto;
+  object-fit: contain;
+}
 
 .nav-actions {
   display: flex;
@@ -124,7 +140,8 @@ const selectedId = computed(() => {
 .split.sidebar-collapsed {
   --sidebar-w: 64px;
 }
-.split-left, .split-right {
+.split-left,
+.split-right {
   min-height: 0;
   height: 100%;
   overflow-y: auto;
@@ -146,6 +163,4 @@ const selectedId = computed(() => {
 .split-right {
   padding: 18px 18px 0;
 }
-
-
 </style>

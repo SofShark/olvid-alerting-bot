@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { BundleModel } from '#shared/types/bundle'
+import { computed } from "vue";
+import type { BundleModel } from "#shared/types/bundle";
 
 /*
   One row in the view-mode bundle table.
@@ -11,28 +11,32 @@ import type { BundleModel } from '#shared/types/bundle'
 */
 
 const props = defineProps<{
-  bundle: BundleModel
-  index:  number
-}>()
+  bundle: BundleModel;
+  index: number;
+}>();
 
-defineEmits<{ (e: 'edit', index: number): void }>()
+defineEmits<{ (e: "edit", index: number): void }>();
 
-const { formatLabel }   = useFormatLabel()
-const { bundleStatus }  = useBundleStatus()
+const { formatLabel } = useFormatLabel();
+const { bundleStatus } = useBundleStatus();
 
-const status = computed(() => bundleStatus(props.bundle))
-const displayName = computed(() => props.bundle.name || `Bundle ${props.index + 1}`)
+const status = computed(() => bundleStatus(props.bundle));
+const displayName = computed(
+  () => props.bundle.name || `Bundle ${props.index + 1}`,
+);
 
 // Destinations cell — first two names inline, overflow collapses into a
 // "+N discussions" pill with the full list on hover (title attribute).
-const firstTwo  = computed(() => props.bundle.discussion_list.slice(0, 2))
-const overflow  = computed(() => props.bundle.discussion_list.slice(2))
-const overflowTitle = computed(() => overflow.value.map(d => d.title).join('\n'))
+const firstTwo = computed(() => props.bundle.discussion_list.slice(0, 2));
+const overflow = computed(() => props.bundle.discussion_list.slice(2));
+const overflowTitle = computed(() =>
+  overflow.value.map((d) => d.title).join("\n"),
+);
 </script>
 
 <template>
   <div class="bundles-row">
-    <div class="cell-index">{{ String(index + 1).padStart(2, '0') }}</div>
+    <div class="cell-index">{{ String(index + 1).padStart(2, "0") }}</div>
 
     <div class="cell-title-wrap">
       <span
@@ -53,19 +57,22 @@ const overflowTitle = computed(() => overflow.value.map(d => d.title).join('\n')
         v-if="bundle.discussion_list.length === 0"
         class="dest-empty"
         title="No destinations set"
-      >No destinations</span>
+        >No destinations</span
+      >
       <template v-else>
         <span
           v-for="d in firstTwo"
           :key="d.id"
           class="dest-chip"
           :title="d.title"
-        >{{ d.title }}</span>
+          >{{ d.title }}</span
+        >
         <span
           v-if="overflow.length > 0"
           class="dest-more"
           :title="overflowTitle"
-        >+{{ overflow.length }} discussions</span>
+          >+{{ overflow.length }} discussions</span
+        >
       </template>
     </div>
 
@@ -90,7 +97,9 @@ const overflowTitle = computed(() => overflow.value.map(d => d.title).join('\n')
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition:
+    box-shadow 0.2s,
+    border-color 0.2s;
 }
 .bundles-row:hover {
   border-color: var(--color-border-default);
@@ -115,9 +124,15 @@ const overflowTitle = computed(() => overflow.value.map(d => d.title).join('\n')
   border-radius: 50%;
   flex-shrink: 0;
 }
-.pip-ready     { background: var(--color-success); }
-.pip-no-dest   { background: var(--color-warning); }
-.pip-no-script { background: var(--color-warning); }
+.pip-ready {
+  background: var(--color-success);
+}
+.pip-no-dest {
+  background: var(--color-warning);
+}
+.pip-no-script {
+  background: var(--color-warning);
+}
 .cell-title {
   font-size: var(--text-base);
   font-weight: 600;
@@ -128,7 +143,9 @@ const overflowTitle = computed(() => overflow.value.map(d => d.title).join('\n')
   min-width: 0;
 }
 
-.cell-format { min-width: 0; }
+.cell-format {
+  min-width: 0;
+}
 .format-chip {
   display: inline-block;
   background: var(--color-accent-soft);
@@ -191,7 +208,10 @@ const overflowTitle = computed(() => overflow.value.map(d => d.title).join('\n')
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background-color .15s, color .15s, border-color .15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 }
 .cell-edit:hover {
   background: var(--color-border-subtle);

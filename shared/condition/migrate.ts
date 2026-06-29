@@ -22,42 +22,43 @@ import {
   ConditionOperator,
   OPERATORS_NEEDING_VALUE,
   type PollingCondition,
-} from '../types/condition'
+} from "../types/condition";
 
 export const blankCondition = (): PollingCondition => ({
-  kind:        ConditionKind.None,
-  paths:       [],
-  operator:    ConditionOperator.Changed,
+  kind: ConditionKind.None,
+  paths: [],
+  operator: ConditionOperator.Changed,
   aggregation: ConditionAggregation.All,
-})
+});
 
 export function migrateCondition(c: any): PollingCondition {
-  const out = blankCondition()
-  if (!c || typeof c !== 'object') return out
+  const out = blankCondition();
+  if (!c || typeof c !== "object") return out;
 
-  out.kind = (c.kind === ConditionKind.Rule || c.kind === ConditionKind.None)
-    ? c.kind
-    : ConditionKind.None
-  if (Array.isArray(c.paths))       out.paths       = c.paths.filter(Boolean)
-  if (c.operator)                   out.operator    = c.operator as ConditionOperator
-  if (typeof c.value === 'string')  out.value       = c.value
-  if (c.aggregation)                out.aggregation = c.aggregation as ConditionAggregation
+  out.kind =
+    c.kind === ConditionKind.Rule || c.kind === ConditionKind.None
+      ? c.kind
+      : ConditionKind.None;
+  if (Array.isArray(c.paths)) out.paths = c.paths.filter(Boolean);
+  if (c.operator) out.operator = c.operator as ConditionOperator;
+  if (typeof c.value === "string") out.value = c.value;
+  if (c.aggregation) out.aggregation = c.aggregation as ConditionAggregation;
 
-  return out
+  return out;
 }
 
 export function compactCondition(c: PollingCondition): any {
   if (c.kind === ConditionKind.None) {
-    return { kind: ConditionKind.None }
+    return { kind: ConditionKind.None };
   }
   const out: any = {
-    kind:        ConditionKind.Rule,
-    paths:       c.paths,
-    operator:    c.operator,
+    kind: ConditionKind.Rule,
+    paths: c.paths,
+    operator: c.operator,
     aggregation: c.aggregation,
-  }
+  };
   if (OPERATORS_NEEDING_VALUE.has(c.operator) && c.value) {
-    out.value = c.value
+    out.value = c.value;
   }
-  return out
+  return out;
 }

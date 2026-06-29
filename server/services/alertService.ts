@@ -14,8 +14,8 @@
 // inputs at the domain level, and delegates persistence to the repository.
 // Testable without a database — pass a stubbed `alertRepository` in tests.
 
-import { AlertStatus } from '#shared/types/alert'
-import { alertRepository } from '../repositories/alertRepository'
+import { AlertStatus } from "#shared/types/alert";
+import { alertRepository } from "../repositories/alertRepository";
 
 // ── Status rules ────────────────────────────────────────────────────────────
 //
@@ -26,34 +26,38 @@ import { alertRepository } from '../repositories/alertRepository'
 //
 // The caller's intent comes from `requested` (the status value in the
 // incoming payload). We map their intent against the constraints.
-function computeStatus(input: any, bundleCount: number, requested?: string): AlertStatus {
-  if (requested === AlertStatus.Draft) return AlertStatus.Draft
-  if (!input)                          return AlertStatus.Draft
-  if (requested === AlertStatus.Active && bundleCount > 0) return AlertStatus.Active
-  return AlertStatus.Inactive
+function computeStatus(
+  input: any,
+  bundleCount: number,
+  requested?: string,
+): AlertStatus {
+  if (requested === AlertStatus.Draft) return AlertStatus.Draft;
+  if (!input) return AlertStatus.Draft;
+  if (requested === AlertStatus.Active && bundleCount > 0)
+    return AlertStatus.Active;
+  return AlertStatus.Inactive;
 }
 
 // ── Public API (drop-in surface for callers migrating off bdManager) ────────
 
 export const alertService = {
-
   /**
    * Create an alert with the right status (per `computeStatus`).
    * Persistence is delegated to the repository.
    */
   async createAlert(data: any) {
-    const bundleCount = Array.isArray(data.bundles) ? data.bundles.length : 0
-    const status      = computeStatus(data.input, bundleCount, data.status)
-    return await alertRepository.create({ ...data, status })
+    const bundleCount = Array.isArray(data.bundles) ? data.bundles.length : 0;
+    const status = computeStatus(data.input, bundleCount, data.status);
+    return await alertRepository.create({ ...data, status });
   },
 
   /**
    * Full update — recomputes status from the new input + bundle count.
    */
   async updateAlert(id: number, data: any) {
-    const bundleCount = Array.isArray(data.bundles) ? data.bundles.length : 0
-    const status      = computeStatus(data.input, bundleCount, data.status)
-    return await alertRepository.update(id, { ...data, status })
+    const bundleCount = Array.isArray(data.bundles) ? data.bundles.length : 0;
+    const status = computeStatus(data.input, bundleCount, data.status);
+    return await alertRepository.update(id, { ...data, status });
   },
 
   /**
@@ -62,15 +66,18 @@ export const alertService = {
    * Returns null if the alert doesn't exist.
    */
   async setStatus(id: number, requested: string) {
-    const existing = await alertRepository.getById(id)
-    if (!existing) return null
+    const existing = await alertRepository.getById(id);
+    if (!existing) return null;
 
-    let finalStatus = requested as AlertStatus
-    if (requested === AlertStatus.Active && (existing.bundles?.length ?? 0) === 0) {
+    let finalStatus = requested as AlertStatus;
+    if (
+      requested === AlertStatus.Active &&
+      (existing.bundles?.length ?? 0) === 0
+    ) {
       // Can't activate without a destination — fall back to inactive silently.
-      finalStatus = AlertStatus.Inactive
+      finalStatus = AlertStatus.Inactive;
     }
 
-    return await alertRepository.setStatusRaw(id, finalStatus)
+    return await alertRepository.setStatusRaw(id, finalStatus);
   },
-}
+};

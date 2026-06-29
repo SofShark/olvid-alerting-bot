@@ -16,17 +16,17 @@
  */
 // `obj` is the parsed payload tree (XML / JSON / HTML, all normalised to JS objects).
 export function expandPath(pattern: string, obj: any): string[] {
-  const parts = normalize(pattern)
-  if (parts.length === 0) return []
+  const parts = normalize(pattern);
+  if (parts.length === 0) return [];
 
-  const out: string[] = []
-  walk(obj, parts, 0, [], out)
-  return [...new Set(out)].filter(p => p.length > 0)
+  const out: string[] = [];
+  walk(obj, parts, 0, [], out);
+  return [...new Set(out)].filter((p) => p.length > 0);
 }
 
 /** True if the pattern contains at least one wildcard segment. */
 export function hasWildcard(pattern: string): boolean {
-  return normalize(pattern).some(p => p === '')
+  return normalize(pattern).some((p) => p === "");
 }
 
 /**
@@ -36,13 +36,13 @@ export function hasWildcard(pattern: string): boolean {
  * preserved as the wildcard marker at that position.
  */
 function normalize(pattern: string): string[] {
-  const out: string[] = []
-  for (const p of pattern.split('.')) {
+  const out: string[] = [];
+  for (const p of pattern.split(".")) {
     // Empty segment right after another empty → already a wildcard, skip.
-    if (p === '' && out[out.length - 1] === '') continue
-    out.push(p)
+    if (p === "" && out[out.length - 1] === "") continue;
+    out.push(p);
   }
-  return out
+  return out;
 }
 
 function walk(
@@ -53,29 +53,29 @@ function walk(
   out: string[],
 ): void {
   if (i === parts.length) {
-    out.push(current.join('.'))
-    return
+    out.push(current.join("."));
+    return;
   }
-  const part = parts[i]
+  const part = parts[i];
 
-  if (part === '') {
+  if (part === "") {
     // Wildcard: try zero-segment match (skip ahead), then one-or-more
     // (descend into each child but stay on this wildcard).
-    walk(node, parts, i + 1, current, out)
-    if (node !== null && typeof node === 'object') {
+    walk(node, parts, i + 1, current, out);
+    if (node !== null && typeof node === "object") {
       const entries: Array<[string, any]> = Array.isArray(node)
         ? node.map((v, idx) => [String(idx), v])
-        : Object.entries(node)
+        : Object.entries(node);
       for (const [k, v] of entries) {
-        walk(v, parts, i, [...current, k], out)
+        walk(v, parts, i, [...current, k], out);
       }
     }
-    return
+    return;
   }
 
   // Concrete segment: must match exactly.
-  if (node === null || typeof node !== 'object') return
-  if (!part) return
-  if (!(part in node)) return
-  walk(node[part], parts, i + 1, [...current, part], out)
+  if (node === null || typeof node !== "object") return;
+  if (!part) return;
+  if (!(part in node)) return;
+  walk(node[part], parts, i + 1, [...current, part], out);
 }

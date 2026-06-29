@@ -12,51 +12,64 @@
 // + the evaluator, and add the missing pieces (baseline persistence + bundle
 // firing via notifierService.processAlert).
 
-import { getParser } from './parsers'
-import { evaluate } from './conditions/evaluator'
-import type { RunResult } from './types'
+import { getParser } from "./parsers";
+import { evaluate } from "./conditions/evaluator";
+import type { RunResult } from "./types";
 
 async function fetchText(url: string): Promise<string> {
-  const res = await fetch(url, { method: 'GET' })
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
-  return await res.text()
+  const res = await fetch(url, { method: "GET" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+  return await res.text();
 }
 
 export const pollingEngine = {
-
   async retrieve(url: string, format: string): Promise<RunResult> {
-    if (!url)    return { ok: false, url: '', format, error: 'URL is required' }
-    if (!format) return { ok: false, url, format: '', error: 'Format is required' }
+    if (!url) return { ok: false, url: "", format, error: "URL is required" };
+    if (!format)
+      return { ok: false, url, format: "", error: "Format is required" };
 
-    const parser = getParser(format)
-    if (!parser) return { ok: false, url, format, error: `No parser available for format "${format}"` }
+    const parser = getParser(format);
+    if (!parser)
+      return {
+        ok: false,
+        url,
+        format,
+        error: `No parser available for format "${format}"`,
+      };
 
-    let raw = ''
+    let raw = "";
     try {
-      raw = await fetchText(url)
+      raw = await fetchText(url);
     } catch (e: any) {
-      console.error('[pollingEngine] fetch failed:', e)
-      return { ok: false, url, format, error: e?.message ?? 'Fetch error' }
+      console.error("[pollingEngine] fetch failed:", e);
+      return { ok: false, url, format, error: e?.message ?? "Fetch error" };
     }
 
     try {
-      const { parsed, error } = parser.parse({ raw })
-      return { ok: !error, url, format, raw, parsed, error }
+      const { parsed, error } = parser.parse({ raw });
+      return { ok: !error, url, format, raw, parsed, error };
     } catch (e: any) {
-      console.error('[pollingEngine] parse threw despite internal try/catch:', e)
-      return { ok: false, url, format, raw, error: e?.message ?? 'Parse error' }
+      console.error(
+        "[pollingEngine] parse threw despite internal try/catch:",
+        e,
+      );
+      return {
+        ok: false,
+        url,
+        format,
+        raw,
+        error: e?.message ?? "Parse error",
+      };
     }
   },
 
   async test(alert: any): Promise<RunResult> {
     // alertParams is the new name (post-refactor); fall back to alertParams
     // for any in-flight legacy alert that hasn't been re-saved yet.
-    const params = (alert?.alertParams ?? alert?.alertParams ?? {}) as any
-    const url    = params.url
-    const format = params.format
-    const r = await this.retrieve(url, format)
-
-    
+    const params = (alert?.alertParams ?? alert?.alertParams ?? {}) as any;
+    const url = params.url;
+    const format = params.format;
+    const r = await this.retrieve(url, format);
 
     // Persist BOTH outcomes (success vs failure) keyed by alert id. Failures
     // go into a separate table so a subsequent success doesn't erase the
@@ -66,34 +79,38 @@ export const pollingEngine = {
     // `r.raw === undefined` ⇒ fetch never produced bytes (network/HTTP),
     // `r.raw !== undefined && !r.parsed` ⇒ bytes arrived but parsing broke.
     if (alert?.id != null) {
-      
       if (!r.ok) {
         try {
           await alertRepository.upsertLastFailedPayload(alert.id, {
-            raw:    r.raw ?? null,
+            raw: r.raw ?? null,
             parsed: r.parsed ?? null,
-            error:  r.error ?? 'Unknown error',
-            stage:  r.raw === undefined ? 'fetch' : 'parse',
-          })
+            error: r.error ?? "Unknown error",
+            stage: r.raw === undefined ? "fetch" : "parse",
+          });
         } catch (e: any) {
-          console.error('[pollingEngine] failed to persist failure:', e?.message ?? e)
+          console.error(
+            "[pollingEngine] failed to persist failure:",
+            e?.message ?? e,
+          );
         }
-        return r
+        return r;
       }
       if (r.parsed !== undefined) {
-        
         try {
-          await alertRepository.upsertLastAlertPayload(alert.id, r.parsed)
+          await alertRepository.upsertLastAlertPayload(alert.id, r.parsed);
         } catch (e: any) {
-          console.error('[pollingEngine] failed to persist last payload:', e?.message ?? e)
+          console.error(
+            "[pollingEngine] failed to persist last payload:",
+            e?.message ?? e,
+          );
         }
       }
     } else if (!r.ok) {
-      return r
+      return r;
     }
 
-    const baseline   = params._baseline   // present once the live engine has run
-    const condResult = evaluate(params.condition, r.parsed, baseline)
-    return { ...r, condition: condResult }
+    const baseline = params._baseline; // present once the live engine has run
+    const condResult = evaluate(params.condition, r.parsed, baseline);
+    return { ...r, condition: condResult };
   },
-}
+};

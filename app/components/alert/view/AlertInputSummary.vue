@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Source }              from '#shared/types/source'
-import type { PollingParams }  from '#shared/types/polling'
+import { computed } from "vue";
+import { Source } from "#shared/types/source";
+import type { PollingParams } from "#shared/types/polling";
 
 /*
   INPUT block in view mode. Renders the alert's source-side configuration:
@@ -14,29 +14,30 @@ import type { PollingParams }  from '#shared/types/polling'
 */
 
 const props = defineProps<{
-  inputTitle:    string //TODO deprecated
-  source:        string
-  alertParams?:  PollingParams
-  webhookUrl?:   string
-}>()
+  inputTitle: string; //TODO deprecated
+  source: string;
+  alertParams?: PollingParams;
+  webhookUrl?: string;
+}>();
 
-const { intervalLabel } = useIntervalLabel()
+const { intervalLabel } = useIntervalLabel();
 
-const isPolling = computed(() => props.source === Source.Polling)
-const isWebhook = computed(() => props.source === Source.Webhook)
+const isPolling = computed(() => props.source === Source.Polling);
+const isWebhook = computed(() => props.source === Source.Webhook);
 
-const pollingInterval = computed(() => intervalLabel(props.alertParams?.intervalSeconds))
+const pollingInterval = computed(() =>
+  intervalLabel(props.alertParams?.intervalSeconds),
+);
 </script>
 
 <template>
   <div class="data-block">
     <h3 class="data-title">Configuration</h3>
-    
-    <dl class="data-grid">
 
+    <dl class="data-grid">
       <template v-if="isWebhook">
         <div v-if="webhookUrl" class="data-row">
-          <dt class="data-label">{{ $t('editor.view.fields.endpoint') }}</dt>
+          <dt class="data-label">{{ $t("editor.view.fields.endpoint") }}</dt>
           <dd class="data-value">
             <URLCopyBox :url="webhookUrl" />
           </dd>
@@ -45,33 +46,36 @@ const pollingInterval = computed(() => intervalLabel(props.alertParams?.interval
 
       <template v-else-if="isPolling">
         <div class="data-row">
-          <dt class="data-label">{{ $t('editor.view.fields.url') }}</dt>
+          <dt class="data-label">{{ $t("editor.view.fields.url") }}</dt>
           <dd class="data-value">
             <URLCopyBox :url="alertParams?.url || '——'" />
           </dd>
         </div>
         <div class="data-row">
-          <dt class="data-label">{{ $t('editor.view.fields.polling') }}</dt>
+          <dt class="data-label">{{ $t("editor.view.fields.polling") }}</dt>
           <dd class="data-value">
-            {{ alertParams?.format || $t('editor.interval.empty') }}
+            {{ alertParams?.format || $t("editor.interval.empty") }}
             <span class="dim">· {{ pollingInterval }}</span>
           </dd>
         </div>
         <div class="data-row">
-          <dt class="data-label">{{ $t('editor.view.fields.condition') }}</dt>
+          <dt class="data-label">{{ $t("editor.view.fields.condition") }}</dt>
           <dd class="data-value">
             <AlertConditionSummary :condition="alertParams?.condition" />
           </dd>
         </div>
       </template>
-
     </dl>
   </div>
 </template>
 
 <style scoped>
-.data-block { margin-bottom: var(--space-8); }
-.data-block:last-child { margin-bottom: 0; }
+.data-block {
+  margin-bottom: var(--space-8);
+}
+.data-block:last-child {
+  margin-bottom: 0;
+}
 
 .data-title {
   margin: 0;
@@ -81,22 +85,32 @@ const pollingInterval = computed(() => intervalLabel(props.alertParams?.interval
 }
 
 .data-grid {
-  margin: 0; padding: var(--space-5);
-  display: flex; flex-direction: column; gap: var(--space-5);
+  margin: 0;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
 }
 .data-row {
-  display: flex; flex-direction: column;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-2);
   padding-bottom: var(--space-4);
 }
-.data-row:last-child { border-bottom: none; padding-bottom: 0; }
+.data-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
 .data-label {
-  margin: 0; font-size: 11px; font-weight: 700;
-  letter-spacing: 0.5px; text-transform: uppercase;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   color: var(--color-text-dim);
 }
 .data-value {

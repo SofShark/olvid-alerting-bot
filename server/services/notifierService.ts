@@ -13,75 +13,83 @@
 //   - formatMessage(alert, bundle, payload) — builds the string for one
 //     bundle (also reused by the "test poll" endpoint to preview).
 
-import { Formatting }  from '#shared/types/bundle'
-import { AlertStatus } from '#shared/types/alert'
-import { buildPollingDefaultMessage } from '#shared/polling/message'
-import { formatMessage as runHandlebars } from '#shared/handlebars'
+import { Formatting } from "#shared/types/bundle";
+import { AlertStatus } from "#shared/types/alert";
+import { buildPollingDefaultMessage } from "#shared/polling/message";
+import { formatMessage as runHandlebars } from "#shared/handlebars";
 
 export const notifierService = {
-
   async getDiscussionList() {
-    return await olvidClient.getDiscussions()
+    return await olvidClient.getDiscussions();
   },
 
   // Entry point for an incoming webhook (or polling tick). The alert is
   // resolved by token / id and carries its bundles. Each bundle is one
   // output (audience + format).
   async processAlert(alert: any, payload: any) {
-    console.log(`⚙️ Processing alert #${alert.id}: ${alert.title}`)
+    console.log(`⚙️ Processing alert #${alert.id}: ${alert.title}`);
 
     if (alert.status !== AlertStatus.Active) {
-      console.log(`The alert is not active (status: ${alert.status}) — skipping`)
-      return
+      console.log(
+        `The alert is not active (status: ${alert.status}) — skipping`,
+      );
+      return;
     }
 
-    const bundles = alert.bundles ?? []
+    const bundles = alert.bundles ?? [];
     if (bundles.length === 0) {
-      console.warn(`⚠️ Alert #${alert.id} is active but has no bundles`)
-      return
+      console.warn(`⚠️ Alert #${alert.id} is active but has no bundles`);
+      return;
     }
 
     // Fire every bundle in parallel.
     await Promise.all(
-      bundles.map((bundle: any) => this.processBundle(alert, bundle, payload))
-    )
+      bundles.map((bundle: any) => this.processBundle(alert, bundle, payload)),
+    );
   },
 
   async processBundle(alert: any, bundle: any, payload: any) {
     // discussion_list arrives from Prisma as BigInt[]; normalise just in case.
-    const discussions = (bundle.discussion_list ?? []).map((id: any) => BigInt(id))
+    const discussions = (bundle.discussion_list ?? []).map((id: any) =>
+      BigInt(id),
+    );
 
     if (discussions.length === 0) {
-      console.warn(`⚠️ Bundle #${bundle.id} of alert #${alert.id} has no discussion targets`)
-      return
+      console.warn(
+        `⚠️ Bundle #${bundle.id} of alert #${alert.id} has no discussion targets`,
+      );
+      return;
     }
 
-    const message = this.formatMessage(alert, bundle, payload)
-    await olvidClient.sendMessage(discussions, message)
+    const message = this.formatMessage(alert, bundle, payload);
+    await olvidClient.sendMessage(discussions, message);
   },
 
   formatMessage(alert: any, bundle: any, payload: any): string {
-    const jsonString = JSON.stringify(payload, null, 2)
+    const jsonString = JSON.stringify(payload, null, 2);
 
     switch (bundle.formating) {
       case Formatting.PollingDefault:
-        return buildPollingDefaultMessage(alert, payload)
+        return buildPollingDefaultMessage(alert, payload);
 
       case Formatting.PollingCustom:
       case Formatting.Custom: {
         try {
-          return runHandlebars(bundle.custom_script, payload)
+          return runHandlebars(bundle.custom_script, payload);
         } catch (error) {
-          console.error(`❌ [Notifier] Error running script for alert **${alert.title}**:`, error)
-          return `🚨 An error occurred while running the custom script for alert **${alert.title}**\n\n\`\`\`json\n${JSON.stringify(payload, null, 2)}\n\`\`\``
+          console.error(
+            `❌ [Notifier] Error running script for alert **${alert.title}**:`,
+            error,
+          );
+          return `🚨 An error occurred while running the custom script for alert **${alert.title}**\n\n\`\`\`json\n${JSON.stringify(payload, null, 2)}\n\`\`\``;
         }
       }
 
       case Formatting.Simple:
-        return `🚨 ${alert.title}\n${alert.description ?? ''}\n`
+        return `🚨 ${alert.title}\n${alert.description ?? ""}\n`;
 
       default:
-        return `\`\`\`json\n${jsonString}\n\`\`\``
+        return `\`\`\`json\n${jsonString}\n\`\`\``;
     }
   },
-}
+};

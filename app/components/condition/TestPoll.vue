@@ -1,57 +1,71 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { pollingService } from '~/utils/pollingService'
+import { ref } from "vue";
+import { pollingService } from "~/utils/pollingService";
 
-const t = useI18n().t
+const t = useI18n().t;
 
 // Shared label helpers live in app/composables/. Centralising the
 // Formatting → human label switch here means a single source of truth
 // (was duplicated in AlertEditor + here pre-refactor).
-const { formatLabel } = useFormatLabel()
+const { formatLabel } = useFormatLabel();
 
 const props = defineProps<{
-  alertId: number | null
-}>()
+  alertId: number | null;
+}>();
 
-const testing    = ref(false)
-const testResult = ref<any>(null)
+const testing = ref(false);
+const testResult = ref<any>(null);
 
 const runTestPoll = async () => {
-  if (!props.alertId) return
-  testing.value = true
+  if (!props.alertId) return;
+  testing.value = true;
   try {
-    testResult.value = await pollingService.testOnScreen(props.alertId)
+    testResult.value = await pollingService.testOnScreen(props.alertId);
   } catch (error: any) {
     testResult.value = {
       ok: false,
-      error: error?.data?.statusMessage ?? error?.message ?? t('editor.errors.testFailed')
-    }
+      error:
+        error?.data?.statusMessage ??
+        error?.message ??
+        t("editor.errors.testFailed"),
+    };
   } finally {
-    testing.value = false
+    testing.value = false;
   }
-}
+};
 </script>
 
 <template>
   <div class="test-panel">
     <p class="test-intro">
-        {{ $t('editor.testPanel.intro') }}
+      {{ $t("editor.testPanel.intro") }}
     </p>
     <button
-        type="button"
-        class="btn btn-secondary btn-sm test-btn"
-        :disabled="testing"
-        @click="runTestPoll"
+      type="button"
+      class="btn btn-secondary btn-sm test-btn"
+      :disabled="testing"
+      @click="runTestPoll"
     >
-      {{ testing ? $t('editor.testPanel.pollingButton') : $t('editor.testPanel.runButton') }}
+      {{
+        testing
+          ? $t("editor.testPanel.pollingButton")
+          : $t("editor.testPanel.runButton")
+      }}
     </button>
   </div>
 
   <div v-if="testResult" class="overlay" @click.self="testResult = null">
     <div class="overlay-box test-modal">
       <div class="modal-head">
-        <h4>{{ $t('editor.testModal.title') }}</h4>
-        <button type="button" class="modal-close" :title="$t('editor.bundleModal.closeTitle')" @click="testResult = null">✕</button>
+        <h4>{{ $t("editor.testModal.title") }}</h4>
+        <button
+          type="button"
+          class="modal-close"
+          :title="$t('editor.bundleModal.closeTitle')"
+          @click="testResult = null"
+        >
+          ✕
+        </button>
       </div>
 
       <div class="modal-body">
@@ -60,7 +74,6 @@ const runTestPoll = async () => {
         </div>
 
         <template v-else>
-
           <!-- Verdict card — the top-line answer: did this poll fire? -->
           <div
             class="verdict-card"
@@ -73,9 +86,11 @@ const runTestPoll = async () => {
                 <span v-else>DID NOT FIRE</span>
               </span>
               <span class="verdict-headline">
-                {{ testResult.condition?.fired
-                    ? $t('editor.testModal.conditionMet')
-                    : $t('editor.testModal.conditionNotMet') }}
+                {{
+                  testResult.condition?.fired
+                    ? $t("editor.testModal.conditionMet")
+                    : $t("editor.testModal.conditionNotMet")
+                }}
               </span>
             </div>
             <p v-if="testResult.condition?.reason" class="verdict-reason">
@@ -85,29 +100,39 @@ const runTestPoll = async () => {
 
           <!-- Per-field breakdown — collapsed by default so the verdict
                + bundle messages dominate the screen on first open. -->
-          <details v-if="testResult.condition?.baselineValue?.length" class="result-section collapsible">
+          <details
+            v-if="testResult.condition?.baselineValue?.length"
+            class="result-section collapsible"
+          >
             <summary class="result-section-title">
-              {{ $t('editor.testModal.perFieldBreakdown') }}
-              <span class="result-count">({{ testResult.condition.baselineValue.length }})</span>
+              {{ $t("editor.testModal.perFieldBreakdown") }}
+              <span class="result-count"
+                >({{ testResult.condition.baselineValue.length }})</span
+              >
             </summary>
             <ul class="verdict-list">
               <li
-                  v-for="(v, i) in testResult.condition.baselineValue"
-                  :key="i"
-                  :class="v.fired ? 'fired' : 'not-fired'"
-                >
-                  <span class="verdict-icon">{{ v.fired ? '✓' : '✗' }}</span>
-                  <code class="verdict-path">{{ v.path }}</code>
-                  <span class="verdict-detail">{{ v.detail }}</span>
-                </li>
+                v-for="(v, i) in testResult.condition.baselineValue"
+                :key="i"
+                :class="v.fired ? 'fired' : 'not-fired'"
+              >
+                <span class="verdict-icon">{{ v.fired ? "✓" : "✗" }}</span>
+                <code class="verdict-path">{{ v.path }}</code>
+                <span class="verdict-detail">{{ v.detail }}</span>
+              </li>
             </ul>
           </details>
 
           <!-- Per-bundle messages — one box per bundle. -->
-          <section v-if="testResult.bundleMessages?.length" class="result-section">
+          <section
+            v-if="testResult.bundleMessages?.length"
+            class="result-section"
+          >
             <h5 class="result-section-title">
-              {{ $t('editor.view.dividers.messagesPerBundle') }}
-              <span class="result-count">({{ testResult.bundleMessages.length }})</span>
+              {{ $t("editor.view.dividers.messagesPerBundle") }}
+              <span class="result-count"
+                >({{ testResult.bundleMessages.length }})</span
+              >
             </h5>
             <div class="bundle-messages">
               <div
@@ -116,15 +141,25 @@ const runTestPoll = async () => {
                 class="bundle-message"
               >
                 <div class="bundle-message-head">
-                  <span class="bundle-tag">{{ $t('editor.view.bundleTag', { n: bm.index + 1 }) }}</span>
+                  <span class="bundle-tag">{{
+                    $t("editor.view.bundleTag", { n: bm.index + 1 })
+                  }}</span>
                   <span class="bundle-message-meta">
-                    {{ bm.discussionCount === 1
-                        ? $t('editor.testModal.discussionsCount',       { n: bm.discussionCount })
-                        : $t('editor.testModal.discussionsCountPlural', { n: bm.discussionCount }) }}
+                    {{
+                      bm.discussionCount === 1
+                        ? $t("editor.testModal.discussionsCount", {
+                            n: bm.discussionCount,
+                          })
+                        : $t("editor.testModal.discussionsCountPlural", {
+                            n: bm.discussionCount,
+                          })
+                    }}
                     · {{ formatLabel(bm.formating) }}
                   </span>
                 </div>
-                <pre v-if="!bm.error" class="bundle-message-body">{{ bm.message }}</pre>
+                <pre v-if="!bm.error" class="bundle-message-body">{{
+                  bm.message
+                }}</pre>
                 <pre v-else class="bundle-message-error">⚠ {{ bm.error }}</pre>
               </div>
             </div>
@@ -132,17 +167,16 @@ const runTestPoll = async () => {
 
           <!-- Raw parsed payload — collapsed by default; debug surface. -->
           <details class="test-raw">
-            <summary>{{ $t('editor.testModal.parsedSourceRaw') }}</summary>
+            <summary>{{ $t("editor.testModal.parsedSourceRaw") }}</summary>
             <pre>{{ JSON.stringify(testResult.parsed, null, 2) }}</pre>
           </details>
         </template>
       </div>
-
     </div>
   </div>
-</template>   
+</template>
 
-<style scoped>  
+<style scoped>
 /* ── Test poll panel ────────────────────────────── */
 .test-panel {
   display: flex;
@@ -151,10 +185,21 @@ const runTestPoll = async () => {
   align-items: flex-start; /* Changed from center to flex-start to align with typical layouts */
   padding: var(--space-4) 0;
 }
-.test-intro { margin: 0; color: var(--color-text-muted); font-size: var(--text-md); line-height: 1.5; }
-.test-btn   { align-self: flex-start; }
+.test-intro {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  line-height: 1.5;
+}
+.test-btn {
+  align-self: flex-start;
+}
 
-.test-error { color: var(--color-danger-bright); font-size: var(--text-md); font-family: var(--font-mono); }
+.test-error {
+  color: var(--color-danger-bright);
+  font-size: var(--text-md);
+  font-family: var(--font-mono);
+}
 
 /* ── Modal shell ─────────────────────────────────────────────────
  * Wider than the bundle-edit modal because content here is dense:
@@ -205,7 +250,9 @@ const runTestPoll = async () => {
   font-size: var(--text-lg);
   cursor: pointer;
   border-radius: var(--radius-sm);
-  transition: background-color .15s, color .15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
   flex-shrink: 0;
 }
 .modal-close:hover {
@@ -233,8 +280,13 @@ const runTestPoll = async () => {
   border: 1px solid var(--color-border-subtle);
   border-left-width: 4px;
 }
-.verdict-card.fired      { border-left-color: var(--color-success); background: var(--color-success-soft); }
-.verdict-card.not-fired  { border-left-color: var(--color-text-dim); }
+.verdict-card.fired {
+  border-left-color: var(--color-success);
+  background: var(--color-success-soft);
+}
+.verdict-card.not-fired {
+  border-left-color: var(--color-text-dim);
+}
 
 .verdict-row {
   display: flex;
@@ -256,8 +308,12 @@ const runTestPoll = async () => {
   border: 1px solid currentColor;
   flex-shrink: 0;
 }
-.verdict-card.fired     .verdict-badge { color: var(--color-success); }
-.verdict-card.not-fired .verdict-badge { color: var(--color-text-dim); }
+.verdict-card.fired .verdict-badge {
+  color: var(--color-success);
+}
+.verdict-card.not-fired .verdict-badge {
+  color: var(--color-text-dim);
+}
 
 .verdict-dot {
   width: 8px;
@@ -315,23 +371,25 @@ const runTestPoll = async () => {
 .result-section.collapsible > summary {
   cursor: pointer;
   user-select: none;
-  list-style: none;          /* hide native marker */
+  list-style: none; /* hide native marker */
   display: flex;
   align-items: center;
   gap: var(--space-2);
 }
-.result-section.collapsible > summary::-webkit-details-marker { display: none; }
+.result-section.collapsible > summary::-webkit-details-marker {
+  display: none;
+}
 .result-section.collapsible > summary::before {
-  content: '';
+  content: "";
   width: 0;
   height: 0;
-  border-left:  4px solid transparent;
+  border-left: 4px solid transparent;
   border-right: 4px solid transparent;
-  border-top:   5px solid currentColor;
+  border-top: 5px solid currentColor;
   margin-right: 4px;
   opacity: 0.6;
   transform: rotate(-90deg);
-  transition: transform .15s ease;
+  transition: transform 0.15s ease;
 }
 .result-section.collapsible[open] > summary::before {
   transform: rotate(0deg);
@@ -365,8 +423,12 @@ const runTestPoll = async () => {
   font-size: var(--text-base);
   width: 1ch;
 }
-.verdict-list li.fired      .verdict-icon { color: var(--color-success); }
-.verdict-list li.not-fired  .verdict-icon { color: var(--color-text-dim); }
+.verdict-list li.fired .verdict-icon {
+  color: var(--color-success);
+}
+.verdict-list li.not-fired .verdict-icon {
+  color: var(--color-text-dim);
+}
 .verdict-path {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
@@ -406,7 +468,10 @@ const runTestPoll = async () => {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
-.bundle-tag { font-weight: 600; font-size: var(--text-sm); }
+.bundle-tag {
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
 .bundle-message-body {
   margin: 0;
   padding: var(--space-4) var(--space-5);
@@ -431,9 +496,20 @@ const runTestPoll = async () => {
 }
 
 /* Raw details */
-.test-raw { color: var(--color-text-dim); font-size: var(--text-md); margin-top: var(--space-4); }
-.test-raw summary { cursor: pointer; user-select: none; padding: 2px 0; font-weight: 600; }
-.test-raw summary:hover { color: var(--color-accent-text); }
+.test-raw {
+  color: var(--color-text-dim);
+  font-size: var(--text-md);
+  margin-top: var(--space-4);
+}
+.test-raw summary {
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 0;
+  font-weight: 600;
+}
+.test-raw summary:hover {
+  color: var(--color-accent-text);
+}
 .test-raw pre {
   margin: var(--space-2) 0 0;
   padding: var(--space-4);
@@ -445,5 +521,4 @@ const runTestPoll = async () => {
   max-height: 240px;
   overflow: auto;
 }
-
 </style>

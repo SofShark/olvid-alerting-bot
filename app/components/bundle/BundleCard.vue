@@ -1,65 +1,68 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { isPollingSource }                       from '#shared/types/source'
-import { Formatting, type BundleModel }          from '#shared/types/bundle'
-import { type DiscussionModel }                  from '#shared/types/discussion'
-import { buildPollingDefaultMessage } from '#shared/polling/message'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import { ref, computed, watch } from "vue";
+import { isPollingSource } from "#shared/types/source";
+import { Formatting, type BundleModel } from "#shared/types/bundle";
+import { type DiscussionModel } from "#shared/types/discussion";
+import { buildPollingDefaultMessage } from "#shared/polling/message";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const props = withDefaults(defineProps<{
-  bundle: BundleModel
-  availableDiscussions?: DiscussionModel[]
-  discussionsLoading?: boolean
-  inputSource?: string
-  index: number
-  hideRemove?: boolean
-  /** True when this card is rendered inside the alert *view* — disable all
-   *  controls so the user inspects without mutating. Implies hideRemove. */
-  readonly?: boolean
-  /** When the card is readonly AND editable, show an "Edit" button in the
-   *  header so the parent can open its own editor for this bundle. */
-  editable?: boolean
-  /** Polling alerts pass their condition + a live payload so we can preview the default message. */
-  alertContext?: any
-  pollPayload?: any
-  alertParams?: any
-}>(), {
-  availableDiscussions: () => [],
-  discussionsLoading: false,
-  inputSource: '', 
-  hideRemove: false,
-  readonly: false,
-  editable: false,
-  alertContext: null,
-  pollPayload: null,
-  alertParams: null,
-})
+const props = withDefaults(
+  defineProps<{
+    bundle: BundleModel;
+    availableDiscussions?: DiscussionModel[];
+    discussionsLoading?: boolean;
+    inputSource?: string;
+    index: number;
+    hideRemove?: boolean;
+    /** True when this card is rendered inside the alert *view* — disable all
+     *  controls so the user inspects without mutating. Implies hideRemove. */
+    readonly?: boolean;
+    /** When the card is readonly AND editable, show an "Edit" button in the
+     *  header so the parent can open its own editor for this bundle. */
+    editable?: boolean;
+    /** Polling alerts pass their condition + a live payload so we can preview the default message. */
+    alertContext?: any;
+    pollPayload?: any;
+    alertParams?: any;
+  }>(),
+  {
+    availableDiscussions: () => [],
+    discussionsLoading: false,
+    inputSource: "",
+    hideRemove: false,
+    readonly: false,
+    editable: false,
+    alertContext: null,
+    pollPayload: null,
+    alertParams: null,
+  },
+);
 
-const emit = defineEmits(['update:bundle', 'remove', 'edit'])
+const emit = defineEmits(["update:bundle", "remove", "edit"]);
 
 const patch = (changes: Partial<BundleModel>) =>
-  emit('update:bundle', { ...props.bundle, ...changes })
+  emit("update:bundle", { ...props.bundle, ...changes });
 
 // Bundle title — surfaces the Bundle.name DB column in the edit UI.
 // Optional; the view-mode falls back to "Bundle N" when empty.
 const bundleName = computed<string>({
-  get: () => props.bundle.name ?? '',
+  get: () => props.bundle.name ?? "",
   set: (val) => patch({ name: val.trim() || undefined }),
-})
+});
 
 const discussions = computed<DiscussionModel[]>({
   get: () => props.bundle.discussion_list,
-  set: (val) => patch({ discussion_list: val })
-})
+  set: (val) => patch({ discussion_list: val }),
+});
 
 const formating = computed<Formatting>({
   get: () => props.bundle.formating,
-  set: (val) => patch({ formating: val })
-})
+  set: (val) => patch({ formating: val }),
+});
 
-const isPolling = computed(() => isPollingSource(props.inputSource))
+const isPolling = computed(() => isPollingSource(props.inputSource));
 
 // Option set offered by the format dropdown. Driven by the alert's source —
 // polling alerts get the watched-field-aware formats, everything else gets
@@ -67,15 +70,24 @@ const isPolling = computed(() => isPollingSource(props.inputSource))
 const formatOptions = computed(() =>
   isPolling.value
     ? [
-        { value: Formatting.PollingDefault, label: t('bundleCard.format.pollingDefault') },
-        { value: Formatting.PollingCustom,  label: t('bundleCard.format.pollingCustom') },
+        {
+          value: Formatting.PollingDefault,
+          label: t("bundleCard.format.pollingDefault"),
+        },
+        {
+          value: Formatting.PollingCustom,
+          label: t("bundleCard.format.pollingCustom"),
+        },
       ]
     : [
-        { value: Formatting.Unformatted, label: t('bundleCard.format.unformatted') },
-        { value: Formatting.Simple,      label: t('bundleCard.format.simple') },
-        { value: Formatting.Custom,      label: t('bundleCard.format.custom') },
+        {
+          value: Formatting.Unformatted,
+          label: t("bundleCard.format.unformatted"),
+        },
+        { value: Formatting.Simple, label: t("bundleCard.format.simple") },
+        { value: Formatting.Custom, label: t("bundleCard.format.custom") },
       ],
-)
+);
 
 // Auto-promote stale webhook-style formats when the source is polling — and
 // vice-versa — so the bundle always carries a format that makes sense for
@@ -84,38 +96,47 @@ const formatOptions = computed(() =>
 watch(
   () => [props.inputSource, props.bundle.formating],
   ([src, current]) => {
-    if (props.readonly) return
-    const polling = isPollingSource(String(src ?? ''))
-    const isPollingFmt = current === Formatting.PollingDefault || current === Formatting.PollingCustom
+    if (props.readonly) return;
+    const polling = isPollingSource(String(src ?? ""));
+    const isPollingFmt =
+      current === Formatting.PollingDefault ||
+      current === Formatting.PollingCustom;
     if (polling && !isPollingFmt) {
-      patch({ formating: Formatting.PollingDefault })
+      patch({ formating: Formatting.PollingDefault });
     } else if (!polling && isPollingFmt) {
-      patch({ formating: Formatting.Unformatted })
+      patch({ formating: Formatting.Unformatted });
     }
   },
   { immediate: true },
-)
+);
 
-const isEditorOpen = ref(false)
+const isEditorOpen = ref(false);
 
 const onFormatChange = () => {
-  if (formating.value === Formatting.Custom || formating.value === Formatting.PollingCustom) {
-    isEditorOpen.value = true
+  if (
+    formating.value === Formatting.Custom ||
+    formating.value === Formatting.PollingCustom
+  ) {
+    isEditorOpen.value = true;
   }
-}
+};
 
 const saveScript = (script: string) => {
-  patch({ custom_script: script })
-  isEditorOpen.value = false
-}
+  patch({ custom_script: script });
+  isEditorOpen.value = false;
+};
 
 // Inline preview of the polling-default message (uses live payload if the
 // parent passed one, otherwise placeholder text).
 const pollingPreview = computed(() => {
-  if (!isPolling.value || formating.value !== Formatting.PollingDefault) return ''
-  if (!props.alertContext) return ''
-  return buildPollingDefaultMessage(props.alertContext, props.pollPayload ?? {})
-})
+  if (!isPolling.value || formating.value !== Formatting.PollingDefault)
+    return "";
+  if (!props.alertContext) return "";
+  return buildPollingDefaultMessage(
+    props.alertContext,
+    props.pollPayload ?? {},
+  );
+});
 </script>
 
 <template>
@@ -131,21 +152,27 @@ const pollingPreview = computed(() => {
     />
 
     <div class="card-head">
-      <span class="card-tag">{{ $t('bundleCard.tag', { n: index + 1 }) }}</span>
+      <span class="card-tag">{{ $t("bundleCard.tag", { n: index + 1 }) }}</span>
       <button
         v-if="!hideRemove && !readonly"
         type="button"
         class="card-remove"
         :title="$t('bundleCard.removeTitle')"
         @click="emit('remove')"
-      >✕</button>
+      >
+        ✕
+      </button>
       <button
         v-else-if="readonly && editable"
         type="button"
         class="card-edit"
         :title="$t('bundleCard.editTitle')"
         @click="emit('edit')"
-      > <FontAwesomeIcon :icon="['fas', 'pencil']" />{{ $t('bundleCard.editButton') }}</button>
+      >
+        <FontAwesomeIcon :icon="['fas', 'pencil']" />{{
+          $t("bundleCard.editButton")
+        }}
+      </button>
     </div>
 
     <!-- Title — optional. Surfaces Bundle.name. Falls back to "Bundle N"
@@ -164,7 +191,9 @@ const pollingPreview = computed(() => {
 
     <!-- Discussions -->
     <div class="field">
-      <label class="field-label">{{ $t('bundleCard.fields.discussions') }}</label>
+      <label class="field-label">{{
+        $t("bundleCard.fields.discussions")
+      }}</label>
       <DiscussionSelector
         v-model="discussions"
         :available="availableDiscussions"
@@ -175,7 +204,7 @@ const pollingPreview = computed(() => {
 
     <!-- Format — options depend on whether the input source is polling. -->
     <div class="field">
-      <label class="field-label">{{ $t('bundleCard.fields.format') }}</label>
+      <label class="field-label">{{ $t("bundleCard.fields.format") }}</label>
       <div class="format-row">
         <Select
           v-model="formating"
@@ -185,14 +214,19 @@ const pollingPreview = computed(() => {
           @update:model-value="onFormatChange"
         />
         <button
-          v-if="(formating === Formatting.Custom || formating === Formatting.PollingCustom) && !readonly"
+          v-if="
+            (formating === Formatting.Custom ||
+              formating === Formatting.PollingCustom) &&
+            !readonly
+          "
           type="button"
           class="btn btn-secondary btn-sm"
           @click="isEditorOpen = true"
         >
           <FontAwesomeIcon :icon="['fas', 'pencil']" />
 
-          <!--✏️--> {{ $t('bundleCard.scriptButton') }}
+          <!--✏️-->
+          {{ $t("bundleCard.scriptButton") }}
         </button>
       </div>
 
@@ -200,7 +234,8 @@ const pollingPreview = computed(() => {
       <pre
         v-if="formating === Formatting.PollingDefault"
         class="poll-preview"
-      >{{ pollingPreview || $t('bundleCard.previewPlaceholder') }}</pre>
+        >{{ pollingPreview || $t("bundleCard.previewPlaceholder") }}</pre
+      >
 
       <!--span
         v-else-if="(formating === Formatting.Custom || formating === Formatting.PollingCustom) && bundle.custom_script"
@@ -230,7 +265,10 @@ const pollingPreview = computed(() => {
   padding: 3px var(--space-3);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background-color .15s, color .15s, border-color .15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 }
 .card-edit:hover {
   background: var(--color-accent);
@@ -238,10 +276,18 @@ const pollingPreview = computed(() => {
   color: var(--color-text-on-accent);
 }
 
-.format-row { display: flex; gap: var(--space-3); }
-.format-select { flex: 1; }
+.format-row {
+  display: flex;
+  gap: var(--space-3);
+}
+.format-select {
+  flex: 1;
+}
 
-.script-hint { font-size: var(--text-sm); color: var(--color-success); }
+.script-hint {
+  font-size: var(--text-sm);
+  color: var(--color-success);
+}
 
 .poll-preview {
   margin: 0;

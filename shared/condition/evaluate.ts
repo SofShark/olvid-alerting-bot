@@ -21,67 +21,68 @@ import {
   ConditionOperator,
   OPERATORS_NEEDING_VALUE,
   type PollingCondition,
-} from '../types/condition'
-import { migrateCondition } from './migrate'
-import { expandPath, hasWildcard } from './pathExpand'
+} from "../types/condition";
+import { migrateCondition } from "./migrate";
+import { expandPath, hasWildcard } from "./pathExpand";
 
 /** One verdict per concrete (post-expansion) path. */
 export type Verdict = {
-  path:      string
-  fired:     boolean
-  observed:  any
-  baseline?: any
-  detail:    string
-}
+  path: string;
+  fired: boolean;
+  observed: any;
+  baseline?: any;
+  detail: string;
+};
 
 /** Full result of evaluating a condition against a payload. */
 export type EvaluationResult = {
   /** Pulled from the (migrated) condition for convenience — callers often branch on this first. */
-  kind:      ConditionKind
+  kind: ConditionKind;
   /** Aggregate truth across all verdicts, per condition.aggregation. */
-  fired:     boolean
+  fired: boolean;
   /** Human-readable summary for UI / logs. */
-  reason:    string
+  reason: string;
   /** Per-path breakdown. Empty when kind=None or when no paths configured. */
-  verdicts:  Verdict[]
+  verdicts: Verdict[];
   /** Normalized condition (after `migrateCondition`) — saves the caller from re-running it. */
-  condition: PollingCondition
-}
+  condition: PollingCondition;
+};
 
 // ── Internal helpers (single source of truth, no duplication elsewhere) ────
 
 export function resolvePath(obj: any, path: string): any {
-  if (!path) return undefined
+  if (!path) return undefined;
   // filter(Boolean) drops empty segments — important for wildcard patterns
   // that have already been expanded into concrete paths. Concrete paths
   // shouldn't have empty segments anyway, but this is defensive.
-  const parts = path.split('.').filter(Boolean)
-  let cur: any = obj
+  const parts = path.split(".").filter(Boolean);
+  let cur: any = obj;
   for (const p of parts) {
-    if (cur == null) return undefined
-    cur = cur[p]
+    if (cur == null) return undefined;
+    cur = cur[p];
   }
-  return cur
+  return cur;
 }
 
 function deepEqual(a: any, b: any): boolean {
-  return JSON.stringify(a) === JSON.stringify(b)
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 function asNumbers(a: any, b: any): [number, number] | null {
-  if (a === null || a === undefined || a === '') return null
-  if (b === null || b === undefined || b === '') return null
-  const na = Number(a), nb = Number(b)
-  if (Number.isNaN(na) || Number.isNaN(nb)) return null
-  return [na, nb]
+  if (a === null || a === undefined || a === "") return null;
+  if (b === null || b === undefined || b === "") return null;
+  const na = Number(a),
+    nb = Number(b);
+  if (Number.isNaN(na) || Number.isNaN(nb)) return null;
+  return [na, nb];
 }
 
 /** Evaluate a single concrete path against an observed value (and optional baseline). */
 function evalOne(
   operator: ConditionOperator,
   threshold: string | undefined,
-  observed:  any,
-  baseline:  any | undefined,
+  observed: any,
+  baseline: any | undefined,
 ): { fired: boolean; detail: string } {
   switch (operator) {
     case ConditionOperator.Changed: {
@@ -89,35 +90,65 @@ function evalOne(
       // is the right answer for previews; the server evaluator passes a
       // real baseline at poll time so this branch only triggers in the UI.
       if (baseline === undefined) {
-        return { fired: true, detail: 'would fire on next change (no baseline yet)' }
+        return {
+          fired: true,
+          detail: "would fire on next change (no baseline yet)",
+        };
       }
-      const changed = !deepEqual(observed, baseline)
-      return { fired: changed, detail: changed ? 'changed since last poll' : 'unchanged since last poll' }
+      const changed = !deepEqual(observed, baseline);
+      return {
+        fired: changed,
+        detail: changed
+          ? "changed since last poll"
+          : "unchanged since last poll",
+      };
     }
     case ConditionOperator.Equals: {
-      const fired = String(observed ?? '') === String(threshold ?? '')
-      return { fired, detail: fired ? `equals "${threshold}"` : `is "${observed}" (expected "${threshold}")` }
+      const fired = String(observed ?? "") === String(threshold ?? "");
+      return {
+        fired,
+        detail: fired
+          ? `equals "${threshold}"`
+          : `is "${observed}" (expected "${threshold}")`,
+      };
     }
     case ConditionOperator.GreaterThan: {
-      const nums = asNumbers(observed, threshold)
-      if (!nums) return { fired: false, detail: `non-numeric: "${observed}" or "${threshold}"` }
-      const fired = nums[0] > nums[1]
-      return { fired, detail: fired ? `${nums[0]} > ${nums[1]}` : `${nums[0]} ≤ ${nums[1]}` }
+      const nums = asNumbers(observed, threshold);
+      if (!nums)
+        return {
+          fired: false,
+          detail: `non-numeric: "${observed}" or "${threshold}"`,
+        };
+      const fired = nums[0] > nums[1];
+      return {
+        fired,
+        detail: fired ? `${nums[0]} > ${nums[1]}` : `${nums[0]} ≤ ${nums[1]}`,
+      };
     }
     case ConditionOperator.LessThan: {
-      const nums = asNumbers(observed, threshold)
-      if (!nums) return { fired: false, detail: `non-numeric: "${observed}" or "${threshold}"` }
-      const fired = nums[0] < nums[1]
-      return { fired, detail: fired ? `${nums[0]} < ${nums[1]}` : `${nums[0]} ≥ ${nums[1]}` }
+      const nums = asNumbers(observed, threshold);
+      if (!nums)
+        return {
+          fired: false,
+          detail: `non-numeric: "${observed}" or "${threshold}"`,
+        };
+      const fired = nums[0] < nums[1];
+      return {
+        fired,
+        detail: fired ? `${nums[0]} < ${nums[1]}` : `${nums[0]} ≥ ${nums[1]}`,
+      };
     }
     case ConditionOperator.Contains: {
-      const hay = String(observed ?? '')
-      const ndl = String(threshold ?? '')
-      const fired = ndl.length > 0 && hay.includes(ndl)
-      return { fired, detail: fired ? `contains "${ndl}"` : `does not contain "${ndl}"` }
+      const hay = String(observed ?? "");
+      const ndl = String(threshold ?? "");
+      const fired = ndl.length > 0 && hay.includes(ndl);
+      return {
+        fired,
+        detail: fired ? `contains "${ndl}"` : `does not contain "${ndl}"`,
+      };
     }
     default:
-      return { fired: false, detail: `unknown operator: ${operator}` }
+      return { fired: false, detail: `unknown operator: ${operator}` };
   }
 }
 
@@ -131,40 +162,40 @@ function evalOne(
  */
 export function evaluateCondition(
   rawCondition: any,
-  payload:      any,
-  baseline?:    any,
+  payload: any,
+  baseline?: any,
 ): EvaluationResult {
-  const condition = migrateCondition(rawCondition)
+  const condition = migrateCondition(rawCondition);
 
   // No-condition case — fires every poll cycle by definition.
   if (condition.kind === ConditionKind.None) {
     return {
-      kind:      ConditionKind.None,
-      fired:     true,
-      reason:    'No condition — fires every poll cycle.',
-      verdicts:  [],
+      kind: ConditionKind.None,
+      fired: true,
+      reason: "No condition — fires every poll cycle.",
+      verdicts: [],
       condition,
-    }
+    };
   }
 
   if (condition.paths.length === 0) {
     return {
-      kind:      condition.kind,
-      fired:     false,
-      reason:    'No fields selected.',
-      verdicts:  [],
+      kind: condition.kind,
+      fired: false,
+      reason: "No fields selected.",
+      verdicts: [],
       condition,
-    }
+    };
   }
 
   if (OPERATORS_NEEDING_VALUE.has(condition.operator) && !condition.value) {
     return {
-      kind:      condition.kind,
-      fired:     false,
-      reason:    `Operator "${condition.operator}" needs a value.`,
-      verdicts:  [],
+      kind: condition.kind,
+      fired: false,
+      reason: `Operator "${condition.operator}" needs a value.`,
+      verdicts: [],
       condition,
-    }
+    };
   }
 
   // Expand wildcard patterns into concrete paths against the CURRENT payload.
@@ -173,40 +204,59 @@ export function evaluateCondition(
   // polls are picked up automatically — we re-expand every time.
   const verdicts: Verdict[] = condition.paths.flatMap((pathOrPattern) => {
     if (!hasWildcard(pathOrPattern)) {
-      const observed = resolvePath(payload, pathOrPattern)
-      const prev     = baseline === undefined ? undefined : resolvePath(baseline, pathOrPattern)
-      const { fired, detail } = evalOne(condition.operator, condition.value, observed, prev)
-      return [{ path: pathOrPattern, fired, observed, baseline: prev, detail }]
+      const observed = resolvePath(payload, pathOrPattern);
+      const prev =
+        baseline === undefined
+          ? undefined
+          : resolvePath(baseline, pathOrPattern);
+      const { fired, detail } = evalOne(
+        condition.operator,
+        condition.value,
+        observed,
+        prev,
+      );
+      return [{ path: pathOrPattern, fired, observed, baseline: prev, detail }];
     }
-    const concretes = expandPath(pathOrPattern, payload)
+    const concretes = expandPath(pathOrPattern, payload);
     if (concretes.length === 0) {
-      return [{
-        path:     pathOrPattern,
-        fired:    false,
-        observed: undefined,
-        baseline: undefined,
-        detail:   'pattern matched no paths in the current source',
-      }]
+      return [
+        {
+          path: pathOrPattern,
+          fired: false,
+          observed: undefined,
+          baseline: undefined,
+          detail: "pattern matched no paths in the current source",
+        },
+      ];
     }
     return concretes.map((concretePath) => {
-      const observed = resolvePath(payload, concretePath)
-      const prev     = baseline === undefined ? undefined : resolvePath(baseline, concretePath)
-      const { fired, detail } = evalOne(condition.operator, condition.value, observed, prev)
-      return { path: concretePath, fired, observed, baseline: prev, detail }
-    })
-  })
+      const observed = resolvePath(payload, concretePath);
+      const prev =
+        baseline === undefined
+          ? undefined
+          : resolvePath(baseline, concretePath);
+      const { fired, detail } = evalOne(
+        condition.operator,
+        condition.value,
+        observed,
+        prev,
+      );
+      return { path: concretePath, fired, observed, baseline: prev, detail };
+    });
+  });
 
   // Aggregate over the post-expansion verdicts. "All of N" means "every
   // concrete path the wildcards resolved to must fire" — the meaningful
   // semantics, not "all chips fired" (which would ignore expansion).
-  const aggregation = condition.aggregation ?? ConditionAggregation.All
-  const fired       = aggregation === ConditionAggregation.All
-    ? verdicts.every(v => v.fired)
-    : verdicts.some(v => v.fired)
+  const aggregation = condition.aggregation ?? ConditionAggregation.All;
+  const fired =
+    aggregation === ConditionAggregation.All
+      ? verdicts.every((v) => v.fired)
+      : verdicts.some((v) => v.fired);
 
-  const firedCount = verdicts.filter(v => v.fired).length
-  const total      = verdicts.length
-  const reason     = `${aggregation === ConditionAggregation.All ? 'All' : 'Any'} of ${total} field${total === 1 ? '' : 's'} — ${firedCount}/${total} verified.`
+  const firedCount = verdicts.filter((v) => v.fired).length;
+  const total = verdicts.length;
+  const reason = `${aggregation === ConditionAggregation.All ? "All" : "Any"} of ${total} field${total === 1 ? "" : "s"} — ${firedCount}/${total} verified.`;
 
-  return { kind: condition.kind, fired, reason, verdicts, condition }
+  return { kind: condition.kind, fired, reason, verdicts, condition };
 }

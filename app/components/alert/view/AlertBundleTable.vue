@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { BundleModel } from '#shared/types/bundle'
+import type { BundleModel } from "#shared/types/bundle";
 
 /*
   OUTPUT block in view mode: title + count + bundle rows (or the empty hint).
@@ -7,10 +7,10 @@ import type { BundleModel } from '#shared/types/bundle'
 */
 
 defineProps<{
-  bundles: BundleModel[]
-}>()
+  bundles: BundleModel[];
+}>();
 
-defineEmits<{ (e: 'edit-bundle', index: number): void }>()
+defineEmits<{ (e: "edit-bundle", index: number): void }>();
 </script>
 
 <template>
@@ -19,7 +19,9 @@ defineEmits<{ (e: 'edit-bundle', index: number): void }>()
 
     <div v-if="bundles.length === 0" class="bundles-hint">
       <i18n-t keypath="editor.view.noBundles" tag="span">
-        <template #editAlert><strong>{{ $t('editor.view.noBundlesEditAlert') }}</strong></template>
+        <template #editAlert
+          ><strong>{{ $t("editor.view.noBundlesEditAlert") }}</strong></template
+        >
       </i18n-t>
     </div>
 
@@ -36,8 +38,12 @@ defineEmits<{ (e: 'edit-bundle', index: number): void }>()
 </template>
 
 <style scoped>
-.data-block { margin-bottom: var(--space-8); }
-.data-block:last-child { margin-bottom: 0; }
+.data-block {
+  margin-bottom: var(--space-8);
+}
+.data-block:last-child {
+  margin-bottom: 0;
+}
 
 .data-title {
   margin: 0;

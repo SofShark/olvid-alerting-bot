@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { AlertStatus } from '#shared/types/alert'
+import { computed } from "vue";
+import { AlertStatus } from "#shared/types/alert";
 
 /*
   View-mode page header. Three rows in one block:
@@ -13,24 +13,24 @@ import { AlertStatus } from '#shared/types/alert'
 */
 
 const props = defineProps<{
-  title:        string
-  description?: string
-  inputTitle:   string
-  status:       AlertStatus
-  isExisting:   boolean
-  canActivate:  boolean
-}>()
+  title: string;
+  description?: string;
+  inputTitle: string;
+  status: AlertStatus;
+  isExisting: boolean;
+  canActivate: boolean;
+}>();
 
 defineEmits<{
-  (e: 'edit'):              void
-  (e: 'delete'):            void
-  (e: 'update:status'):     void
-}>()
+  (e: "edit"): void;
+  (e: "delete"): void;
+  (e: "update:status"): void;
+}>();
 
 const statusModel = computed({
   get: () => props.status,
   set: () => {},
-})
+});
 </script>
 
 <template>
@@ -43,12 +43,11 @@ const statusModel = computed({
         @update:state="$emit('update:status')"
       /-->
       <h2 class="view-title">
-        <span class="title-text">{{ title || $t('common.untitled') }}</span>
+        <span class="title-text">{{ title || $t("common.untitled") }}</span>
         <span class="meta-tag">{{ inputTitle }}</span>
       </h2>
       <div class="head-actions">
-
-        <Toggle
+        <StatusToggle
           v-if="isExisting"
           v-model:status="statusModel"
           :canActivate="canActivate"
@@ -58,7 +57,9 @@ const statusModel = computed({
           type="button"
           class="btn btn-primary btn-sm"
           @click="$emit('edit')"
-        >{{ $t('editor.header.editAlert') }}</button>
+        >
+          {{ $t("editor.header.editAlert") }}
+        </button>
         <button
           type="button"
           class="btn btn-danger-ghost btn-sm"
@@ -101,7 +102,7 @@ const statusModel = computed({
 .head-actions {
   display: flex;
   align-items: center;
-  padding:var(--space-3) var(--space-3) 0 0;
+  padding: var(--space-3) var(--space-3) 0 0;
   margin-left: auto;
   flex-shrink: 0;
   gap: var(--space-2);
@@ -116,13 +117,12 @@ const statusModel = computed({
   font-weight: 700;
   color: var(--color-text-primary);
   line-height: 1.3;
- 
+
   flex: 1;
   min-width: 0;
 }
 
-
-.title-text{
+.title-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -146,7 +146,7 @@ const statusModel = computed({
   gap: var(--space-3);
   flex-wrap: wrap;
   font-size: var(--text-sm);
-  margin-top: var(--space-1)
+  margin-top: var(--space-1);
 }
 
 .meta-tag {

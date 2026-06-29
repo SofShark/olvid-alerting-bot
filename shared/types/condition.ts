@@ -12,25 +12,27 @@
 // by `compactCondition` (lives in shared/condition/migrate.ts).
 
 export const ConditionKind = {
-  None: 'none',
-  Rule: 'rule',
-} as const
-export type ConditionKind = (typeof ConditionKind)[keyof typeof ConditionKind]
+  None: "none",
+  Rule: "rule",
+} as const;
+export type ConditionKind = (typeof ConditionKind)[keyof typeof ConditionKind];
 
 export const ConditionOperator = {
-  Changed:     'changed',        // value differs from previous poll's snapshot
-  Equals:      'equals',         // value === literal
-  GreaterThan: 'greater_than',   // numeric comparison
-  LessThan:    'less_than',
-  Contains:    'contains',       // substring match on string value
-} as const
-export type ConditionOperator = (typeof ConditionOperator)[keyof typeof ConditionOperator]
+  Changed: "changed", // value differs from previous poll's snapshot
+  Equals: "equals", // value === literal
+  GreaterThan: "greater_than", // numeric comparison
+  LessThan: "less_than",
+  Contains: "contains", // substring match on string value
+} as const;
+export type ConditionOperator =
+  (typeof ConditionOperator)[keyof typeof ConditionOperator];
 
 export const ConditionAggregation = {
-  All: 'all',   // every path must verify   (logical AND)
-  Any: 'any',   // at least one path        (logical OR)
-} as const
-export type ConditionAggregation = (typeof ConditionAggregation)[keyof typeof ConditionAggregation]
+  All: "all", // every path must verify   (logical AND)
+  Any: "any", // at least one path        (logical OR)
+} as const;
+export type ConditionAggregation =
+  (typeof ConditionAggregation)[keyof typeof ConditionAggregation];
 
 // Operators that need a literal value to compare against. `Changed` doesn't —
 // it's always compared to the previous poll's snapshot.
@@ -39,14 +41,14 @@ export const OPERATORS_NEEDING_VALUE: ReadonlySet<ConditionOperator> = new Set([
   ConditionOperator.GreaterThan,
   ConditionOperator.LessThan,
   ConditionOperator.Contains,
-])
+]);
 
 // ── Data shape ─────────────────────────────────────────────────────────────
 
 export type PollingCondition = {
-  kind:        ConditionKind
-  paths:       string[]                // dot-paths or wildcard patterns
-  operator:    ConditionOperator       // unused (but preserved) when kind === None
-  value?:      string                  // unused for `changed` and for kind === None
-  aggregation: ConditionAggregation    // unused (but preserved) when kind === None
-}
+  kind: ConditionKind;
+  paths: string[]; // dot-paths or wildcard patterns
+  operator: ConditionOperator; // unused (but preserved) when kind === None
+  value?: string; // unused for `changed` and for kind === None
+  aggregation: ConditionAggregation; // unused (but preserved) when kind === None
+};

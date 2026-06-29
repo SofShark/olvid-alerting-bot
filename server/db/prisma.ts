@@ -11,16 +11,16 @@
 // Re-export the type so consumers can hint return types without depending
 // on the @prisma/client path directly.
 
-import { PrismaClient } from '@prisma/client'
-import { Pool } from 'pg'
-import { PrismaPg } from '@prisma/adapter-pg'
+import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL as string,
-})
+});
 
-const adapter = new PrismaPg(pool)
+const adapter = new PrismaPg(pool);
 
-export const prisma = new PrismaClient({ adapter })
+export const prisma = new PrismaClient({ adapter });
 
-export type { PrismaClient }
+export type { PrismaClient };

@@ -3,23 +3,23 @@
 // wildcard expansion, and aggregation lives there. This file only maps the
 // shared result into the server-specific `EvalResult` shape.
 
-import { evaluateCondition } from '#shared/condition/evaluate'
-import type { EvalResult } from '../types'
+import { evaluateCondition } from "#shared/condition/evaluate";
+import type { EvalResult } from "../types";
 
 export function evaluate(
   rawCondition: any,
-  parsed:       any,
-  baseline:     any | undefined,
+  parsed: any,
+  baseline: any | undefined,
 ): EvalResult {
-  const result = evaluateCondition(rawCondition, parsed, baseline)
+  const result = evaluateCondition(rawCondition, parsed, baseline);
 
   // Surface the first path's observed value for the test panel's quick
   // summary; the full per-path breakdown rides on `baselineValue`.
-  const first = result.verdicts[0]
+  const first = result.verdicts[0];
   return {
-    fired:          result.fired,
-    reason:         result.reason,
-    observedValue:  first?.observed,
-    baselineValue:  result.verdicts,   // full breakdown for callers that render it
-  }
+    fired: result.fired,
+    reason: result.reason,
+    observedValue: first?.observed,
+    baselineValue: result.verdicts, // full breakdown for callers that render it
+  };
 }

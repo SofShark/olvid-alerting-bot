@@ -21,8 +21,8 @@
 // Everything else (reads, delete, payload upserts) is pass-through —
 // callers can import the repo directly when they don't need the service.
 
-import { AlertStatus } from '#shared/types/alert'
-import { prisma } from '../db/prisma'
+import { AlertStatus } from "#shared/types/alert";
+import { prisma } from "../db/prisma";
 
 // ── BigInt / shape helpers ────────────────────────────────────────────────
 
@@ -34,29 +34,34 @@ import { prisma } from '../db/prisma'
  * Returns a clean BigInt[] for Prisma.
  */
 function parseDiscussionList(list: any): bigint[] {
-  if (!list) return []
+  if (!list) return [];
 
-  let ids: any[]
-  if (typeof list === 'string') {
-    ids = list.split(',').map(s => s.trim()).filter(Boolean)
+  let ids: any[];
+  if (typeof list === "string") {
+    ids = list
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
   } else if (Array.isArray(list)) {
-    ids = list.map(item => (item && typeof item === 'object' ? item.id : item))
+    ids = list.map((item) =>
+      item && typeof item === "object" ? item.id : item,
+    );
   } else {
-    return []
+    return [];
   }
 
   return ids
-    .filter((id: any) => id !== null && id !== undefined && id !== '')
-    .map((id: any) => BigInt(id))
+    .filter((id: any) => id !== null && id !== undefined && id !== "")
+    .map((id: any) => BigInt(id));
 }
 
 function toBundleCreate(bundle: any) {
   return {
-    name:            bundle.name ?? null,
+    name: bundle.name ?? null,
     discussion_list: parseDiscussionList(bundle.discussion_list),
-    formating:       bundle.formating ?? 'Unformatted',
-    custom_script:   bundle.custom_script ?? null,
-  }
+    formating: bundle.formating ?? "Unformatted",
+    custom_script: bundle.custom_script ?? null,
+  };
 }
 
 // BigInt -> string on the way out (JSON-safe for the frontend).
@@ -64,37 +69,36 @@ function serializeBundle(bundle: any) {
   return {
     ...bundle,
     discussion_list: bundle.discussion_list.map((id: bigint) => id.toString()),
-  }
+  };
 }
 
 function serializeAlert(alert: any) {
   return {
     ...alert,
     bundles: (alert.bundles ?? []).map(serializeBundle),
-  }
+  };
 }
 
 // ── Repository ────────────────────────────────────────────────────────────
 
 export const alertRepository = {
-
   // ── Reads ────────────────────────────────────────────────────────────────
 
   async getAll() {
     const rows = await prisma.alertTable.findMany({
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: { bundles: true },
-    })
-    return rows.map(serializeAlert)
+    });
+    return rows.map(serializeAlert);
   },
 
   async getById(id: number) {
     const row = await prisma.alertTable.findUnique({
       where: { id },
       include: { bundles: true },
-    })
-    if (!row) return null
-    return serializeAlert(row)
+    });
+    if (!row) return null;
+    return serializeAlert(row);
   },
 
   /** Used by the webhook endpoint. Keeps BigInt ids — the notifier
@@ -103,60 +107,81 @@ export const alertRepository = {
     return await prisma.alertTable.findUnique({
       where: { token },
       include: { bundles: true },
-    })
+    });
   },
 
   // ── Mutations (bare — no domain rules) ──────────────────────────────────
 
-  async create(data: { title: string, description?: string | null, input: string, status: AlertStatus, alertParams?: any, bundles?: any[] }) {
-    const incomingBundles: any[] = Array.isArray(data.bundles) ? data.bundles : []
+  async create(data: {
+    title: string;
+    description?: string | null;
+    input: string;
+    status: AlertStatus;
+    alertParams?: any;
+    bundles?: any[];
+  }) {
+    const incomingBundles: any[] = Array.isArray(data.bundles)
+      ? data.bundles
+      : [];
     const created = await prisma.alertTable.create({
       data: {
-        title:       data.title,
+        title: data.title,
         description: data.description ?? null,
-        input:       data.input,
+        input: data.input,
         alertParams: data.alertParams ?? null,
-        status:      data.status,
-        bundles:     { create: incomingBundles.map(toBundleCreate) },
+        status: data.status,
+        bundles: { create: incomingBundles.map(toBundleCreate) },
       },
       include: { bundles: true },
-    })
-    return serializeAlert(created)
+    });
+    return serializeAlert(created);
   },
 
   /** Full overwrite — deletes existing bundles, recreates from `data.bundles`. */
-  async update(id: number, data: { title: string, description?: string | null, input: string, status: AlertStatus, alertParams?: any, bundles?: any[] }) {
-    const incomingBundles: any[] = Array.isArray(data.bundles) ? data.bundles : []
+  async update(
+    id: number,
+    data: {
+      title: string;
+      description?: string | null;
+      input: string;
+      status: AlertStatus;
+      alertParams?: any;
+      bundles?: any[];
+    },
+  ) {
+    const incomingBundles: any[] = Array.isArray(data.bundles)
+      ? data.bundles
+      : [];
 
-    await prisma.bundle.deleteMany({ where: { alertId: id } })
+    await prisma.bundle.deleteMany({ where: { alertId: id } });
 
     const updated = await prisma.alertTable.update({
       where: { id },
       data: {
-        title:       data.title,
+        title: data.title,
         description: data.description ?? null,
-        input:       data.input,
+        input: data.input,
         alertParams: data.alertParams ?? null,
-        status:      data.status,
-        bundles:     { create: incomingBundles.map(toBundleCreate) },
+        status: data.status,
+        bundles: { create: incomingBundles.map(toBundleCreate) },
       },
       include: { bundles: true },
-    })
-    return serializeAlert(updated)
+    });
+    return serializeAlert(updated);
   },
 
   /** Status-only update. No activation rules — caller has already decided. */
   async setStatusRaw(id: number, status: AlertStatus) {
     const updated = await prisma.alertTable.update({
       where: { id },
-      data:  { status },
+      data: { status },
       include: { bundles: true },
-    })
-    return serializeAlert(updated)
+    });
+    return serializeAlert(updated);
   },
 
   async delete(id: number) {
-    return await prisma.alertTable.delete({ where: { id } })
+    return await prisma.alertTable.delete({ where: { id } });
   },
 
   /** Persist runtime polling state (_lastSeenId, _lastHash, _baseline, …) without
@@ -164,8 +189,8 @@ export const alertRepository = {
   async updateAlertParams(id: number, params: Record<string, any>) {
     await prisma.alertTable.update({
       where: { id },
-      data:  { alertParams: params },
-    })
+      data: { alertParams: params },
+    });
   },
 
   // ── Last-payload sidecar tables ─────────────────────────────────────────
@@ -173,18 +198,18 @@ export const alertRepository = {
 
   async upsertLastAlertPayload(alertId: number, payload: any) {
     await prisma.lastAlertPayload.upsert({
-      where:  { alertId },
+      where: { alertId },
       create: { alertId, payload },
       update: { payload },
-    })
+    });
   },
 
   async getLastAlertPayload(alertId: number) {
     const row = await prisma.lastAlertPayload.findUnique({
-      where:  { alertId },
+      where: { alertId },
       select: { payload: true, receivedAt: true },
-    })
-    return row ?? null
+    });
+    return row ?? null;
   },
 
   /** Failures are tracked separately so a subsequent success doesn't erase
@@ -195,23 +220,29 @@ export const alertRepository = {
     info: { raw?: string | null; parsed?: any; error: string; stage?: string },
   ) {
     const data = {
-      raw:    info.raw    ?? null,
+      raw: info.raw ?? null,
       parsed: info.parsed ?? null,
-      error:  info.error,
-      stage:  info.stage  ?? null,
-    }
+      error: info.error,
+      stage: info.stage ?? null,
+    };
     await prisma.lastFailedPayload.upsert({
-      where:  { alertId },
+      where: { alertId },
       create: { alertId, ...data },
       update: data,
-    })
+    });
   },
 
   async getLastFailedPayload(alertId: number) {
     const row = await prisma.lastFailedPayload.findUnique({
-      where:  { alertId },
-      select: { raw: true, parsed: true, error: true, stage: true, failedAt: true },
-    })
-    return row ?? null
+      where: { alertId },
+      select: {
+        raw: true,
+        parsed: true,
+        error: true,
+        stage: true,
+        failedAt: true,
+      },
+    });
+    return row ?? null;
   },
-}
+};

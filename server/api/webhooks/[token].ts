@@ -1,65 +1,80 @@
 export default defineEventHandler(async (event) => {
+  const method = event.node.req.method;
 
-  const method = event.node.req.method
-
-  if (method != 'POST'){
-    throw createError({ statusCode: 400, statusMessage: 'Woops, you\'re not a webhook are you?' })
-
+  if (method != "POST") {
+    throw createError({
+      statusCode: 400,
+      statusMessage: "Woops, you're not a webhook are you?",
+    });
   }
-  const token = getRouterParam(event, 'token')
+  const token = getRouterParam(event, "token");
 
   if (!token) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing webhook token' })
+    throw createError({
+      statusCode: 400,
+      statusMessage: "Missing webhook token",
+    });
   }
 
-  console.log("getting alert element from http request")
-  const alert = await alertRepository.getByToken(token) as any
-
+  console.log("getting alert element from http request");
+  const alert = (await alertRepository.getByToken(token)) as any;
 
   if (!alert) {
-    throw createError({ statusCode: 404, statusMessage: 'Webhook not found' })
+    throw createError({ statusCode: 404, statusMessage: "Webhook not found" });
   }
 
   // Read the body defensively. If the client posted non-JSON, readBody can
   // throw — capture the raw text so admins can see what came in even when we
   // can't parse it.
-  let payload: any = null
-  let rawBody:  string | null = null
+  let payload: any = null;
+  let rawBody: string | null = null;
   try {
-    payload = await readBody(event)
+    payload = await readBody(event);
   } catch (parseErr: any) {
-    try { rawBody = (await readRawBody(event, 'utf-8')) ?? null } catch { /* body already consumed */ }
+    try {
+      rawBody = (await readRawBody(event, "utf-8")) ?? null;
+    } catch {
+      /* body already consumed */
+    }
     await alertRepository.upsertLastFailedPayload(alert.id, {
-      raw:    rawBody,
-      error:  parseErr?.message ?? 'Failed to read request body',
-      stage:  'parse',
-    })
-    throw createError({ statusCode: 400, statusMessage: 'Invalid body' })
+      raw: rawBody,
+      error: parseErr?.message ?? "Failed to read request body",
+      stage: "parse",
+    });
+    throw createError({ statusCode: 400, statusMessage: "Invalid body" });
   }
-  console.log(`📥 [Webhook] Token ${token} — alert #${alert.id} with ${alert.bundles.length} bundle(s)`)
+  console.log(
+    `📥 [Webhook] Token ${token} — alert #${alert.id} with ${alert.bundles.length} bundle(s)`,
+  );
 
   try {
-    await notifierService.processAlert(alert, payload)
+    await notifierService.processAlert(alert, payload);
     // Persist the body as this alert's last-received payload. Keyed by alert
     // id, so two webhook alerts with the same source no longer overwrite each
     // other's history.
-    await alertRepository.upsertLastAlertPayload(alert.id, payload)
+    await alertRepository.upsertLastAlertPayload(alert.id, payload);
   } catch (error: any) {
-    console.error('❌ [Webhook] Unexpected error:', error.message)
+    console.error("❌ [Webhook] Unexpected error:", error.message);
     // Persist the failure for admin debugging. The body did parse, so we
     // have a structured `parsed` value; `raw` is left null since we'd have
     // to re-serialize (which would lose info for non-JSON bodies anyway).
     try {
       await alertRepository.upsertLastFailedPayload(alert.id, {
         parsed: payload ?? null,
-        error:  error?.message ?? 'Unknown error during processAlert',
-        stage:  'process',
-      })
+        error: error?.message ?? "Unknown error during processAlert",
+        stage: "process",
+      });
     } catch (persistErr: any) {
-      console.error('❌ [Webhook] failure-persist failed too:', persistErr?.message)
+      console.error(
+        "❌ [Webhook] failure-persist failed too:",
+        persistErr?.message,
+      );
     }
-    throw createError({ statusCode: 500, statusMessage: 'Internal Server Error' })
+    throw createError({
+      statusCode: 500,
+      statusMessage: "Internal Server Error",
+    });
   }
 
-  return { status: 'success', message: 'Webhook accepted and processed' }
-})
+  return { status: "success", message: "Webhook accepted and processed" };
+});

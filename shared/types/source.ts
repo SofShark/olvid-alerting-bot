@@ -10,11 +10,11 @@
 // two in separate namespaces so they coexist cleanly.
 
 export const Source = {
-  Polling: 'Polling Source',
-  Webhook: 'Webhook Source',
-} as const
+  Polling: "Polling Source",
+  Webhook: "Webhook Source",
+} as const;
 
-export type Source = (typeof Source)[keyof typeof Source]
+export type Source = (typeof Source)[keyof typeof Source];
 
 // ── Predicates ─────────────────────────────────────────────────────────────
 
@@ -23,7 +23,7 @@ export type Source = (typeof Source)[keyof typeof Source]
  * raw `input` string (callers usually pass `form.input` or `alert.input`).
  */
 export const isPolling = (source: string | undefined | null): boolean =>
-  source === Source.Polling
+  source === Source.Polling;
 
 /** Legacy alias — kept for the transition. Callers should migrate to `isPolling`. */
-export const isPollingSource = isPolling
+export const isPollingSource = isPolling;

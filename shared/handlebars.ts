@@ -6,16 +6,23 @@
 // Useful for scripts that branch on a status string ("warning" / "error"
 // / "info") without needing a full helper library.
 
-import Handlebars from 'handlebars'
+import Handlebars from "handlebars";
 
-Handlebars.registerHelper('contains', function (this: any, haystack: string, needle: string, options: any) {
-  if (haystack && typeof haystack === 'string' && haystack.toLowerCase().includes(needle.toLowerCase())) {
-    return options.fn(this)
-  }
-  return options.inverse(this)
-})
+Handlebars.registerHelper(
+  "contains",
+  function (this: any, haystack: string, needle: string, options: any) {
+    if (
+      haystack &&
+      typeof haystack === "string" &&
+      haystack.toLowerCase().includes(needle.toLowerCase())
+    ) {
+      return options.fn(this);
+    }
+    return options.inverse(this);
+  },
+);
 
 export const formatMessage = (script: string, payload: unknown): string => {
-  const template = Handlebars.compile(script)
-  return template(payload)
-}
+  const template = Handlebars.compile(script);
+  return template(payload);
+};

@@ -1,43 +1,46 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 
 // Mirrors the ThemeToggle pattern: a small bordered button next to it in
 // the navbar. Instead of a one-tap toggle (only 2 themes), this opens a
 // dropdown of available locales — the i18n module supplies the list and the
 // current value, we just present it.
-const { locale, locales, setLocale } = useI18n()
+const { locale, locales, setLocale } = useI18n();
 
-const isOpen = ref(false)
-const containerRef = ref<HTMLElement | null>(null)
+const isOpen = ref(false);
+const containerRef = ref<HTMLElement | null>(null);
 
 // `locales` may arrive either as a plain array or as a Ref<array> depending
 // on the i18n module version — normalize defensively.
 const localeList = computed<any[]>(() => {
-  const raw: any = (locales as any).value ?? locales
-  return Array.isArray(raw) ? raw : []
-})
+  const raw: any = (locales as any).value ?? locales;
+  return Array.isArray(raw) ? raw : [];
+});
 
 const currentLocale = computed(() => {
-  return localeList.value.find(l => l.code === locale.value)
-      ?? localeList.value[0]
-      ?? { code: '', name: '' }
-})
+  return (
+    localeList.value.find((l) => l.code === locale.value) ??
+    localeList.value[0] ?? { code: "", name: "" }
+  );
+});
 
-function toggle() { isOpen.value = !isOpen.value }
+function toggle() {
+  isOpen.value = !isOpen.value;
+}
 async function pick(code: any) {
-  if (code !== locale.value) await setLocale(code)
-  isOpen.value = false
+  if (code !== locale.value) await setLocale(code);
+  isOpen.value = false;
 }
 
 // Close on click anywhere outside the container — same pattern used by
 // the custom Select and DiscussionSelector dropdowns.
 function onClickOutside(e: MouseEvent) {
   if (containerRef.value && !containerRef.value.contains(e.target as Node)) {
-    isOpen.value = false
+    isOpen.value = false;
   }
 }
-onMounted(() => document.addEventListener('click', onClickOutside))
-onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
+onMounted(() => document.addEventListener("click", onClickOutside));
+onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 </script>
 
 <template>
@@ -54,7 +57,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
       >
         <span class="globe" aria-hidden="true">🌐︎</span>
         <span class="lang-name">{{ currentLocale.name }}</span>
-        <span class="chevron" :class="{ open: isOpen }" aria-hidden="true">▾</span>
+        <span class="chevron" :class="{ open: isOpen }" aria-hidden="true"
+          >▾</span
+        >
       </button>
 
       <div v-if="isOpen" class="lang-dropdown" role="listbox">
@@ -99,7 +104,10 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   font-size: var(--text-md);
   font-family: inherit;
   line-height: 1;
-  transition: background-color .15s, border-color .15s, color .15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
 }
 .lang-toggle:hover,
 .lang-toggle.open {
@@ -112,14 +120,21 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   outline-offset: 2px;
 }
 
-.globe     { font-size: var(--text-lg); line-height: 1; }
-.lang-name { font-weight: 500; }
+.globe {
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+.lang-name {
+  font-weight: 500;
+}
 .chevron {
   font-size: var(--text-md);
   color: var(--color-text-dim);
-  transition: transform .15s ease;
+  transition: transform 0.15s ease;
 }
-.chevron.open { transform: rotate(180deg); }
+.chevron.open {
+  transform: rotate(180deg);
+}
 
 /* Dropdown panel — same elevation tokens as the modal Select dropdown
  * elsewhere in the app, so it reads as part of the same UI vocabulary. */
@@ -147,7 +162,9 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   font-size: var(--text-md);
   font-family: inherit;
   cursor: pointer;
-  transition: background-color .15s, color .15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 .lang-item:hover {
   background: var(--color-bg-card-soft);

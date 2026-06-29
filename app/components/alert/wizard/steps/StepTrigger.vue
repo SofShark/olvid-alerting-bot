@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AlertModel } from '#shared/types/alert'
+import type { AlertModel } from "#shared/types/alert";
 
 /*
   Step 2 (polling only): ConditionEditor.
@@ -9,17 +9,17 @@ import type { AlertModel } from '#shared/types/alert'
   is written into `form.alertParams.condition` directly.
 */
 
-const form = defineModel<AlertModel>({ required: true })
+const form = defineModel<AlertModel>({ required: true });
 
-defineEmits<{ (e: 'update:payload', v: any): void }>()
+defineEmits<{ (e: "update:payload", v: any): void }>();
 
 const condition = computed({
   get: () => (form.value.alertParams as any)?.condition,
   set: (v) => {
-    if (!form.value.alertParams) return
-    form.value.alertParams = { ...form.value.alertParams, condition: v }
+    if (!form.value.alertParams) return;
+    form.value.alertParams = { ...form.value.alertParams, condition: v };
   },
-})
+});
 </script>
 
 <template>

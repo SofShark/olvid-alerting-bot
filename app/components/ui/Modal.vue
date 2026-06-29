@@ -7,16 +7,21 @@
   Slot for content. The host decides the buttons / footer / etc.; for the
   common "title + message + confirm/cancel" shape, use ConfirmDialog instead.
 */
-const props = withDefaults(defineProps<{
-  open: boolean
-  closeOnBackdrop?: boolean
-}>(), {
-  closeOnBackdrop: true,
-})
+const props = withDefaults(
+  defineProps<{
+    open: boolean;
+    closeOnBackdrop?: boolean;
+  }>(),
+  {
+    closeOnBackdrop: true,
+  },
+);
 
-const emit = defineEmits<{ (e: 'close'): void }>()
+const emit = defineEmits<{ (e: "close"): void }>();
 
-const onBackdrop = () => { if (props.closeOnBackdrop) emit('close') }
+const onBackdrop = () => {
+  if (props.closeOnBackdrop) emit("close");
+};
 </script>
 
 <template>

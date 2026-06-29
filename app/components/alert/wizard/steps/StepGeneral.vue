@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Source }              from '#shared/types/source'
-import type { AlertModel }      from '#shared/types/alert'
-import type { PollingParams }   from '#shared/types/polling'
+import { Source } from "#shared/types/source";
+import type { AlertModel } from "#shared/types/alert";
+import type { PollingParams } from "#shared/types/polling";
 
 /*
   Step 1: source picker + inline polling configuration (URL / format /
@@ -12,30 +12,31 @@ import type { PollingParams }   from '#shared/types/polling'
   writes through to the parent without ceremony.
 */
 
-const form = defineModel<AlertModel>({ required: true })
+const form = defineModel<AlertModel>({ required: true });
 
-const selectedSource = useSourceBinding(form)
-const isPolling = computed(() => form.value.input === Source.Polling)
-const isWebhook = computed(() => form.value.input === Source.Webhook)
+const selectedSource = useSourceBinding(form);
+const isPolling = computed(() => form.value.input === Source.Polling);
+const isWebhook = computed(() => form.value.input === Source.Webhook);
 </script>
 
 <template>
   <div>
     <div class="field">
       <label class="field-label">
-        {{ $t('wizard.fieldLabels.inputSource') }}
+        {{ $t("wizard.fieldLabels.inputSource") }}
         <span class="field-required">*</span>
       </label>
       <InputSourceSelector v-model="selectedSource" />
       <p v-if="form.input" class="field-hint">
-        {{ $t('wizard.communicationHint') }}<strong>{{ form.input }}</strong>{{ $t('wizard.communicationHintSuffix') }}
+        {{ $t("wizard.communicationHint") }}<strong>{{ form.input }}</strong
+        >{{ $t("wizard.communicationHintSuffix") }}
       </p>
     </div>
 
     <!-- Polling sources expose URL / format / timing inline. -->
     <div v-if="isPolling" class="field">
       <label class="field-label">
-        {{ $t('wizard.fieldLabels.pollingConfiguration') }}
+        {{ $t("wizard.fieldLabels.pollingConfiguration") }}
         <span class="field-required">*</span>
       </label>
       <TriggerParamsEditor
@@ -50,9 +51,10 @@ const isWebhook = computed(() => form.value.input === Source.Webhook)
       <div class="info-box">
         <span class="info-icon">ℹ</span>
         <div>
-          <p class="info-title">{{ $t('wizard.webhookInfo.title') }}</p>
+          <p class="info-title">{{ $t("wizard.webhookInfo.title") }}</p>
           <p class="info-text">
-            <strong>{{ form.input }}</strong>{{ $t('wizard.webhookInfo.body') }}
+            <strong>{{ form.input }}</strong
+            >{{ $t("wizard.webhookInfo.body") }}
           </p>
         </div>
       </div>
@@ -75,7 +77,7 @@ const isWebhook = computed(() => form.value.input === Source.Webhook)
   border-radius: var(--radius-lg);
   padding: var(--space-5) var(--space-6);
 }
-.info-icon  {
+.info-icon {
   color: var(--color-accent-text);
   font-size: var(--text-xl);
   line-height: 1;
@@ -88,7 +90,7 @@ const isWebhook = computed(() => form.value.input === Source.Webhook)
   font-size: var(--text-base);
   font-weight: 600;
 }
-.info-text  {
+.info-text {
   margin: 0;
   color: var(--color-text-muted);
   font-size: var(--text-md);

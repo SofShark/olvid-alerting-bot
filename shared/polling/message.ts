@@ -7,14 +7,18 @@
 // module only formats the resulting verdicts into a Telegram-friendly
 // string.
 
-import { ConditionKind, ConditionOperator } from '../types/condition'
-import { evaluateCondition } from '../condition/evaluate'
+import { ConditionKind, ConditionOperator } from "../types/condition";
+import { evaluateCondition } from "../condition/evaluate";
 
 function asText(v: any): string {
-  if (v === null || v === undefined) return '(no value)'
-  if (typeof v === 'string')          return v
-  if (typeof v === 'number' || typeof v === 'boolean') return String(v)
-  try { return JSON.stringify(v) } catch { return String(v) }
+  if (v === null || v === undefined) return "(no value)";
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return String(v);
+  }
 }
 
 function lineFor(
@@ -25,17 +29,17 @@ function lineFor(
 ): string {
   switch (operator) {
     case ConditionOperator.Changed:
-      return `${path} → ${asText(observed)}  (changed)`
+      return `${path} → ${asText(observed)}  (changed)`;
     case ConditionOperator.Equals:
-      return `${path} = ${asText(observed)}  (= "${asText(threshold)}")`
+      return `${path} = ${asText(observed)}  (= "${asText(threshold)}")`;
     case ConditionOperator.GreaterThan:
-      return `${path} = ${asText(observed)}  (> ${asText(threshold)})`
+      return `${path} = ${asText(observed)}  (> ${asText(threshold)})`;
     case ConditionOperator.LessThan:
-      return `${path} = ${asText(observed)}  (< ${asText(threshold)})`
+      return `${path} = ${asText(observed)}  (< ${asText(threshold)})`;
     case ConditionOperator.Contains:
-      return `${path} = "${asText(observed)}"  (contains "${asText(threshold)}")`
+      return `${path} = "${asText(observed)}"  (contains "${asText(threshold)}")`;
     default:
-      return `${path}: ${asText(observed)}`
+      return `${path}: ${asText(observed)}`;
   }
 }
 
@@ -49,31 +53,32 @@ function lineFor(
  *                 evaluator treats "no baseline" as "would fire on next change".
  */
 export function buildPollingDefaultMessage(
-  alert:    any,
-  payload:  any,
+  alert: any,
+  payload: any,
   baseline?: any,
 ): string {
-  const title  = alert?.title ?? 'Polling alert'
-  const cond   = alert?.alertParams?.condition
-  const result = evaluateCondition(cond, payload, baseline)
+  const title = alert?.title ?? "Polling alert";
+  const cond = alert?.alertParams?.condition;
+  const result = evaluateCondition(cond, payload, baseline);
 
   if (result.kind === ConditionKind.None) {
-    return `📡 ${title}\nPolled successfully (no condition — fires every cycle).`
+    return `📡 ${title}\nPolled successfully (no condition — fires every cycle).`;
   }
   if (result.verdicts.length === 0) {
     // Empty paths / missing value / etc. — evaluator already encoded the why.
-    return `📡 ${title}\n${result.reason}`
+    return `📡 ${title}\n${result.reason}`;
   }
 
-  const fired = result.verdicts.filter(v => v.fired)
+  const fired = result.verdicts.filter((v) => v.fired);
   if (fired.length === 0) {
     // Useful in previews: tells the user "your rule would not fire on the
     // current snapshot".
-    return `📡 ${title}\nNo watched fields currently verify the condition on this snapshot.`
+    return `📡 ${title}\nNo watched fields currently verify the condition on this snapshot.`;
   }
 
-  const lines = fired.map(v =>
-    `• ${lineFor(result.condition.operator, v.path, result.condition.value, v.observed)}`,
-  )
-  return `📡 ${title}\n${lines.join('\n')}`
+  const lines = fired.map(
+    (v) =>
+      `• ${lineFor(result.condition.operator, v.path, result.condition.value, v.observed)}`,
+  );
+  return `📡 ${title}\n${lines.join("\n")}`;
 }

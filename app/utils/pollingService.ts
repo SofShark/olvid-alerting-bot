@@ -3,9 +3,9 @@
 
 export const pollingService = {
   async testOnScreen(alertId: number) {
-    return await $fetch('/api/poll/test', {
-      method: 'POST',
+    return await $fetch("/api/poll/test", {
+      method: "POST",
       body: { alertId },
-    })
+    });
   },
-}
+};

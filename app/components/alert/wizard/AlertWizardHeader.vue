@@ -6,15 +6,15 @@
 */
 
 defineProps<{
-  title:       string
-  description: string
-}>()
+  title: string;
+  description: string;
+}>();
 
 defineEmits<{
-  (e: 'update:title',       v: string): void
-  (e: 'update:description', v: string): void
-  (e: 'back'):                          void
-}>()
+  (e: "update:title", v: string): void;
+  (e: "update:description", v: string): void;
+  (e: "back"): void;
+}>();
 </script>
 
 <template>
@@ -28,7 +28,9 @@ defineEmits<{
             :placeholder="$t('common.untitledAlert')"
             class="title-input"
             :aria-label="$t('wizard.alertTitleAria')"
-            @input="$emit('update:title', ($event.target as HTMLInputElement).value)"
+            @input="
+              $emit('update:title', ($event.target as HTMLInputElement).value)
+            "
           />
         </div>
         <input
@@ -37,15 +39,18 @@ defineEmits<{
           :placeholder="$t('common.descriptionPlaceholder')"
           class="description-input"
           :aria-label="$t('wizard.alertDescriptionAria')"
-          @input="$emit('update:description', ($event.target as HTMLInputElement).value)"
+          @input="
+            $emit(
+              'update:description',
+              ($event.target as HTMLInputElement).value,
+            )
+          "
         />
       </div>
     </div>
-    <button
-      type="button"
-      class="btn btn-ghost"
-      @click="$emit('back')"
-    >{{ $t('button.backToList') }}</button>
+    <button type="button" class="btn btn-ghost" @click="$emit('back')">
+      {{ $t("button.backToList") }}
+    </button>
   </div>
 </template>
 
@@ -85,7 +90,9 @@ defineEmits<{
   line-height: 1.2;
   padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
-  transition: background-color .15s ease, border-bottom-color .15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-bottom-color 0.15s ease;
 }
 .title-input::placeholder {
   color: var(--color-text-faint);
@@ -115,7 +122,10 @@ defineEmits<{
   padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
   font-family: inherit;
-  transition: background-color .15s ease, border-bottom-color .15s ease, color .15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-bottom-color 0.15s ease,
+    color 0.15s ease;
 }
 .description-input::placeholder {
   color: var(--color-text-faint);

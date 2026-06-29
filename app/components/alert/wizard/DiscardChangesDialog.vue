@@ -8,22 +8,22 @@
 */
 
 defineProps<{
-  open:          boolean
-  canSaveDraft:  boolean
-  saving:        boolean
-}>()
+  open: boolean;
+  canSaveDraft: boolean;
+  saving: boolean;
+}>();
 
 defineEmits<{
-  (e: 'save-draft'):       void
-  (e: 'continue-editing'): void
-  (e: 'discard'):          void
-}>()
+  (e: "save-draft"): void;
+  (e: "continue-editing"): void;
+  (e: "discard"): void;
+}>();
 </script>
 
 <template>
   <Modal :open="open" :close-on-backdrop="false">
-    <h4>{{ $t('wizard.discardModal.title') }}</h4>
-    <p>{{ $t('wizard.discardModal.message') }}</p>
+    <h4>{{ $t("wizard.discardModal.title") }}</h4>
+    <p>{{ $t("wizard.discardModal.message") }}</p>
     <div class="overlay-actions">
       <button
         v-if="canSaveDraft"
@@ -31,17 +31,19 @@ defineEmits<{
         class="btn btn-secondary"
         :disabled="saving"
         @click="$emit('save-draft')"
-      >{{ saving ? $t('common.saving') : $t('wizard.footer.saveAsDraft') }}</button>
+      >
+        {{ saving ? $t("common.saving") : $t("wizard.footer.saveAsDraft") }}
+      </button>
       <button
         type="button"
         class="btn btn-ghost"
         @click="$emit('continue-editing')"
-      >{{ $t('button.continueEditing') }}</button>
-      <button
-        type="button"
-        class="btn btn-danger"
-        @click="$emit('discard')"
-      >{{ $t('button.discard') }}</button>
+      >
+        {{ $t("button.continueEditing") }}
+      </button>
+      <button type="button" class="btn btn-danger" @click="$emit('discard')">
+        {{ $t("button.discard") }}
+      </button>
     </div>
   </Modal>
 </template>

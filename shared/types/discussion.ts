@@ -7,6 +7,6 @@
 // chats, "Display Name (group)" for groups.
 
 export type DiscussionModel = {
-  id: string
-  title: string
-}
+  id: string;
+  title: string;
+};
