@@ -2,6 +2,7 @@
 import { computed, toRef } from "vue";
 import { AlertStatus, type AlertModel } from "#shared/types/alert";
 import { compactCondition, migrateCondition } from "#shared/condition/migrate";
+import { getErrorMessage, getErrorData } from "~/utils/errors";
 
 /*
   Thin orchestration container for the alert create / edit flow. Owns
@@ -139,9 +140,9 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
       await navigateTo("/alerts/" + form.value.id);
     }
   } catch (error: any) {
-    console.error("Error saving:", error.data || error);
+    console.error("Error saving:", getErrorData(error) ?? error);
     alert(
-      `${t("wizard.errors.saving")}\n\n${error.data?.message || error.message || t("common.unknownError")}`,
+      `${t("wizard.errors.saving")}\n\n${getErrorMessage(error, t("common.unknownError"))}`,
     );
   }
 };

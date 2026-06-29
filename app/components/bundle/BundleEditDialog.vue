@@ -78,7 +78,7 @@ const onSave = () => {
   <Modal :open="open" :close-on-backdrop="false" @close="requestClose">
     <div class="bundle-edit-modal">
       <div class="modal-head">
-        <h4>{{ t("editor.bundleModal.title", { n: (index ?? 0) + 1 }) }}</h4>
+        <h4>{{ draft?.name || "Untitled bundle" }}</h4>
         <button
           type="button"
           class="modal-close"

@@ -11,6 +11,7 @@ import {
   getWebhookScript,
   type WebhookTemplate,
 } from "#shared/payloadTemplates";
+import { getErrorMessage } from "~/utils/errors";
 
 const { t } = useI18n();
 
@@ -95,7 +96,7 @@ const formatJson = () => {
     if (!jsonPayload.value.trim()) return;
     const parsed = JSON.parse(jsonPayload.value);
     jsonPayload.value = JSON.stringify(parsed, null, 2);
-  } catch (e) {
+  } catch (__e) {
     alert("Invalid JSON: Cannot prettify.");
   }
 };
@@ -194,11 +195,11 @@ async function retrievePolling() {
     } else {
       parsedTree.value = res.parsed;
     }
-  } catch (e: any) {
-    pollingError.value =
-      e?.data?.statusMessage ??
-      e?.message ??
-      t("conditionEditor.errors.networkError");
+  } catch (e) {
+    pollingError.value = getErrorMessage(
+      e,
+      t("conditionEditor.errors.networkError"),
+    );
   } finally {
     pollingLoading.value = false;
   }
@@ -283,7 +284,7 @@ const close = () => emit("close");
       v-if="quickTemplatesOpen || loadDataOpen"
       class="dropdown-backdrop"
       @click="closeDropdowns"
-    ></div>
+    />
 
     <div class="editor-window">
       <div class="window-header">
@@ -417,10 +418,10 @@ const close = () => emit("close");
 
             <!-- Polling: XML tree -->
             <template v-if="isPolling">
-              <div class="payload-notice" v-if="pollingLoading">
+              <div v-if="pollingLoading" class="payload-notice" >
                 {{ $t("formatEditor.sourceLoadingPolling") }}
               </div>
-              <div class="payload-empty" v-else-if="pollingError">
+              <div v-else-if="pollingError" class="payload-empty" >
                 ⚠ {{ pollingError }}
               </div>
               <div class="payload-empty" v-else-if="rootEntries.length === 0">

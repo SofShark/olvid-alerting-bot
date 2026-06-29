@@ -15,7 +15,10 @@ defineEmits<{ (e: "edit-bundle", index: number): void }>();
 
 <template>
   <div class="data-block">
-    <h3 class="data-title">Bundles ({{ bundles.length }})</h3>
+    <h4 class="section-eyebrow">
+      Bundles
+      <span v-if="bundles.length > 0" class="eyebrow-count">{{ bundles.length }}</span>
+    </h4>
 
     <div v-if="bundles.length === 0" class="bundles-hint">
       <i18n-t keypath="editor.view.noBundles" tag="span">
@@ -45,11 +48,24 @@ defineEmits<{ (e: "edit-bundle", index: number): void }>();
   margin-bottom: 0;
 }
 
-.data-title {
-  margin: 0;
-  padding: 0 0 var(--space-3);
-  font-weight: 700;
-  color: var(--color-text-primary);
+/* Demoted eyebrow — same treatment as AlertInputSummary so both
+ * sections read as supporting copy under the main h2 alert title. */
+.section-eyebrow {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+.eyebrow-count {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  color: var(--color-text-faint);
 }
 
 .bundles-hint {

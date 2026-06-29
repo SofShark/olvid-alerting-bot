@@ -76,7 +76,7 @@ export const notifierService = {
       case Formatting.Custom: {
         try {
           return runHandlebars(bundle.custom_script, payload);
-        } catch (error) {
+        } catch (error: any) {
           console.error(
             `❌ [Notifier] Error running script for alert **${alert.title}**:`,
             error,

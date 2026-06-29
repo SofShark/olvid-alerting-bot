@@ -76,7 +76,7 @@ const initials = (title: string): string => {
           class="status-dot"
           :class="statusClass(a.status)"
           :title="statusLabel(a.status)"
-        ></span>
+        />
 
         <span v-if="collapsed" class="row-initials">{{
           initials(a.title)

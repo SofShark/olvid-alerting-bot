@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, toRef } from "vue";
-import { Source } from "#shared/types/source";
 import { AlertStatus, type AlertModel } from "#shared/types/alert";
 import type { BundleModel } from "#shared/types/bundle";
+import { getErrorMessage } from "~/utils/errors";
 
 /*
   Smart container for the view-mode alert page. Owns the state via
@@ -143,7 +143,7 @@ const onSaveBundle = async ({
   } catch (error: any) {
     console.error("Error saving bundle:", error);
     alert(
-      `${t("editor.errors.savingBundle")}\n\n${error.data?.message || error.message || t("common.unknownError")}`,
+      `${t("editor.errors.savingBundle")}\n\n${getErrorMessage(error, t("common.unknownError"))}`,
     );
   }
 };
@@ -204,7 +204,7 @@ const onSaveBundle = async ({
 
       <TestPoll
         v-if="isPolling && form.status === AlertStatus.Inactive"
-        :alertId="form.id"
+        :alert-id="form.id"
       />
     </div>
   </div>

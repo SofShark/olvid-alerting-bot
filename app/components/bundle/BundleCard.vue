@@ -151,8 +151,10 @@ const pollingPreview = computed(() => {
       @close="isEditorOpen = false"
     />
 
-    <div class="card-head">
-      <span class="card-tag">{{ $t("bundleCard.tag", { n: index + 1 }) }}</span>
+    <div
+      v-if="(!hideRemove && !readonly) || (readonly && editable)"
+      class="card-head"
+    >
       <button
         v-if="!hideRemove && !readonly"
         type="button"
@@ -275,6 +277,9 @@ const pollingPreview = computed(() => {
   border-color: var(--color-accent-hover);
   color: var(--color-text-on-accent);
 }
+
+/* Right-align the lone × / edit button now that the index tag is gone. */
+.card-head { justify-content: flex-end; }
 
 .format-row {
   display: flex;

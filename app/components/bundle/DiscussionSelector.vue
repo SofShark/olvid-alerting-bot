@@ -24,6 +24,12 @@ const searchQuery = ref("");
 const isDropdownOpen = ref(false);
 const containerRef = ref<HTMLElement | null>(null);
 
+// Collapsed by default so a long list of selected discussions doesn't
+// explode the bundle card vertically. The user clicks the summary header
+// to reveal the chips for review / removal. The state is per-mount; we
+// don't persist it across re-opens of the modal.
+const chipsExpanded = ref(false);
+
 const filtered = computed(() => {
   const selectedIds = new Set(props.modelValue.map((d) => d.id));
   const q = searchQuery.value.toLowerCase();
@@ -56,18 +62,34 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 
 <template>
   <div class="selector">
-    <!-- Selected chips -->
-    <div v-if="modelValue.length > 0" class="chips">
-      <div v-for="d in modelValue" :key="d.id" class="chip">
-        <span class="chip-title">{{ d.title }}</span>
-        <button
-          v-if="!readonly"
-          type="button"
-          class="chip-remove"
-          @click="remove(d.id)"
-        >
-          ✕
-        </button>
+    <!-- Selected — collapsed summary by default. Click to expand and
+         review / remove. Hidden entirely when nothing is selected. -->
+    <div v-if="modelValue.length > 0" class="selected">
+      <button
+        type="button"
+        class="selected-toggle"
+        :aria-expanded="chipsExpanded"
+        @click="chipsExpanded = !chipsExpanded"
+      >
+        <span class="selected-count">{{ modelValue.length }}</span>
+        <span class="selected-label">
+          {{ modelValue.length === 1 ? "destination selected" : "destinations selected" }}
+        </span>
+        <span class="selected-caret" :class="{ open: chipsExpanded }" aria-hidden="true" />
+      </button>
+
+      <div v-if="chipsExpanded" class="chips">
+        <div v-for="d in modelValue" :key="d.id" class="chip">
+          <span class="chip-title">{{ d.title }}</span>
+          <button
+            v-if="!readonly"
+            type="button"
+            class="chip-remove"
+            @click="remove(d.id)"
+          >
+            ✕
+          </button>
+        </div>
       </div>
     </div>
 
@@ -77,11 +99,10 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
     </p>
 
     <!-- Search / add — hidden when readonly. -->
-    <div v-if="!readonly" class="search-wrap" ref="containerRef">
+    <div v-if="!readonly" ref="containerRef" class="search-wrap" >
       <input
+        type="text" 
         v-model="searchQuery"
-        @focus="isDropdownOpen = true"
-        type="text"
         :placeholder="
           isLoading
             ? t('discussionSelector.search.loading')
@@ -91,13 +112,14 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         "
         :disabled="isLoading"
         class="search-input"
+        @focus="isDropdownOpen = true"
       />
       <div v-if="isDropdownOpen" class="dropdown">
         <div
           v-for="d in filtered"
+          class="dropdown-item"
           :key="d.id.toString()"
           @mousedown.prevent="add(d)"
-          class="dropdown-item"
         >
           <span class="item-title">{{ d.title }}</span>
         </div>
@@ -120,6 +142,45 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   gap: var(--space-3);
   width: 100%;
 }
+
+/* Selected — collapsible summary. The toggle reads as a row of dim
+ * metadata so it doesn't compete with the search input below. */
+.selected {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.selected-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-text-dim);
+  font-size: var(--text-sm);
+  align-self: flex-start;
+  border-radius: var(--radius-sm);
+  transition: color .15s;
+}
+.selected-toggle:hover { color: var(--color-text-primary); }
+.selected-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+.selected-label { color: inherit; }
+.selected-caret {
+  width: 0;
+  height: 0;
+  border-top:    4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left:   6px solid currentColor;
+  opacity: 0.6;
+  transition: transform .15s ease, opacity .15s ease;
+}
+.selected-caret.open { transform: rotate(90deg); opacity: 0.9; }
 
 /* Chip layout overrides the global chip's tight padding — discussion chips
  * carry a wider title + a × button so a touch more breathing room helps. */

@@ -32,7 +32,7 @@ const pollingInterval = computed(() =>
 
 <template>
   <div class="data-block">
-    <h3 class="data-title">Configuration</h3>
+    <h4 class="section-eyebrow">Configuration</h4>
 
     <dl class="data-grid">
       <template v-if="isWebhook">
@@ -77,11 +77,17 @@ const pollingInterval = computed(() =>
   margin-bottom: 0;
 }
 
-.data-title {
-  margin: 0;
-  padding: 0 0 var(--space-3);
-  font-weight: 700;
-  color: var(--color-text-primary);
+/* Small-caps eyebrow label — demoted so it doesn't compete with the
+ * main h2 alert title in the view header. Common admin-UI pattern
+ * (Linear, Vercel, Stripe). */
+.section-eyebrow {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
 }
 
 .data-grid {

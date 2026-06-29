@@ -25,7 +25,7 @@ export const olvidClient = {
         console.log(`✅ [Olvid] Message sent to discussion: ${discussionId}`);
       }
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error(
         "❌ [Olvid] An error occurred while sending a message:",
         error,
@@ -46,12 +46,12 @@ export const olvidClient = {
           if (!discussion || !discussion.id) continue;
           arrayDiscussions.push(discussion);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.warn("⚠️ Async request ended abruptly:", error);
       }
 
       return arrayDiscussions;
-    } catch (error) {
+    } catch (error: any) {
       console.error(
         "❌ [Olvid] A critical error occurred while getting discussions",
         error,

@@ -11,6 +11,7 @@ import { PollingFormat } from "#shared/types/polling";
 import { migrateCondition } from "#shared/condition/migrate";
 import { expandPath, hasWildcard } from "#shared/condition/pathExpand";
 import { evaluateCondition } from "#shared/condition/evaluate";
+import { getErrorMessage } from "~/utils/errors";
 
 const { t } = useI18n();
 
@@ -215,11 +216,11 @@ async function retrieve() {
       raw.value = res.raw ?? "";
       emit("update:payload", res.parsed);
     }
-  } catch (e: any) {
-    error.value =
-      e?.data?.statusMessage ??
-      e?.message ??
-      t("conditionEditor.errors.networkError");
+  } catch (e) {
+    error.value = getErrorMessage(
+      e,
+      t("conditionEditor.errors.networkError"),
+    );
     parsed.value = null;
   } finally {
     loading.value = false;

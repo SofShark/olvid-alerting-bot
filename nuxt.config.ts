@@ -4,6 +4,14 @@ import { resolve } from "path";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
+  typescript: {
+    tsConfig: {
+      compilerOptions: {
+        useUnknownInCatchVariables: true
+      }
+    }
+  },
+  
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
 
