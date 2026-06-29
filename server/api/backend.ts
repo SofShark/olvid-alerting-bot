@@ -1,4 +1,4 @@
-import { AlertStatus } from '#shared/constants'
+import { AlertStatus } from '#shared/types/alert'
 
 export default defineEventHandler(async (event) => {
   const method = event.node.req.method

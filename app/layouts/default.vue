@@ -121,9 +121,8 @@ const selectedId = computed(() => {
   transition: grid-template-columns 0.18s ease;
 }
 
-
 .split.sidebar-collapsed {
-  --sidebar-w: 84px;
+  --sidebar-w: 64px;
 }
 .split-left, .split-right {
   min-height: 0;

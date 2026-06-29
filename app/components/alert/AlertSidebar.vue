@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertStatus, type AlertModel } from '#shared/constants'
+import { AlertStatus, type AlertModel } from '#shared/types/alert'
 
 const { t } = useI18n()
 const { collapsed, toggle } = useSidebar()
@@ -68,7 +68,10 @@ const initials = (title: string): string => {
         :title="collapsed ? a.title : undefined"
         @click="emit('select', a)"
       >
+
+
         <span class="status-dot" :class="statusClass(a.status)" :title="statusLabel(a.status)"></span>
+        
         <span v-if="collapsed" class="row-initials">{{ initials(a.title) }}</span>
         <span v-else class="row-title">{{ a.title }}</span>
       </button>
@@ -110,16 +113,6 @@ const initials = (title: string): string => {
   min-height: 0;
 }
 
-.sidebar-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--space-3);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  background: var(--color-bg-panel); /* <-- Cambiado de var(--color-bg-card) */
-  min-height: 0;
-}
 
 /* ── Head ───────────────────────────────────────────────────────────
  * Expanded: title on the left, collapse-toggle on the right.
@@ -172,50 +165,64 @@ const initials = (title: string): string => {
   line-height: 1;
   transition: transform .18s ease;
   color:var(--color-accent)
+
+  .btn-collapse:hover & {
+    color: var(--color-accent-soft);
+  }
 }
 
 .sidebar.collapsed .chev-icon {
   transform: rotate(180deg);
 }
 
-.btn-collapse:hover .chev-icon {
-  color: var(--color-accent-soft);
-}:var(--color-accent-soft)
-
 
 /* ── Body / rows ────────────────────────────────────────────────── */
 .sidebar-body {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-3);
+  padding: var(--space-1);
   display: flex;
   flex-direction: column;
   gap: 2px;
-  background: var(--color-bg-card);
+  background: var(--color-bg-panel);
   min-height: 0;
   
+  .sidebar-collapsed & {
+    padding: var(--space-1) 0;
+  }
+
 }
 
 .alert-row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+
   width: 100%;
+  height: 35px; /* Adjust this value to match your exact design needs */
+  box-sizing: border-box;
+
   text-align: left;
   background:transparent ;
   border: none;
   border-left: 1px solid transparent;
   color: var(--color-text-secondary);
-  padding: 9px var(--space-4);
+  
+  padding-left: 9px;
   border-radius: var(--radius-md);
   cursor: pointer;
   font-size: var(--text-base);
   transition: background-color .15s;
+
+  .sidebar-collapsed & {
+    position: relative;
+    justify-content: center; /* Centra el row-initials */
+    border-radius: 0;
+    padding: 0; /* Quitamos el padding lateral para un centrado perfecto */
+  }
 }
-.sidebar.collapsed .alert-row {
-  padding: 9px var(--space-3);
-  justify-content: flex-start;
-}
+
+
 .alert-row:hover { background: var(--color-bg-card-soft); }
 .alert-row.selected {
   background: var(--color-bg-card-soft);
@@ -239,6 +246,7 @@ const initials = (title: string): string => {
   letter-spacing: 0.5px;
   color: inherit;
   white-space: nowrap;
+  padding-right: 10px;
 }
 
 /* ── Status dots — unchanged ─────────────────────────────────────── */
@@ -247,7 +255,16 @@ const initials = (title: string): string => {
   border-radius: 50%;
   flex-shrink: 0;
   box-sizing: border-box;
+
+  .sidebar-collapsed & { /* 2. Status dot as an exponent in smaller size  */
+    position: absolute;
+    top: 6px;   
+    right: 6px;  
+    width: 8px; 
+    height: 8px;
+  }
 }
+
 .st-active   { background: var(--color-accent); border: 1px solid var(--color-accent); }
 .st-inactive { background: transparent; border: 1px solid var(--color-text-dim); }
 .st-draft    { background: transparent; border: 1px dashed var(--color-text-dim); }
@@ -265,8 +282,8 @@ const initials = (title: string): string => {
  * Collapsed: square with just "+", same affordance. */
 .btn-new-bottom {
   margin-top: auto;
-  margin-left: var(--space-3);
-  margin-right: var(--space-3);
+  margin-left: var(--space-2);
+  margin-right: var(--space-2);
   margin-bottom: var(--space-3);
 
   padding: 9px;
@@ -286,14 +303,12 @@ const initials = (title: string): string => {
   transition: background-color .15s, border-color .15s, color .15s;
 }
 .btn-new-bottom:hover {
-  background: var(--color-border-default);
+  background: var(--color-accent-soft);
+  /*background: var(--color-border-default);*/
   color: var(--color-text-primary);
   border-color: var(--color-border-strong);
 }
 
-.sidebar.collapsed .btn-new-bottom {
-  padding: 9px 0;
-}
 .btn-new-label { white-space: nowrap; }
 .plus { font-size: var(--text-xl); line-height: 1; }
 </style>

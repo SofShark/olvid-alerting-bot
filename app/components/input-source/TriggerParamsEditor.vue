@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { PollingFormat, Source, 
-       // Trigger 
-      }  from '#shared/constants'
+import { Source }        from '#shared/types/source'
+import { PollingFormat } from '#shared/types/polling'
 
 // The alert's source IS the only type discriminator — `triggerType` here
 // receives `form.input` (a Source value) from the wizard. No separate

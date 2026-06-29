@@ -17,7 +17,6 @@
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
-  max-width: 360px;
   box-shadow: var(--shadow-overlay);
 }
 .overlay-box h4 { margin: 0 0 var(--space-3); color: var(--color-text-primary); font-size: var(--text-lg); }

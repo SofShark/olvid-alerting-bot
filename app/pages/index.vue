@@ -6,9 +6,11 @@
     <div class="placeholder-inner">
       <div class="ph-icon">🔔</div>
       <p>{{ $t('index.placeholder') }}</p>
-      <ButtonPrimary @click="navigateTo('/alerts/new')">
+      <button 
+type="button"
+class="btn btn-primary" @click="navigateTo('/alerts/new')">
         <span class="plus-icon">+</span> {{ $t('button.newAlert') }}
-      </ButtonPrimary>
+      </button>
     </div>
   </div>
 </template>

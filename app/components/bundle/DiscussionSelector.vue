@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import type { DiscussionModel } from '#shared/constants'
+import type { DiscussionModel } from '#shared/types/discussion'
 
 const { t } = useI18n()
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertStatus } from '#shared/constants'
+import { AlertStatus } from '#shared/types/alert'
 
 const route  = ref(useRoute())
 const { alerts, alertsLoading, fetchAlerts } = useAlerts()
@@ -29,9 +29,9 @@ const isEditing = computed(() => route.value.query.edit === '1')
     :key="`wizard-${alert.id?.toString()}`"
     :alerta-inicial="alert"
   />
-  <AlertEditor
+  <AlertView
     v-else
-    :key="`editor-${alert.id?.toString()}`"
+    :key="`view-${alert.id?.toString()}`"
     :alerta-inicial="alert"
   />
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {AlertStatus} from '#shared/constants'
+import { AlertStatus } from '#shared/types/alert'
 // defineModel remplace à la fois la prop 'status' et l'emit associé !
 
 const status = defineModel<AlertStatus>('status', { required: true })
@@ -29,19 +29,24 @@ const toggleStatus = () => {
     <div
         class="toggle-wrap"
     >
-        <button
-        type="button" class="toggle" :class="{ on: status === AlertStatus.Active }"
-        :disabled="!canActivate" 
-        @click="toggleStatus"
-        ><span class="knob"></span></button>
-        <span class="toggle-label">{{ statusLabel }}</span>
+      <span class="toggle-label">{{ statusLabel }}</span>
+      <button
+      type="button" class="toggle" :class="{ on: status === AlertStatus.Active }"
+      :disabled="!canActivate" 
+      @click="toggleStatus"
+      ><span class="knob"></span></button>
+        
     </div>
 
 </template>
 <style>
 
 /* ── Active/inactive toggle ─────────────────────── */
-.toggle-wrap { display: flex; align-items: center; gap: var(--space-3); }
+.toggle-wrap { 
+  display: flex; 
+  align-items: center; 
+  gap: 0;
+}
 .toggle {
   width: 42px;
   height: 22px;

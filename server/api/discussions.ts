@@ -1,4 +1,4 @@
-import type { DiscussionModel } from '../../shared/constants'
+import type { DiscussionModel } from '#shared/types/discussion'
 
 export default defineEventHandler(async (): Promise<DiscussionModel[]> => {
   const discussions = await olvidClient.getDiscussions()

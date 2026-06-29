@@ -4,14 +4,13 @@ import {
   ConditionKind,
   ConditionOperator,
   ConditionAggregation,
-  PollingFormat,
   OPERATORS_NEEDING_VALUE,
-  migrateCondition,
   type PollingCondition,
-} from '#shared/constants'
-import { expandPath, hasWildcard } from '#shared/pathExpand'
-import { evaluateCondition } from '#shared/conditionEval'
-import ButtonPrimary from '../ui/ButtonPrimary.vue';
+} from '#shared/types/condition'
+import { PollingFormat }      from '#shared/types/polling'
+import { migrateCondition }   from '#shared/condition/migrate'
+import { expandPath, hasWildcard } from '#shared/condition/pathExpand'
+import { evaluateCondition }       from '#shared/condition/evaluate'
 
 const { t } = useI18n()
 
@@ -347,13 +346,17 @@ const OPERATORS = computed<Array<{ value: ConditionOperator; label: string }>>((
                    "Type path" doesn't replace them, it just spawns an inline
                    input next to the existing path chips below. -->
               <div class="watched-actions">
-                <ButtonPrimary small @click="startAdding">
+                <button 
+type="button"
+class="btn btn-primary" small @click="startAdding">
                   <span class="add-icon">✎</span> {{ $t('conditionEditor.watchedFields.typePath') }}
-                </ButtonPrimary>
+              </button>
 
-                <ButtonPrimary small @click="openPicker">
+                <button 
+type="button"
+class="btn btn-primary" small @click="openPicker">
                   <span class="add-icon">⊞</span> {{ $t('conditionEditor.watchedFields.pickFromSource') }}
-                </ButtonPrimary>
+                </button>
                 
               </div>
             </div>
@@ -507,7 +510,7 @@ const OPERATORS = computed<Array<{ value: ConditionOperator; label: string }>>((
               ? $t('conditionEditor.picker.fieldsSelected',       { n: effectivePaths.length })
               : $t('conditionEditor.picker.fieldsSelectedPlural', { n: effectivePaths.length }) }}
           </span>
-          <ButtonPrimary @click="closePicker">{{ $t('conditionEditor.picker.doneButton') }}</ButtonPrimary>
+          <button type="button" class="btn btn-primary" @click="closePicker">{{ $t('conditionEditor.picker.doneButton') }}</button>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 // Library with parser for XML-JSON conversion
 import { XMLParser } from 'fast-xml-parser'
-import { PollingFormat } from '#shared/constants'
+import { PollingFormat } from '#shared/types/polling'
 import type { Parser, ParserContext, ParseResult } from '../types'
 
 const htmlReader = new XMLParser({

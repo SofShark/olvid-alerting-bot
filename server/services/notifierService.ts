@@ -13,9 +13,10 @@
 //   - formatMessage(alert, bundle, payload) — builds the string for one
 //     bundle (also reused by the "test poll" endpoint to preview).
 
-import { Formatting, AlertStatus } from '#shared/constants'
-import { buildPollingDefaultMessage } from '#shared/pollingMessage'
-import { formatMessage as runHandlebars } from '#shared/handlebarsHelper'
+import { Formatting }  from '#shared/types/bundle'
+import { AlertStatus } from '#shared/types/alert'
+import { buildPollingDefaultMessage } from '#shared/polling/message'
+import { formatMessage as runHandlebars } from '#shared/handlebars'
 
 export const notifierService = {
 

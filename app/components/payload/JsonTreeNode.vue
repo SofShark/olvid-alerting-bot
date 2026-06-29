@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 
 /*
-  JsonNode — recursive, interactive JSON inspector.
+  JsonTreeNode — recursive, interactive JSON inspector.
 
   Renders a JSON value as a click-to-pick tree:
     - Branches (objects / arrays)  → collapsible row, click to toggle.
@@ -18,11 +18,10 @@ import { ref, computed } from 'vue'
     nodeName  — the key of this node (string for objects, numeric-string for arrays)
     nodeValue — the value at this node (any JSON value)
     path      — full dot-path from the root (used in select payload)
-    selected? — currently-selected paths (drives the highlighted state)
     depth?    — recursion depth, used for indentation
 */
 
-defineOptions({ name: 'JsonNode' })
+defineOptions({ name: 'JsonTreeNode' })
 
 // No `selected` prop — JSON picker mode is hover-only, not persistent.
 // (XmlTreeNode keeps its `selected` for the polling watched-paths use case;
@@ -59,7 +58,6 @@ const displayName = computed(() =>
 const expanded = ref(true)
 const toggle = () => { expanded.value = !expanded.value }
 
-// ── Branch-level metadata ────────────────────────────────────────────────
 const childCount = computed(() => {
   if (!isBranch.value) return 0
   return isArray.value
@@ -83,7 +81,6 @@ function childPath(key: string): string {
   return props.path ? `${props.path}.${key}` : key
 }
 
-// ── Leaf rendering ───────────────────────────────────────────────────────
 // Uniform light-blue colour to match the JSON textarea (.json-color). The
 // only formatting concession we make is wrapping strings in quotes — same
 // as how the JSON would look in the textarea — so the two modes feel like
@@ -114,7 +111,7 @@ const leafDisplay = computed(() => {
       </div>
 
       <div v-if="expanded" class="branch-children">
-        <JsonNode
+        <JsonTreeNode
           v-for="([k, v]) in entries(nodeValue)"
           :key="k"
           :node-name="k"
@@ -126,10 +123,7 @@ const leafDisplay = computed(() => {
       </div>
     </template>
 
-    <!-- ── LEAF ─ primitive, click to emit its path ──────────────────
-         Hover-only highlighting (no persistent .selected state). The full
-         dot-path appears at the right edge on hover so the user can see
-         what they're about to inject before clicking. -->
+    <!-- ── LEAF ─ primitive, click to emit its path ────────────────── -->
     <div
       v-else
       class="leaf-line"

@@ -1,12 +1,14 @@
 // Default polling message builder. Used by:
-//   - BundleCard       (preview of what will be sent on fire)
-//   - notifierService  (actual message generation on the server)
+//   - BundleCard      (preview of what will be sent on fire)
+//   - notifierService (actual message generation on the server)
 //
 // Pure: no IO, no DOM. Safe in both Nuxt server and browser contexts.
-// All evaluation logic lives in `./conditionEval` — this module only formats.
+// All evaluation logic lives in shared/condition/evaluate.ts — this
+// module only formats the resulting verdicts into a Telegram-friendly
+// string.
 
-import { ConditionKind, ConditionOperator } from './constants'
-import { evaluateCondition } from './conditionEval'
+import { ConditionKind, ConditionOperator } from '../types/condition'
+import { evaluateCondition } from '../condition/evaluate'
 
 function asText(v: any): string {
   if (v === null || v === undefined) return '(no value)'
@@ -40,22 +42,19 @@ function lineFor(
 /**
  * Build the polling-default message for an alert + observed payload.
  *
- * @param alert    Has at least { title, description, alertParams.condition }
- * @param payload  The parsed source object (for XML this is the parsed tree)
+ * @param alert    At minimum: { title, description?, alertParams?.condition }.
+ * @param payload  The parsed source object (for XML this is the parsed tree).
  * @param baseline Optional previous-poll snapshot — pass on the server for
  *                 accurate `changed` evaluation. Omit in previews; the
- *                 evaluator treats no-baseline as "fires on next change".
+ *                 evaluator treats "no baseline" as "would fire on next change".
  */
 export function buildPollingDefaultMessage(
   alert:    any,
   payload:  any,
   baseline?: any,
-): string { 
-  const title = alert?.title ?? 'Polling alert'
-  // Support both shapes during the transition: new `alertParams.condition`,
-  // legacy `alertParams.condition`. Both eventually pass through
-  // migrateCondition inside evaluateCondition anyway.
-  const cond = alert?.alertParams?.condition ?? alert?.alertParams?.condition
+): string {
+  const title  = alert?.title ?? 'Polling alert'
+  const cond   = alert?.alertParams?.condition
   const result = evaluateCondition(cond, payload, baseline)
 
   if (result.kind === ConditionKind.None) {
@@ -68,8 +67,8 @@ export function buildPollingDefaultMessage(
 
   const fired = result.verdicts.filter(v => v.fired)
   if (fired.length === 0) {
-    // Could happen during preview if no field currently passes — useful to
-    // tell the user "your rule would not fire on the current snapshot".
+    // Useful in previews: tells the user "your rule would not fire on the
+    // current snapshot".
     return `📡 ${title}\nNo watched fields currently verify the condition on this snapshot.`
   }
 

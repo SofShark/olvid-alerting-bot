@@ -1,4 +1,4 @@
-import { Formatting, type BundleModel } from '#shared/constants'
+import { Formatting, type BundleModel } from '#shared/types/bundle'
 
 /**
  * Per-bundle readiness signal. Three states:

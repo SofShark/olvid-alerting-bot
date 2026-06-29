@@ -1,4 +1,4 @@
-import { Formatting } from '#shared/constants'
+import { Formatting } from '#shared/types/bundle'
 
 /**
  * Translates a `Formatting` enum value into its human-readable label

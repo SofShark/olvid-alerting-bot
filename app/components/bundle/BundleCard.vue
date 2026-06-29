@@ -1,12 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import {
-  Formatting,
-  isPollingSource,
-  type BundleModel,
-  type DiscussionModel,
-} from '#shared/constants'
-import { buildPollingDefaultMessage } from '#shared/pollingMessage'
+import { isPollingSource }                       from '#shared/types/source'
+import { Formatting, type BundleModel }          from '#shared/types/bundle'
+import { type DiscussionModel }                  from '#shared/types/discussion'
+import { buildPollingDefaultMessage } from '#shared/polling/message'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 const { t } = useI18n()

@@ -23,9 +23,13 @@ export default defineNuxtConfig({
   components: [
     { path: '~/components/ui',           pathPrefix: false },
     { path: '~/components/alert',        pathPrefix: false },
+    { path: '~/components/alert/view',   pathPrefix: false },
+    { path: '~/components/alert/wizard', pathPrefix: false },
+    { path: '~/components/alert/wizard/steps', pathPrefix: false },
     { path: '~/components/input-source', pathPrefix: false },
     { path: '~/components/bundle',       pathPrefix: false },
-    { path: '~/components/polling',      pathPrefix: false },
+    { path: '~/components/condition',    pathPrefix: false },
+    { path: '~/components/payload',      pathPrefix: false },
   ],
 
   alias: {

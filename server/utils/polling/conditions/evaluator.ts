@@ -1,9 +1,9 @@
 // Server-side polling condition evaluator. Thin adapter over the centralized
-// `evaluateCondition` in `#shared/conditionEval` — all the operator logic,
+// `evaluateCondition` in `#shared/condition/evaluate` — all the operator logic,
 // wildcard expansion, and aggregation lives there. This file only maps the
 // shared result into the server-specific `EvalResult` shape.
 
-import { evaluateCondition } from '#shared/conditionEval'
+import { evaluateCondition } from '#shared/condition/evaluate'
 import type { EvalResult } from '../types'
 
 export function evaluate(

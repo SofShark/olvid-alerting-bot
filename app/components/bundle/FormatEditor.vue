@@ -1,20 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
-import {formatMessage} from '#shared/handlebarsHelper'
-import {
-  Source,
-  isPollingSource,
-  ConditionKind,
-  PollingFormat,
-  migrateCondition,
-} from '#shared/constants'
+import {formatMessage} from '#shared/handlebars'
+import { Source, isPollingSource }    from '#shared/types/source'
+import { ConditionKind }              from '#shared/types/condition'
+import { PollingFormat }              from '#shared/types/polling'
+import { migrateCondition }           from '#shared/condition/migrate'
 import {
   webhookTemplateList,
   getWebhookPayloadJson,
   getWebhookScript,
   type WebhookTemplate,
 } from '#shared/payloadTemplates'
-import JsonNode from '../JsonNode.vue'
 
 const { t } = useI18n()
 
@@ -153,7 +149,6 @@ async function loadLastPayload(type: 'success' | 'failed') {
     lastPayloadLoading.value = false
   }
 }
-
 
 // ── Polling source (XML tree) state ─────────────────────────────────────────
 const parsedTree      = ref<any>(null)
@@ -379,7 +374,7 @@ const close = () => emit('close')
                 {{ $t('formatEditor.sourceNoPayloads') }}
               </div>
               <div v-else class="tree-panel">
-                <JsonNode
+                <JsonTreeNode
                   v-for="([k, v]) in jsonRootEntries"
                   :key="k"
                   :node-name="k"
@@ -428,7 +423,7 @@ const close = () => emit('close')
 
       <div class="window-footer">
         <button type="button" class="btn btn-ghost" @click="close">{{ $t('formatEditor.buttons.cancel') }}</button>
-        <ButtonPrimary @click="save">{{ $t('formatEditor.buttons.save') }}</ButtonPrimary>
+        <button type="button" class="btn btn-primary" @click="save">{{ $t('formatEditor.buttons.save') }}</button>
       </div>
 
     </div>
@@ -765,11 +760,17 @@ const close = () => emit('close')
   resize: vertical;
   box-sizing: border-box;
 }
+
 .hbs-color  { color: #dcdcaa; min-height: 150px; }
 .json-color { color: #9cdcfe; min-height: 250px; }
 
 .editor-textarea::-webkit-scrollbar { width: 8px; }
 .editor-textarea::-webkit-scrollbar-thumb { background: #4b4b4b; border-radius: var(--radius-sm); }
+
+.tree-panel::-webkit-scrollbar { width: 8px; }
+.tree-panel::-webkit-scrollbar-thumb { background: #4b4b4b; border-radius: var(--radius-sm); }
+
+
 
 /* ── Watched-path shortcuts (polling only) ──────────────────────── */
 .shortcuts {

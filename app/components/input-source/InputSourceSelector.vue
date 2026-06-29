@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { Source } from '#shared/constants'
+import { Source } from '#shared/types/source'
 
 const props = withDefaults(defineProps<{
   modelValue: string

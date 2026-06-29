@@ -21,7 +21,7 @@
 // Everything else (reads, delete, payload upserts) is pass-through —
 // callers can import the repo directly when they don't need the service.
 
-import { AlertStatus } from '#shared/constants'
+import { AlertStatus } from '#shared/types/alert'
 import { prisma } from '../db/prisma'
 
 // ── BigInt / shape helpers ────────────────────────────────────────────────

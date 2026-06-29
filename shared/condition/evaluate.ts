@@ -1,36 +1,37 @@
 /**
  * Centralized polling-condition evaluation. The single place that knows how
  * to: resolve dot-paths, expand wildcard patterns, evaluate operators, and
- * aggregate per-path verdicts. Pure function, no IO, no DOM — safe to call
- * from the Vue side (preview), Node side (engine), and anywhere else.
+ * aggregate per-path verdicts. Pure function — no IO, no DOM — safe to call
+ * from the Vue side (preview), the server side (engine), or anywhere else.
  *
  * Consumers:
- *   - ConditionEditor          → per-path verdicts for the live preview
- *   - buildPollingDefaultMessage → which paths fired + observed values
- *   - server polling evaluator → real evaluation against a baseline
+ *   - ConditionEditor              → per-path verdicts for the live preview.
+ *   - buildPollingDefaultMessage   → which paths fired + observed values.
+ *   - server polling evaluator     → real evaluation against a baseline.
  *
  * Wildcards: any chip whose path contains `..` is expanded against `payload`
  * before evaluation. So one wildcard chip can produce many verdicts. A
  * pattern that matches nothing surfaces as a single non-firing verdict
  * (so it's visible in the breakdown, not vacuously dropped).
  */
+
 import {
+  ConditionAggregation,
   ConditionKind,
   ConditionOperator,
-  ConditionAggregation,
   OPERATORS_NEEDING_VALUE,
-  migrateCondition,
   type PollingCondition,
-} from './constants'
+} from '../types/condition'
+import { migrateCondition } from './migrate'
 import { expandPath, hasWildcard } from './pathExpand'
 
 /** One verdict per concrete (post-expansion) path. */
 export type Verdict = {
-  path:     string
-  fired:    boolean
-  observed: any
+  path:      string
+  fired:     boolean
+  observed:  any
   baseline?: any
-  detail:   string
+  detail:    string
 }
 
 /** Full result of evaluating a condition against a payload. */
@@ -84,9 +85,9 @@ function evalOne(
 ): { fired: boolean; detail: string } {
   switch (operator) {
     case ConditionOperator.Changed: {
-      // No baseline → treat as "would fire when next change happens". This is
-      // the right answer for previews; the server evaluator passes a real
-      // baseline at poll time so this branch only triggers in the UI.
+      // No baseline → treat as "would fire when next change happens". This
+      // is the right answer for previews; the server evaluator passes a
+      // real baseline at poll time so this branch only triggers in the UI.
       if (baseline === undefined) {
         return { fired: true, detail: 'would fire on next change (no baseline yet)' }
       }

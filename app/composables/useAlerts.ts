@@ -1,4 +1,5 @@
-import type { AlertModel, DiscussionModel } from '#shared/constants'
+import type { AlertModel }      from '#shared/types/alert'
+import type { DiscussionModel } from '#shared/types/discussion'
 import { alertService } from '~/utils/alertService'
 
 /*Why useState instead of Vue's standard ref?

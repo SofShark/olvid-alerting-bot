@@ -3,8 +3,8 @@ import {
   ConditionKind,
   ConditionOperator,
   OPERATORS_NEEDING_VALUE,
-  migrateCondition,
-} from '#shared/constants'
+} from '#shared/types/condition'
+import { migrateCondition } from '#shared/condition/migrate'
 
 /**
  * Builds the human-readable summary of a polling condition shown in the

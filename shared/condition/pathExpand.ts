@@ -13,7 +13,8 @@
  * Used by the ConditionEditor to let users add many related watched fields
  * with one pattern (typical case: every array entry in an XML feed). Result
  * is deduped and order-preserving (depth-first).
- */                    // obj is the parsed json object from XML, HTML etc.
+ */
+// `obj` is the parsed payload tree (XML / JSON / HTML, all normalised to JS objects).
 export function expandPath(pattern: string, obj: any): string[] {
   const parts = normalize(pattern)
   if (parts.length === 0) return []
@@ -37,7 +38,8 @@ export function hasWildcard(pattern: string): boolean {
 function normalize(pattern: string): string[] {
   const out: string[] = []
   for (const p of pattern.split('.')) {
-    if (p === '' && out[out.length - 1] === '') continue // There was already a '.' before this one
+    // Empty segment right after another empty → already a wildcard, skip.
+    if (p === '' && out[out.length - 1] === '') continue
     out.push(p)
   }
   return out
@@ -57,8 +59,8 @@ function walk(
   const part = parts[i]
 
   if (part === '') {
-    // Wildcard: try zero-segment match (skip ahead), then one-or-more (descend
-    // into each child but stay on this wildcard).
+    // Wildcard: try zero-segment match (skip ahead), then one-or-more
+    // (descend into each child but stay on this wildcard).
     walk(node, parts, i + 1, current, out)
     if (node !== null && typeof node === 'object') {
       const entries: Array<[string, any]> = Array.isArray(node)
@@ -74,8 +76,6 @@ function walk(
   // Concrete segment: must match exactly.
   if (node === null || typeof node !== 'object') return
   if (!part) return
-  // Verify that the actual node has an entry called part (json)
   if (!(part in node)) return
-  // Continue the search on the element node[part], advance the index and add the part to the current walk
   walk(node[part], parts, i + 1, [...current, part], out)
 }

@@ -14,7 +14,7 @@
 // inputs at the domain level, and delegates persistence to the repository.
 // Testable without a database — pass a stubbed `alertRepository` in tests.
 
-import { AlertStatus } from '#shared/constants'
+import { AlertStatus } from '#shared/types/alert'
 import { alertRepository } from '../repositories/alertRepository'
 
 // ── Status rules ────────────────────────────────────────────────────────────
