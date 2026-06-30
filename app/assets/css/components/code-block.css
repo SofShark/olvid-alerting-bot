@@ -3,30 +3,34 @@
  */
 
 .code-block {
+  display: flex;
+  flex-direction: column;
+
+  min-height: 0;
+  max-height: none;
   background: var(--color-bg-code);
   border: 1px solid var(--color-border-code);
   border-radius: var(--radius-xl);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 320px;
-  max-height: 520px;
+  flex-shrink: 0;
 }
 
 .code-header {
-  background: var(--color-bg-code-header);
-  padding: var(--space-3) var(--space-4);
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  border-bottom: 1px solid var(--color-bg-code);
-  flex-shrink: 0;
+  padding: var(--space-3) 15px;
+  background: #1e1e1e;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  border-bottom: 1px solid #333;
+  gap: var(--space-3)
 }
+
+
 .code-title {
-  color: #a3a3a3;
-  font-size: var(--text-md);
+  color: #858585;
   font-family: var(--font-mono);
-  margin-left: var(--space-3);
+  font-size: var(--text-md);
+  margin-left: var(--space-4);
 }
 
 .code-body {
@@ -36,12 +40,15 @@
   color: var(--color-text-code);
 }
 
+
+
 .dot {
-  width: 11px;
-  height: 11px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   display: inline-block;
   flex-shrink: 0;
+  margin-left: 2px;
 }
 .dot-red {
   background: #ff5f56;
@@ -51,4 +58,112 @@
 }
 .dot-green {
   background: #27c93f;
+}
+
+/* ── Monospace textareas (script / JSON payload) ──────────────────────────
+ * Sit inside a .code-block. The colour helpers (.hbs-color, .json-color)
+ * approximate VSCode token colours so the script (yellow) and the JSON
+ * payload (light blue) read as the editor surface they are.
+ */
+.editor-textarea {
+  width: 100%;
+  padding: var(--space-6);
+  background: var(--color-bg-code);
+  border: none;
+  outline: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.hbs-color  { color: #dcdcaa; min-height: 150px; }
+.json-color { color: #9cdcfe; min-height: 250px; }
+
+.editor-textarea::-webkit-scrollbar { width: 8px; }
+.editor-textarea::-webkit-scrollbar-thumb {
+  background: #4b4b4b;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Tree-style payload viewer (XML / JSON click-to-pick) ──────────────── */
+.tree-panel {
+  padding: var(--space-4);
+  background: var(--color-bg-code);
+  overflow-y: auto;
+  min-height: 250px;
+  max-height: 360px;
+}
+.tree-panel::-webkit-scrollbar { width: 8px; }
+.tree-panel::-webkit-scrollbar-thumb {
+  background: #4b4b4b;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Code-block notice strips (loading / empty / error) ──────────────── */
+.payload-notice {
+  background: var(--color-bg-code-header);
+  color: var(--color-warning);
+  font-size: var(--text-md);
+  font-family: var(--font-mono);
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid #3a3a3a;
+}
+.payload-empty {
+  background: var(--color-bg-code);
+  color: var(--color-text-dim);
+  font-size: var(--text-base);
+  font-family: var(--font-mono);
+  padding: 30px var(--space-5);
+  text-align: center;
+  flex: 1;
+}
+
+/* ── Toolbar buttons for the dark IDE surface ─────────────────────────────
+ * Two flavours: the compact icon-style `.toggle-btn` (utility actions
+ * like prettify / clear) and `.toggle-btn-wide` for the primary "Load
+ * Template" affordance with a rotating caret. Tone is monochrome until
+ * focus / open — accent appears only on intentional interaction.
+ */
+.toggle-btn {
+  background: #3a3a3a;
+  color: #a3a3a3;
+  border: 1px solid #555;
+  border-radius: var(--radius-sm);
+  padding: 3px var(--space-4);
+  font-size: var(--text-md);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.toggle-btn:hover {
+  background: #4a4a4a;
+  color: var(--color-text-code);
+}
+
+.toggle-btn-wide {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px var(--space-3);
+  font-weight: 600;
+  letter-spacing: 0.1px;
+}
+.toggle-btn-wide .caret {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  margin-top: 1px;
+  opacity: 0.7;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.toggle-btn-wide.is-open {
+  background: #4a4a4a;
+  color: var(--color-text-code);
+  border-color: #6b6b6b;
+}
+.toggle-btn-wide.is-open .caret {
+  transform: rotate(180deg);
+  opacity: 1;
 }

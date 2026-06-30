@@ -1,7 +1,7 @@
 // Fetch + parse a URL — used by the wizard's ConditionEditor "Retrieve" button.
 // Side-effect-free: does not touch any alert or DB row.
 
-import { pollingEngine } from "../../utils/polling/engine";
+import { pollingEngine } from "../../utils/engine";
 
 export default defineEventHandler(async (event) => {
   try {

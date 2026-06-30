@@ -246,7 +246,7 @@ const onSaveDraftAndLeave = async () => {
 }
 
 .wizard-stepper {
-  padding: var(--space-2) var(--space-1);
+  padding: var(--space-1) var(--space-3);
   flex-shrink: 0;
 }
 </style>

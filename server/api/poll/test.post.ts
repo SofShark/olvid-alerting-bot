@@ -3,7 +3,7 @@
 // bundles or updating any baseline. Used by the "Run test poll" button in
 // the alert view.
 
-import { pollingEngine } from "../../utils/polling/engine";
+import { pollingEngine } from "../../utils/engine";
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{ alertId?: number | string }>(event);

@@ -134,7 +134,7 @@ const leafDisplay = computed(() => {
       <span class="leaf-value">{{ leafDisplay }}</span>
       <span class="leaf-path">{{ path }}</span>
     </div>
-  </div>
+  </div> 
 </template>
 
 <style scoped>
@@ -170,12 +170,10 @@ const leafDisplay = computed(() => {
 }
 
 .chevron {
-  width: 0;
-  height: 0;
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-  border-left: 6px solid currentColor;
-  opacity: 0.5;
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  border-left: 5px solid currentColor;
+  opacity: 0.3;
   margin-right: 2px;
   transition:
     transform 0.12s ease,

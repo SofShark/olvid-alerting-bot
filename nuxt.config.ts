@@ -36,6 +36,7 @@ export default defineNuxtConfig({
     { path: "~/components/alert/wizard/steps", pathPrefix: false },
     { path: "~/components/input-source", pathPrefix: false },
     { path: "~/components/bundle", pathPrefix: false },
+    { path: "~/components/bundle/format-editor", pathPrefix: false },
     { path: "~/components/condition", pathPrefix: false },
     { path: "~/components/payload", pathPrefix: false },
   ],
@@ -62,10 +63,6 @@ export default defineNuxtConfig({
     
     experimental: { tasks: true }, // Internal heartbeat that conditionally triggers the activation of scheduled alerts
     scheduledTasks: {
-      // The name MUST match the file path under server/tasks/ (with `:` as
-      // the directory separator). File at server/tasks/polling/heartbeat.ts
-      // → task name 'polling:heartbeat'. The meta.name inside the file uses
-      // the same value.
       "* * * * *": ["polling:heartbeat"],
     },
 
