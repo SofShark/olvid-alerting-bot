@@ -63,20 +63,20 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         $t("inputSourceSelector.lockedHint")
       }}</span>
     </div>
-    <div v-else class="search-wrap" ref="containerRef">
+    <div v-else ref="containerRef" class="search-wrap">
       <input
         v-model="searchQuery"
-        @focus="isDropdownOpen = true"
         type="text"
         :placeholder="$t('inputSourceSelector.searchPlaceholder')"
         class="search-input"
-      />
+        @focus="isDropdownOpen = true"
+      >
       <div v-if="isDropdownOpen" class="dropdown">
         <div
           v-for="s in filtered"
           :key="s"
-          @mousedown.prevent="select(s)"
           class="dropdown-item"
+          @mousedown.prevent="select(s)"
         >
           {{ s }}
         </div>

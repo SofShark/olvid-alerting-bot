@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { AlertStatus } from "#shared/types/alert";
+import type { AlertStatus } from "#shared/types/alert";
 
 /*
-  View-mode page header. Three rows in one block:
-    1. Title (truncated, single line) + Edit/Delete actions on the right.
+  View-mode page header. Two rows in one block:
+    1. Status Toggle (if alert is complete) + Title (truncated, single line) + Edit/Delete actions on the right.
     2. Description — italic + faint, truncated to 100 chars by parent.
-    3. Meta strip — Toggle (status) · source tag · bundle count.
 
-  Pure presentation: state changes emit upward. `update:status` fires when
-  the Toggle moves; the parent runs the actual setStatus call.
+  Pure presentation: `update:status` fires when  the Toggle moves; the parent runs the actual setStatus call.
 */
 
 const props = defineProps<{
@@ -36,12 +34,6 @@ const statusModel = computed({
 <template>
   <div class="panel-head view-head">
     <div class="head-main">
-      <!--Toggle
-        v-if="isExisting"
-        v-model:status="statusModel"
-        :canActivate="canActivate"
-        @update:state="$emit('update:status')"
-      /-->
       <h2 class="view-title">
         <span class="title-text">{{ title || $t("common.untitled") }}</span>
         <span class="meta-tag">{{ inputTitle }}</span>
@@ -50,7 +42,7 @@ const statusModel = computed({
         <StatusToggle
           v-if="isExisting"
           v-model:status="statusModel"
-          :canActivate="canActivate"
+          :can-activate="canActivate"
           @update:state="$emit('update:status')"
         />
         <button
@@ -72,15 +64,6 @@ const statusModel = computed({
     </div>
 
     <p v-if="description" class="view-subtitle">{{ description }}</p>
-
-    <!--div class="head-meta">
-      <Toggle
-        v-if="isExisting"
-        v-model:status="statusModel"
-        :canActivate="canActivate"
-        @update:state="$emit('update:status')"
-      />
-    </div-->
   </div>
 </template>
 
@@ -109,7 +92,7 @@ const statusModel = computed({
 }
 .view-title {
   display: flex;
-  align-items: center;
+  align-items: center;  
   gap: var(--space-3);
   margin: 0;
 

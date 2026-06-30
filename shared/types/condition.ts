@@ -43,6 +43,26 @@ export const OPERATORS_NEEDING_VALUE: ReadonlySet<ConditionOperator> = new Set([
   ConditionOperator.Contains,
 ]);
 
+// HTML <input type=...> appropriate for the operator's value field. Used by
+// ConditionEditor to restrict the user to numeric input when the operator
+// only makes sense over numbers — preventing the otherwise silent failure
+// where "abc" enters a `greater_than` field and the evaluator then declines
+// to fire (asNumbers returns null, no error surfaces).
+//
+// Returned values map to HTML input types so the binding is one
+// :type="inputTypeForOperator(operator)" on the value input.
+export const inputTypeForOperator = (
+  op: ConditionOperator,
+): "number" | "text" => {
+  switch (op) {
+    case ConditionOperator.GreaterThan:
+    case ConditionOperator.LessThan:
+      return "number";
+    default:
+      return "text";
+  }
+};
+
 // ── Data shape ─────────────────────────────────────────────────────────────
 
 export type PollingCondition = {
@@ -51,4 +71,33 @@ export type PollingCondition = {
   operator: ConditionOperator; // unused (but preserved) when kind === None
   value?: string; // unused for `changed` and for kind === None
   aggregation: ConditionAggregation; // unused (but preserved) when kind === None
+};
+
+// ── Evaluation output ──────────────────────────────────────────────────────
+// Lives here (with the rest of the condition types) rather than in
+// shared/condition/evaluate.ts so the evaluator file holds logic only,
+// matching the project convention (types in shared/types/, logic in
+// shared/condition/).
+
+/** One verdict per concrete (post-expansion) path. */
+export type Verdict = {
+  path: string;
+  fired: boolean;
+  observed: any;
+  baseline?: any;
+  detail: string;
+};
+
+/** Full result of evaluating a condition against a payload. */
+export type EvaluationResult = {
+  /** Pulled from the (migrated) condition for convenience — callers often branch on this first. */
+  kind: ConditionKind;
+  /** Aggregate truth across all verdicts, per condition.aggregation. */
+  fired: boolean;
+  /** Human-readable summary for UI / logs. */
+  reason: string;
+  /** Per-path breakdown. Empty when kind=None or when no paths configured. */
+  verdicts: Verdict[];
+  /** Normalized condition (after `migrateCondition`) — saves the caller from re-running it. */
+  condition: PollingCondition;
 };

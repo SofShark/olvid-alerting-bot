@@ -22,6 +22,7 @@
 // callers can import the repo directly when they don't need the service.
 
 import { AlertStatus } from "#shared/types/alert";
+import { Source } from "#shared/types/source";
 import { prisma } from "../db/prisma";
 
 // ── BigInt / shape helpers ────────────────────────────────────────────────
@@ -91,6 +92,14 @@ export const alertRepository = {
     });
     return rows.map(serializeAlert);
   },
+
+  async getActivePolling(){
+    const rows = await prisma.alertTable.findMany({
+      where: {status:AlertStatus.Active, input: Source.Polling},
+      include: {bundles: true}
+    })
+    return rows.map(serializeAlert)
+  }, 
 
   async getById(id: number) {
     const row = await prisma.alertTable.findUnique({

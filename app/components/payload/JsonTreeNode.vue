@@ -112,7 +112,6 @@ const leafDisplay = computed(() => {
         <span class="chevron" :class="{ open: expanded }" aria-hidden="true" />
         <span class="branch-name">{{ displayName }}</span>
         <span class="branch-sep">:</span>
-        <span class="branch-hint">{{ branchHint }}</span>
       </div>
 
       <div v-if="expanded" class="branch-children">
@@ -149,7 +148,7 @@ const leafDisplay = computed(() => {
 
 .tree-node {
   font-family: var(--font-mono);
-  font-size: 14px; /* matches .editor-textarea / .json-color */
+  font-size: 12px; /* matches .editor-textarea / .json-color */
   line-height: 1.5; /* matches .editor-textarea */
   color: #9cdcfe; /* matches .json-color */
 }
@@ -197,13 +196,6 @@ const leafDisplay = computed(() => {
   color: #9cdcfe;
   opacity: 0.55;
   margin-left: 1px;
-}
-.branch-hint {
-  color: #9cdcfe;
-  opacity: 0.45;
-  font-size: 12px;
-  font-style: italic;
-  margin-left: 6px;
 }
 
 .branch-children {

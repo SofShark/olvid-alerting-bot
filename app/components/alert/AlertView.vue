@@ -150,68 +150,97 @@ const onSaveBundle = async ({
 </script>
 
 <template>
-  <div class="panel editor">
-    <ConfirmDialog
-      :open="confirmingDelete"
-      :title="$t('wizard.deleteModal.title')"
-      :message="$t('wizard.deleteModal.message')"
-      :confirm-label="$t('button.delete')"
-      :cancel-label="$t('button.cancel')"
-      variant="danger"
-      @confirm="onDelete"
-      @cancel="confirmingDelete = false"
-    />
+  
+      <div class="panel editor">
+        <ConfirmDialog
+          :open="confirmingDelete"
+          :title="$t('wizard.deleteModal.title')"
+          :message="$t('wizard.deleteModal.message')"
+          :confirm-label="$t('button.delete')"
+          :cancel-label="$t('button.cancel')"
+          variant="danger"
+          @confirm="onDelete"
+          @cancel="confirmingDelete = false"
+        />
 
-    <BundleEditDialog
-      :open="editingBundleIndex !== null"
-      :bundle="editingBundle"
-      :index="editingBundleIndex"
-      :alert-context="form"
-      :alert-params="form.alertParams"
-      :input-source="form.input"
-      :available-discussions="availableDiscussions"
-      :discussions-loading="discussionsLoading"
-      :saving="saving"
-      @save="onSaveBundle"
-      @cancel="closeBundleEditor"
-    />
+        <BundleEditDialog
+          :open="editingBundleIndex !== null"
+          :bundle="editingBundle"
+          :index="editingBundleIndex"
+          :alert-context="form"
+          :alert-params="form.alertParams"
+          :input-source="form.input"
+          :available-discussions="availableDiscussions"
+          :discussions-loading="discussionsLoading"
+          :saving="saving"
+          @save="onSaveBundle"
+          @cancel="closeBundleEditor"
+        />
 
-    <AlertViewHeader
-      :title="form.title"
-      :description="truncatedDescription"
-      :input-title="inputTitle"
-      :bundle-count="form.bundles.length"
-      :status="form.status"
-      :is-existing="isExisting"
-      :can-activate="canActivate"
-      @edit="openEditAlert"
-      @delete="confirmingDelete = true"
-      @update:status="onToggleStatus"
-    />
+        <AlertViewHeader
+          :title="form.title"
+          :description="truncatedDescription"
+          :input-title="inputTitle"
+          :bundle-count="form.bundles.length"
+          :status="form.status"
+          :is-existing="isExisting"
+          :can-activate="canActivate"
+          @edit="openEditAlert"
+          @delete="confirmingDelete = true"
+          @update:status="onToggleStatus"
+        />
+        
+          <div class="panel-body">
+            <div class="split">
+              <div class="split-left">
+              <AlertInputSummary
+                :input-title="inputTitle"
+                :source="form.input"
+                :alert-params="form.alertParams"
+                :webhook-url="webhookUrl"
+              />
 
-    <div class="panel-body">
-      <AlertInputSummary
-        :input-title="inputTitle"
-        :source="form.input"
-        :alert-params="form.alertParams"
-        :webhook-url="webhookUrl"
-      />
+              <AlertBundleTable
+                :bundles="form.bundles"
+                @edit-bundle="openBundleEditor"
+              />
 
-      <AlertBundleTable
-        :bundles="form.bundles"
-        @edit-bundle="openBundleEditor"
-      />
+              <TestPoll
+                v-if="isPolling && form.status === AlertStatus.Inactive"
+                :alert-id="form.id"
+              />
+            </div>
+            <div class="split-right">
 
-      <TestPoll
-        v-if="isPolling && form.status === AlertStatus.Inactive"
-        :alert-id="form.id"
-      />
-    </div>
-  </div>
+
+            </div>
+          </div>
+          
+        </div>
+        
+      </div>
+   
 </template>
 
 <style scoped>
 .panel-body {
   padding-top: var(--space-4);
 }
+
+.split {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 0;
+  height: 100%;
+  --sidebar-w: 200px;
+  transition: grid-template-columns 0.18s ease;
+}
+
+.split-left,
+.split-right {
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
 </style>

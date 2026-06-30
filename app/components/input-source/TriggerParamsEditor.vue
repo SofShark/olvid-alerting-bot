@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { Source } from "#shared/types/source";
 import { PollingFormat } from "#shared/types/polling";
+import {
+  scheduler,
+  DEFAULT_SCHEDULE,
+  type ScheduleMode,
+} from "#shared/polling/scheduler";
 
 // The alert's source IS the only type discriminator — `triggerType` here
 // receives `form.input` (a Source value) from the wizard. No separate
@@ -20,85 +25,98 @@ function set(key: string, value: any) {
   emit("update:modelValue", { ...p.value, [key]: value });
 }
 
-function setMany(patch: Record<string, any>) {
-  emit("update:modelValue", { ...p.value, ...patch });
-}
-
 const isPolling = computed(() => props.triggerType === Source.Polling);
 
-// ── Poll interval ───────────────────────────────────────────────────────────
+// ── Schedule (cron-backed) ─────────────────────────────────────────────────
+//
+// The wizard exposes three friendly modes (every N minutes / every N hours /
+// daily at HH:MM). Internally each combination is serialised into a cron
+// expression stored on `params.schedule`. `cronToMode` reverses the
+// classification when the wizard re-opens an existing alert.
+//
+// Anything that doesn't match those three patterns (advanced user-written
+// cron) reads back as `unit: 'custom'` and the editor falls back to a
+// read-only display — we don't ship a raw-cron input yet.
 
-const { t } = useI18n();
+type FriendlyUnit = "minutes" | "hours" | "daily";
 
-// Unit labels here are i18n KEYS (used both as the select option value and as
-// the `label` field for translation lookup). The form's unit storage uses
-// these keys, not the localized strings — `detectUnit` etc. keep working.
-const UNITS = [
-  { label: "minutes", multiplier: 60, min: 1 },
-  { label: "hours", multiplier: 3600, min: 1 },
-  { label: "daily", multiplier: 86400, min: 1 },
-] as const;
+const UNITS: ReadonlyArray<{ label: FriendlyUnit; min: number }> = [
+  { label: "minutes", min: 1 },
+  { label: "hours", min: 1 },
+  { label: "daily", min: 1 },
+];
 
-type UnitLabel = (typeof UNITS)[number]["label"];
-
-// Minimum polling interval is 1 minute — sub-minute polling is excluded.
-const MIN_INTERVAL_SECONDS = 60;
-
-function detectUnit(seconds: number): UnitLabel {
-  if (seconds % 86400 === 0) return "daily";
-  if (seconds % 3600 === 0) return "hours";
-  return "minutes";
-}
-
-const storedSeconds = computed(() =>
-  Math.max(MIN_INTERVAL_SECONDS, Number(p.value.intervalSeconds) || 300),
+const currentMode = computed<ScheduleMode>(() =>
+  scheduler.cronToMode(p.value.schedule ?? DEFAULT_SCHEDULE),
 );
-const intervalUnit = ref<UnitLabel>(detectUnit(storedSeconds.value));
+
+const intervalUnit = computed<FriendlyUnit | "custom">(
+  () => currentMode.value.unit,
+);
+
 const isDaily = computed(() => intervalUnit.value === "daily");
+const isCustom = computed(() => intervalUnit.value === "custom");
 
+// Number shown in the minute / hour input. 1 is a safe fallback for the
+// brief moments the mode flips from daily/custom to a numeric unit before
+// the next emit lands.
 const intervalValue = computed(() => {
-  const m = UNITS.find((u) => u.label === intervalUnit.value)!.multiplier;
-  return storedSeconds.value / m;
+  const m = currentMode.value;
+  if (m.unit === "minutes" || m.unit === "hours") return m.value;
+  return 1;
 });
 
-watch(storedSeconds, (s) => {
-  intervalUnit.value = detectUnit(s);
+const dailyAtValue = computed(() => {
+  const m = currentMode.value;
+  return m.unit === "daily" ? m.dailyAt : "08:00";
 });
+
+const minValue = computed(() => 1);
+
+// Write a fresh cron whenever the user touches any of the three controls.
+// All branches go through `modeToCron` so the serialisation rule lives in
+// one place (shared/polling/schedule.ts).
+function emitScheduleFromMode(mode: ScheduleMode) {
+  set("schedule", scheduler.modeToCron(mode));
+}
 
 function onValueInput(raw: string) {
-  const unit = UNITS.find((u) => u.label === intervalUnit.value)!;
-  const num = Math.max(unit.min, Number(raw) || unit.min);
-  const seconds = Math.max(MIN_INTERVAL_SECONDS, num * unit.multiplier);
-  set("intervalSeconds", seconds);
+  const unit = intervalUnit.value;
+  if (unit !== "minutes" && unit !== "hours") return;
+  const n = Math.max(1, Number(raw) || 1);
+  emitScheduleFromMode({ unit, value: n });
 }
 
-function onUnitChange(unit: UnitLabel) {
+function onDailyAtInput(raw: string) {
+  emitScheduleFromMode({ unit: "daily", dailyAt: raw || "08:00" });
+}
+
+function onUnitChange(unit: FriendlyUnit) {
   if (unit === "daily") {
-    intervalUnit.value = unit;
-    setMany({ intervalSeconds: 86400, dailyAt: p.value.dailyAt ?? "08:00" });
+    emitScheduleFromMode({ unit: "daily", dailyAt: dailyAtValue.value });
     return;
   }
-  // Number-input and unit-select are independent: switching the unit keeps
-  // the displayed number unchanged. "10 minutes" → "10 hours", not 0.166 h.
-  // We capture the currently-displayed value BEFORE flipping intervalUnit
-  // since intervalValue is derived from (storedSeconds / current multiplier).
-  const displayed = isDaily.value
-    ? UNITS.find((u) => u.label === unit)!.min
-    : intervalValue.value;
-  const multiplier = UNITS.find((u) => u.label === unit)!.multiplier;
-  intervalUnit.value = unit;
-  const seconds = Math.max(MIN_INTERVAL_SECONDS, displayed * multiplier);
-  setMany({ intervalSeconds: seconds, dailyAt: undefined });
+  // Switching minutes ↔ hours preserves the displayed number ("5 minutes"
+  // → "5 hours", not 0.08 h). When coming from daily / custom we start at 1
+  // so the user lands on a sensible value.
+  const carry =
+    intervalUnit.value === "minutes" || intervalUnit.value === "hours"
+      ? intervalValue.value
+      : 1;
+  emitScheduleFromMode({ unit, value: Math.max(1, carry) });
 }
-
-const minValue = computed(
-  () => UNITS.find((u) => u.label === intervalUnit.value)!.min,
-);
 
 const FORMATS = Object.values(PollingFormat);
 const selectedFormat = computed(
   () => (p.value.format as PollingFormat) ?? PollingFormat.XML,
 );
+
+// Trigger-mode picker now lives in StepTrigger, next to the ConditionEditor —
+// the gate ("only meaningful when condition.kind=Rule and operator!=Changed")
+// makes far more sense in the step where the user is actively shaping the
+// condition. Keeping it here would mean the field stays hidden in Step 1
+// (condition is still blank) and only surfaces in Step 1 when you go back
+// after configuring the condition in Step 2 — backwards.
 </script>
 
 <template>
@@ -115,7 +133,7 @@ const selectedFormat = computed(
         :placeholder="$t('alertParamsEditor.url.placeholder')"
         class="field-input"
         @input="set('url', ($event.target as HTMLInputElement).value)"
-      />
+      >
       <span class="field-hint">{{ $t("alertParamsEditor.url.hint") }}</span>
     </div>
 
@@ -141,7 +159,10 @@ const selectedFormat = computed(
         >{{ $t("alertParamsEditor.interval.label") }}
         <span class="field-required">*</span></label
       >
-      <div class="interval-row">
+
+      <!-- Friendly-mode controls. A custom cron (advanced user) shows
+           read-only here; future: an "Advanced" toggle to edit the raw expr. -->
+      <div v-if="!isCustom" class="interval-row">
         <template v-if="!isDaily">
           <span class="interval-label">{{
             $t("alertParamsEditor.interval.every")
@@ -152,7 +173,7 @@ const selectedFormat = computed(
             :min="minValue"
             class="field-input interval-number"
             @input="onValueInput(($event.target as HTMLInputElement).value)"
-          />
+          >
         </template>
 
         <template v-else>
@@ -161,10 +182,10 @@ const selectedFormat = computed(
           }}</span>
           <input
             type="time"
-            :value="p.dailyAt ?? '08:00'"
+            :value="dailyAtValue"
             class="field-input interval-time"
-            @input="set('dailyAt', ($event.target as HTMLInputElement).value)"
-          />
+            @input="onDailyAtInput(($event.target as HTMLInputElement).value)"
+          >
         </template>
 
         <select
@@ -172,7 +193,7 @@ const selectedFormat = computed(
           class="field-input interval-unit"
           @change="
             onUnitChange(
-              ($event.target as HTMLSelectElement).value as UnitLabel,
+              ($event.target as HTMLSelectElement).value as FriendlyUnit,
             )
           "
         >
@@ -180,6 +201,12 @@ const selectedFormat = computed(
             {{ $t(`alertParamsEditor.units.${u.label}`) }}
           </option>
         </select>
+      </div>
+
+      <!-- Advanced cron, read-only fallback. -->
+      <div v-else class="custom-row">
+        <code class="custom-cron">{{ p.schedule }}</code>
+        <span class="field-hint">Advanced cron — edit in raw mode (coming soon)</span>
       </div>
     </div>
   </div>
@@ -223,5 +250,21 @@ const selectedFormat = computed(
   max-width: 130px;
   cursor: pointer;
   appearance: auto;
+}
+
+.custom-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.custom-cron {
+  display: inline-block;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 </style>

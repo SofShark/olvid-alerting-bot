@@ -63,20 +63,13 @@ defineEmits<{
               : $t("wizard.footer.saveAlert")
         }}
       </button>
-      <!--ButtonPrimary :disabled="saving" @click="$emit('save')">
-        {{ saving
-          ? $t('common.saving')
-          : (effectiveFinalStatus === AlertStatus.Draft
-              ? $t('wizard.footer.saveAsDraft')
-              : $t('wizard.footer.saveAlert')) }}
-      </ButtonPrimary-->
     </template>
 
     <template v-else>
       <button
+        v-if="wouldBeComplete"
         type="button"
         class="btn btn-primary"
-        v-if="wouldBeComplete"
         :disabled="saving"
         :title="$t('wizard.footer.saveAlertTitle')"
         @click="$emit('save')"
@@ -99,9 +92,9 @@ defineEmits<{
       </button>
 
       <button
-        type="button"
-        class="btn btn-secondary"
         v-if="isOnLastConfigStep"
+        type="button"
+        class="btn btn-primary"
         :disabled="!canAdvance || saving"
         @click="$emit('next')"
       >

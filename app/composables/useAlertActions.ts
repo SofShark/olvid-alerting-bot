@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import { AlertStatus, type AlertModel } from "#shared/types/alert";
+import type { AlertStatus, AlertModel } from "#shared/types/alert";
 import { alertService } from "~/utils/alertService";
 
 /**

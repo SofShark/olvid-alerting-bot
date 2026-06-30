@@ -1,9 +1,9 @@
 // Server-side polling condition evaluator. Thin adapter over the centralized
-// `evaluateCondition` in `#shared/condition/evaluate` — all the operator logic,
-// wildcard expansion, and aggregation lives there. This file only maps the
-// shared result into the server-specific `EvalResult` shape.
+// `conditionEvaluator` in `#shared/condition/conditionEvaluator` — all the
+// operator logic, wildcard expansion, and aggregation lives there. This file
+// only maps the shared result into the server-specific `EvalResult` shape.
 
-import { evaluateCondition } from "#shared/condition/evaluate";
+import { conditionEvaluator } from "#shared/condition/conditionEvaluator";
 import type { EvalResult } from "../types";
 
 export function evaluate(
@@ -11,7 +11,7 @@ export function evaluate(
   parsed: any,
   baseline: any | undefined,
 ): EvalResult {
-  const result = evaluateCondition(rawCondition, parsed, baseline);
+  const result = conditionEvaluator.evaluate(rawCondition, parsed, baseline);
 
   // Surface the first path's observed value for the test panel's quick
   // summary; the full per-path breakdown rides on `baselineValue`.

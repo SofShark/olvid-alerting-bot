@@ -4,14 +4,13 @@ import { AlertStatus } from "#shared/types/alert";
 
 const status = defineModel<AlertStatus>("status", { required: true });
 
-const props = defineProps<{
+defineProps<{
   canActivate: boolean;
 }>();
 
 const { t } = useI18n();
 
-// TODO RECYCLE
-const statusLabel = computed(() => {
+const label = computed(() => {
   if (status.value === AlertStatus.Active) return t("alertStatus.active");
   if (status.value === AlertStatus.Inactive) return t("alertStatus.inactive");
   return t("alertStatus.draft");
@@ -26,7 +25,7 @@ const toggleStatus = () => {
 </script>
 <template>
   <div class="toggle-wrap">
-    <span class="toggle-label">{{ statusLabel }}</span>
+    <span class="toggle-label">{{ label }}</span>
     <button
       type="button"
       class="toggle"
@@ -34,7 +33,7 @@ const toggleStatus = () => {
       :disabled="!canActivate"
       @click="toggleStatus"
     >
-      <span class="knob"></span>
+      <span class="knob"/>
     </button>
   </div>
 </template>

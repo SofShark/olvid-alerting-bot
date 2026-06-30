@@ -34,7 +34,7 @@ export const useWizardSteps = (form: Ref<AlertModel>) => {
   const isPollingConfigComplete = computed(() => {
     if (!isPolling.value) return true;
     const p = (form.value.alertParams ?? {}) as any;
-    return !!p.url && !!p.format && !!p.intervalSeconds;
+    return !!p.url && !!p.format && !!p.schedule;
   });
 
   const isStep1Complete = computed(

@@ -40,7 +40,7 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
     });
 
   const fillFrom = (a: AlertModel | null | undefined) => {
-    if (a && a.id) {
+    if (a && a.id) { 
       const incomingParams = (a as any).alertParams;
       const alertParams: PollingParams | undefined =
         a.input === Source.Polling && incomingParams

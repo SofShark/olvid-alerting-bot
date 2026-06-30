@@ -24,9 +24,9 @@ const statusClass = (status: string) => ({
 });
 
 const statusLabel = (status: string) => {
-  if (status === AlertStatus.Active) return t("sidebar.statusLabel.active");
-  if (status === AlertStatus.Inactive) return t("sidebar.statusLabel.inactive");
-  return t("sidebar.statusLabel.draft");
+  if (status === AlertStatus.Active) return t("alertStatus.active");
+  if (status === AlertStatus.Inactive) return t("alertStatus.inactive");
+  return t("alertStatus.draft");
 };
 
 // First 3 characters of the alert's title, uppercased — shown next to the

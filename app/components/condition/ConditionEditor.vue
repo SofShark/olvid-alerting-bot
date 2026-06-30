@@ -5,12 +5,13 @@ import {
   ConditionOperator,
   ConditionAggregation,
   OPERATORS_NEEDING_VALUE,
+  inputTypeForOperator,
   type PollingCondition,
 } from "#shared/types/condition";
 import { PollingFormat } from "#shared/types/polling";
 import { migrateCondition } from "#shared/condition/migrate";
 import { expandPath, hasWildcard } from "#shared/condition/pathExpand";
-import { evaluateCondition } from "#shared/condition/evaluate";
+import { conditionEvaluator } from "#shared/condition/conditionEvaluator";
 import { getErrorMessage } from "~/utils/errors";
 
 const { t } = useI18n();
@@ -177,13 +178,6 @@ function cancelAdd() {
   addError.value = "";
 }
 
-// Blur should NOT silently lose the input if an error is on screen — the
-// user is mid-fix. Keep the input open until they explicitly act.
-function onAddBlur() {
-  if (addError.value) return;
-  cancelAdd();
-}
-
 // ── Retrieve (auto on mount + when url/format change) ──────────────────────
 const loading = ref(false);
 const error = ref("");
@@ -237,7 +231,7 @@ watch(() => [props.url, props.format], retrieve);
 // show as "would fire on next change" (the evaluator's preview default).
 const verdicts = computed(() => {
   if (!retrieved.value || paths.value.length === 0) return [];
-  return evaluateCondition(current.value, parsed.value).verdicts;
+  return conditionEvaluator.evaluate(current.value, parsed.value).verdicts;
 });
 
 const verdictSummary = computed(() => {
@@ -346,7 +340,7 @@ const OPERATORS = computed<Array<{ value: ConditionOperator; label: string }>>(
               type="radio"
               :checked="kind === ConditionKind.None"
               @change="pickNone"
-            />
+            >
             <span>{{ $t("conditionEditor.mode.none") }}</span>
           </label>
           <label class="mode" :class="{ active: kind === ConditionKind.Rule }">
@@ -354,7 +348,7 @@ const OPERATORS = computed<Array<{ value: ConditionOperator; label: string }>>(
               type="radio"
               :checked="kind === ConditionKind.Rule"
               @change="pickRule"
-            />
+            >
             <span>{{ $t("conditionEditor.mode.rule") }}</span>
           </label>
         </div>
@@ -450,7 +444,7 @@ const OPERATORS = computed<Array<{ value: ConditionOperator; label: string }>>(
                   "
                   @keydown.enter.prevent="commitAdd"
                   @keydown.escape="cancelAdd"
-                />
+                >
                 <button
                   type="button"
                   class="chip-input-done"
@@ -518,14 +512,15 @@ const OPERATORS = computed<Array<{ value: ConditionOperator; label: string }>>(
 
             <input
               v-if="needsValue"
-              type="text"
+              :type="inputTypeForOperator(operator)"
+              :step="inputTypeForOperator(operator) === 'number' ? 'any' : undefined"
               class="rule-input"
               :value="literal"
               :placeholder="$t('conditionEditor.value.placeholder')"
               @input="
                 patchRule({ value: ($event.target as HTMLInputElement).value })
               "
-            />
+            >
           </div>
         </div>
       </div>

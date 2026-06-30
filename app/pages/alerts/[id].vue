@@ -14,7 +14,6 @@ const alert = computed(
     alerts.value.find((a) => a.id === Number(route.value.params.id)) ?? null,
 );
 
-const isDraft = computed(() => alert.value?.status === AlertStatus.Draft);
 // Explicit edit request via query (?edit=1) puts a non-draft alert into the
 // wizard for full reconfiguration. Drafts always open in the wizard.
 const isEditing = computed(() => route.value.query.edit === "1");

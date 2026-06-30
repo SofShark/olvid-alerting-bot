@@ -19,7 +19,9 @@ model AlertTable {
   token             String?            @unique @default(uuid())
   createdAt         DateTime           @default(now())
   // Type-specific config only. The source is NOT duplicated here — see `input`.
-  //   Polling Source → { url, format, intervalSeconds, condition, _baseline?, _lastHash? }
+  //   Polling Source → { url, format, schedule, condition, triggerMode?,
+  //                      _baseline?, _lastHash?, _lastFired?, _lastPolledAt? }
+  //     - `schedule` is a cron string ("*/5 * * * *"); see shared/polling/schedule.ts.
   //   Webhook Source → {}
   alertParams       Json?
   bundles           Bundle[]

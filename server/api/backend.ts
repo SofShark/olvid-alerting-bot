@@ -1,4 +1,3 @@
-import { AlertStatus } from "#shared/types/alert";
 
 export default defineEventHandler(async (event) => {
   const method = event.node.req.method;
@@ -41,7 +40,7 @@ export default defineEventHandler(async (event) => {
       console.log("📥 [PUT /api/backend] Updating alert #" + body.id);
       const id = Number(body.id);
       const data = await alertService.updateAlert(id, body);
-      // Re-register to pick up any changed alertParams / intervalSeconds.
+      // Re-register to pick up any changed alertParams / schedule.
       //triggerEngine.unregister(id)
       //if (data.status === AlertStatus.Active) triggerEngine.register(data)
       return { success: true, data };

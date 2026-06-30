@@ -17,6 +17,7 @@ withDefaults(
     variant?: "primary" | "danger";
   }>(),
   {
+    message: "",
     confirmLabel: "Confirm",
     cancelLabel: "Cancel",
     variant: "primary",

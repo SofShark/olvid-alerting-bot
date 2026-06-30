@@ -101,8 +101,8 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
     <!-- Search / add — hidden when readonly. -->
     <div v-if="!readonly" ref="containerRef" class="search-wrap" >
       <input
-        type="text" 
-        v-model="searchQuery"
+        v-model="searchQuery" 
+        type="text"
         :placeholder="
           isLoading
             ? t('discussionSelector.search.loading')
@@ -113,12 +113,12 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         :disabled="isLoading"
         class="search-input"
         @focus="isDropdownOpen = true"
-      />
+      >
       <div v-if="isDropdownOpen" class="dropdown">
         <div
           v-for="d in filtered"
-          class="dropdown-item"
           :key="d.id.toString()"
+          class="dropdown-item"
           @mousedown.prevent="add(d)"
         >
           <span class="item-title">{{ d.title }}</span>

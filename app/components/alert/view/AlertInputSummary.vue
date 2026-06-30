@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { Source } from "#shared/types/source";
-import type { PollingParams } from "#shared/types/polling";
+import {
+  TriggerMode,
+  type PollingParams,
+} from "#shared/types/polling";
+import {
+  ConditionKind,
+  ConditionOperator,
+} from "#shared/types/condition";
 
 /*
   INPUT block in view mode. Renders the alert's source-side configuration:
@@ -20,14 +27,33 @@ const props = defineProps<{
   webhookUrl?: string;
 }>();
 
-const { intervalLabel } = useIntervalLabel();
+const { scheduleLabel } = useScheduleLabel();
 
 const isPolling = computed(() => props.source === Source.Polling);
 const isWebhook = computed(() => props.source === Source.Webhook);
 
 const pollingInterval = computed(() =>
-  intervalLabel(props.alertParams?.intervalSeconds),
+  scheduleLabel(props.alertParams?.schedule),
 );
+
+// Trigger-mode row only renders when it's meaningful — edge-native conditions
+// (kind=None, operator=Changed) ignore the mode in the engine, so showing it
+// would lie. Matches the gating logic in TriggerParamsEditor.
+const triggerModeMeaningful = computed(() => {
+  const c = props.alertParams?.condition;
+  return (
+    c?.kind === ConditionKind.Rule &&
+    c.operator !== ConditionOperator.Changed
+  );
+});
+
+const triggerModeLabel = computed(() => {
+  switch (props.alertParams?.triggerMode ?? TriggerMode.EveryTime) {
+    case TriggerMode.OneShot:      return "Once";
+    case TriggerMode.WithRecovery: return "Once + on recovery";
+    default:                       return "Every time";
+  }
+});
 </script>
 
 <template>
@@ -63,6 +89,10 @@ const pollingInterval = computed(() =>
           <dd class="data-value">
             <AlertConditionSummary :condition="alertParams?.condition" />
           </dd>
+        </div>
+        <div v-if="triggerModeMeaningful" class="data-row">
+          <dt class="data-label">Trigger</dt>
+          <dd class="data-value">{{ triggerModeLabel }}</dd>
         </div>
       </template>
     </dl>

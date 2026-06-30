@@ -3,12 +3,12 @@
 //   - notifierService (actual message generation on the server)
 //
 // Pure: no IO, no DOM. Safe in both Nuxt server and browser contexts.
-// All evaluation logic lives in shared/condition/evaluate.ts — this
-// module only formats the resulting verdicts into a Telegram-friendly
-// string.
+// All evaluation logic lives in shared/condition/conditionEvaluator.ts —
+// this module only formats the resulting verdicts into a Telegram-
+// friendly string.
 
 import { ConditionKind, ConditionOperator } from "../types/condition";
-import { evaluateCondition } from "../condition/evaluate";
+import { conditionEvaluator } from "../condition/conditionEvaluator";
 
 function asText(v: any): string {
   if (v === null || v === undefined) return "(no value)";
@@ -59,7 +59,7 @@ export function buildPollingDefaultMessage(
 ): string {
   const title = alert?.title ?? "Polling alert";
   const cond = alert?.alertParams?.condition;
-  const result = evaluateCondition(cond, payload, baseline);
+  const result = conditionEvaluator.evaluate(cond, payload, baseline);
 
   if (result.kind === ConditionKind.None) {
     return `📡 ${title}\nPolled successfully (no condition — fires every cycle).`;

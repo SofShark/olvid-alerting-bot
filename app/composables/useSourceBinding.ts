@@ -1,7 +1,12 @@
 import { computed, type Ref, type WritableComputedRef } from "vue";
 import { Source } from "#shared/types/source";
 import type { AlertModel } from "#shared/types/alert";
-import { PollingFormat } from "#shared/types/polling";
+import {
+  PollingFormat,
+  TriggerMode,
+  type PollingParams,
+} from "#shared/types/polling";
+import { DEFAULT_SCHEDULE } from "#shared/polling/scheduler";
 import { blankCondition } from "#shared/condition/migrate";
 
 /**
@@ -30,18 +35,27 @@ export const useSourceBinding = (
       }
       form.value.input = src as Source;
       if (src === Source.Polling) {
-        const prev = form.value.alertParams;
+        // Cast: while alertParams is currently `AlertParams = PollingParams`,
+        // the access path will need this once more members join the union.
+        const prev = form.value.alertParams as PollingParams | undefined;
         form.value.alertParams = {
           url: prev?.url ?? "",
           format: prev?.format ?? PollingFormat.XML,
-          intervalSeconds: prev?.intervalSeconds ?? 300,
+          schedule: prev?.schedule ?? DEFAULT_SCHEDULE,
           condition: prev?.condition ?? blankCondition(),
+          triggerMode: prev?.triggerMode ?? TriggerMode.EveryTime,
           // Preserve any runtime state the engine may have left behind.
           ...(prev?._baseline !== undefined
             ? { _baseline: prev._baseline }
             : {}),
           ...(prev?._lastHash !== undefined
             ? { _lastHash: prev._lastHash }
+            : {}),
+          ...(prev?._lastFired !== undefined
+            ? { _lastFired: prev._lastFired }
+            : {}),
+          ...(prev?._lastPolledAt !== undefined
+            ? { _lastPolledAt: prev._lastPolledAt }
             : {}),
         };
       } else {

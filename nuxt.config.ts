@@ -1,7 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 //import { resolve } from "node:dns"
 import { resolve } from "path";
-import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
   typescript: {
@@ -11,7 +10,7 @@ export default defineNuxtConfig({
       }
     }
   },
-  
+
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
 
@@ -28,7 +27,7 @@ export default defineNuxtConfig({
   // Components live in domain subfolders for organization but keep flat,
   // unprefixed names in templates (<Stepper />, <BundleCard />, <AlertEditor />…).
   // `pathPrefix: false` makes Nuxt skip the directory name when synthesizing
-  // the component name.
+  // the component name. TODO is this breaking the convention and nuxt good practives?
   components: [
     { path: "~/components/ui", pathPrefix: false },
     { path: "~/components/alert", pathPrefix: false },
@@ -60,12 +59,16 @@ export default defineNuxtConfig({
         "server/clients",
       ],
     },
-    /*
-    experimental : {tasks: true},
-    scheduledTasks :{
-      '* * * * *': ['cron:heartbeat'] // Ticks every minute
-    }
-    */
+    
+    experimental: { tasks: true }, // Internal heartbeat that conditionally triggers the activation of scheduled alerts
+    scheduledTasks: {
+      // The name MUST match the file path under server/tasks/ (with `:` as
+      // the directory separator). File at server/tasks/polling/heartbeat.ts
+      // → task name 'polling:heartbeat'. The meta.name inside the file uses
+      // the same value.
+      "* * * * *": ["polling:heartbeat"],
+    },
+
   },
 
   modules: ["@nuxtjs/i18n", "@nuxt/eslint"],

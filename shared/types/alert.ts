@@ -7,17 +7,21 @@
 //    boundary (Zod parser on the way out of the repo). Inside the app we
 //    can trust the type.
 //
-// 2. `alertParams` is `PollingParams | undefined` (via `?:`), NOT a union
-//    of `PollingParams | WebhookParams`. Webhook alerts have no params at
-//    all — the field is simply absent. This eliminates the union-of-
-//    differently-shaped-objects that had the rest of the codebase doing
-//    `(form.alertParams as any).url` all over the place.
-//    The parent's `input` field tells you which case you're in:
-//      if (alert.input === Source.Polling) { alert.alertParams.url ... }
+// 2. `alertParams` is `AlertParams | undefined` — a single union built to
+//    grow as more source types pick up per-alert config (Cron, Olvid
+//    Message, …). Today it has one member (PollingParams). Webhook alerts
+//    have no params at all; the field is simply absent for them.
+//
+//    No internal discriminator on the params (that would duplicate the
+//    parent's `input` field). Narrowing is by the parent — use the
+//    `getPollingParams(alert)` accessor below to avoid casts at every
+//    read site. The moment a second member joins the union, every
+//    `alert.alertParams.url`-style read becomes a TS error and the
+//    accessor is the migration path.
 
 import type { BundleModel } from "./bundle";
 import type { PollingParams } from "./polling";
-import type { Source } from "./source";
+import { Source } from "./source";
 
 export const AlertStatus = {
   Draft: "draft",
@@ -25,6 +29,13 @@ export const AlertStatus = {
   Active: "active",
 } as const;
 export type AlertStatus = (typeof AlertStatus)[keyof typeof AlertStatus];
+
+/**
+ * Union of all source-specific param shapes. Each Source value MAY
+ * contribute one type here; sources without per-alert config (Webhook)
+ * contribute nothing (undefined). Adding a new source is a one-line union extension.
+ */
+export type AlertParams = PollingParams | undefined; // future: | CronParams | OlvidParams
 
 export type AlertModel = {
   id: number | null;
@@ -40,6 +51,25 @@ export type AlertModel = {
   input: Source | "";
   status: AlertStatus;
   token: string;
-  alertParams?: PollingParams; // present iff input === Source.Polling
+  /**
+   * Source-specific config. Shape narrows by `input`:
+   *   input === Source.Polling   ⇒ PollingParams
+   *   input === Source.Webhook   ⇒ undefined (webhook alerts carry no params)
+   * Prefer `getPollingParams(alert)` over `as PollingParams` at read sites.
+   */
+  alertParams?: AlertParams;
   bundles: BundleModel[];
 };
+
+/**
+ * Safe typed accessor for the polling-specific params block. Returns
+ * undefined when the alert isn't a polling alert OR has no params yet
+ * (blank form). Keeps read sites free of `as PollingParams` casts and
+ * future-proof against new AlertParams union members.
+ */
+export const getPollingParams = (
+  alert: AlertModel | null | undefined,
+): PollingParams | undefined =>
+  alert?.input === Source.Polling
+    ? (alert.alertParams as PollingParams | undefined)
+    : undefined;

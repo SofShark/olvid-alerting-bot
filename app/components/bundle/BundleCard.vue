@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { isPollingSource } from "#shared/types/source";
+import { isPolling as isPollingSource} from "#shared/types/source";
 import { Formatting, type BundleModel } from "#shared/types/bundle";
-import { type DiscussionModel } from "#shared/types/discussion";
+import type { DiscussionModel } from "#shared/types/discussion";
 import { buildPollingDefaultMessage } from "#shared/polling/message";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
@@ -188,7 +188,7 @@ const pollingPreview = computed(() => {
         class="field-input"
         :placeholder="`Bundle ${index + 1}`"
         :disabled="readonly"
-      />
+      >
     </div>
 
     <!-- Discussions -->

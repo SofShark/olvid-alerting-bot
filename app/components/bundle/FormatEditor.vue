@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from "vue";
 import { formatMessage } from "#shared/handlebars";
-import { Source, isPollingSource } from "#shared/types/source";
+import { Source, isPolling as isPollingSource} from "#shared/types/source";
 import { ConditionKind } from "#shared/types/condition";
 import { PollingFormat } from "#shared/types/polling";
 import { migrateCondition } from "#shared/condition/migrate";
@@ -96,7 +96,7 @@ const formatJson = () => {
     if (!jsonPayload.value.trim()) return;
     const parsed = JSON.parse(jsonPayload.value);
     jsonPayload.value = JSON.stringify(parsed, null, 2);
-  } catch (__e) {
+  } catch (e) {
     alert("Invalid JSON: Cannot prettify.");
   }
 };
@@ -397,7 +397,7 @@ const close = () => emit("close");
                     src="../../assets/eyedrop.png"
                     alt="Picker Mode"
                     class="eyedrop-icon"
-                  />
+                  >
                 </button>
                 <button
                   class="toggle-btn"
@@ -424,7 +424,7 @@ const close = () => emit("close");
               <div v-else-if="pollingError" class="payload-empty" >
                 ⚠ {{ pollingError }}
               </div>
-              <div class="payload-empty" v-else-if="rootEntries.length === 0">
+              <div v-else-if="rootEntries.length === 0" class="payload-empty">
                 {{ $t("formatEditor.sourceEmptyPolling") }}
               </div>
               <div v-else class="tree-panel">
@@ -761,7 +761,7 @@ const close = () => emit("close");
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-5) var(--space-7);
+  padding: var(--space-3) var(--space-7);
   border-bottom: 1px solid var(--color-border-subtle);
   background: var(--color-border-subtle);
 }
@@ -928,7 +928,7 @@ const close = () => emit("close");
   border: none;
   outline: none;
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.5;
   resize: vertical;
   box-sizing: border-box;

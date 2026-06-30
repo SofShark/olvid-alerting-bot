@@ -31,7 +31,7 @@ defineEmits<{
             @input="
               $emit('update:title', ($event.target as HTMLInputElement).value)
             "
-          />
+          >
         </div>
         <input
           :value="description"
@@ -45,7 +45,7 @@ defineEmits<{
               ($event.target as HTMLInputElement).value,
             )
           "
-        />
+        >
       </div>
     </div>
     <button type="button" class="btn btn-ghost" @click="$emit('back')">
