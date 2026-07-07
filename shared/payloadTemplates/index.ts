@@ -25,7 +25,6 @@ import githubIssuePayload from "./github-issue.json";
 import githubWorkflowRunPayload from "./github-workflow-run.json";
 import grafanaAlertPayload from "./grafana-alert.json";
 import sentryIssuePayload from "./sentry-issue.json";
-import gitlabPipelinePayload from "./gitlab-pipeline.json";
 
 export type WebhookTemplateId =
   | "github-push"
@@ -34,7 +33,7 @@ export type WebhookTemplateId =
   | "github-workflow-run"
   | "grafana-alert"
   | "sentry-issue"
-  | "gitlab-pipeline";
+
 
 export type WebhookTemplate = {
   id: WebhookTemplateId;
@@ -112,17 +111,6 @@ Details: {{annotations.summary}}`,
 Failure: {{event.title}}
 Location: {{event.culprit}}
 View issue: {{url}}`,
-  },
-
-  "gitlab-pipeline": {
-    id: "gitlab-pipeline",
-    label: "GitLab Pipeline",
-    icon: "🚀",
-    payload: gitlabPipelinePayload,
-    script: `🚀 **GitLab Pipeline: {{object_attributes.status}}**
-Project: {{project.name}}
-Branch: {{object_attributes.ref}}
-Duration: {{object_attributes.duration}} seconds`,
   },
 };
 

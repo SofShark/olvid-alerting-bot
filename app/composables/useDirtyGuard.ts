@@ -6,7 +6,7 @@ import {
 } from "vue-router";
 
 /**
- * Unsaved-changes guard for any form-driven page (currently AlertWizard).
+ * Unsaved-changes guard for AlertWizard.
  *
  * Snapshots the form on mount, intercepts ANY in-app navigation away from
  * the page while dirty, and warns on tab-close / hard refresh. The consumer
@@ -28,7 +28,6 @@ export const useDirtyGuard = <T>(formRef: Ref<T>) => {
   const isDirty = computed(
     () => JSON.stringify(formRef.value) !== snapshot.value,
   );
-
   const takeSnapshot = () => {
     snapshot.value = JSON.stringify(formRef.value);
   };
@@ -36,9 +35,9 @@ export const useDirtyGuard = <T>(formRef: Ref<T>) => {
     bypass.value = true;
   };
 
-  // onBeforeRouteLeave fires when the route DEFINITION changes; onBeforeRouteUpdate
-  // when the same definition is reused with different params/query. Both must be
-  // intercepted to cover sidebar nav and intra-list switching.
+  // onBeforeRouteLeave fires when the route definition changes; 
+  // onBeforeRouteUpdate when the same definition is reused with different params/query. 
+  // Both must be intercepted to cover sidebar nav and intra-list switching.
   const guardNavigation = (to: RouteLocationNormalized) => {
     if (bypass.value) {
       bypass.value = false;

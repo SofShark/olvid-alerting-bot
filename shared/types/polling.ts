@@ -44,18 +44,14 @@ export type TriggerMode = (typeof TriggerMode)[keyof typeof TriggerMode];
 export type PollingParams = {
   url: string;
   format: PollingFormat;
-  /**
-   * Cron expression describing the polling cadence. Replaces the old
-   * `intervalSeconds` + `dailyAt` pair — one field, one source of truth.
-   * The wizard serialises its friendly minute / hour / daily controls
-   * through `scheduler.modeToCron` (see shared/polling/scheduler.ts).
-   */
+  
+  //Cron expression describing the polling cadence. 
   schedule: string;
   condition: PollingCondition;
-  /** When the alert should re-fire. Absent = EveryTime (back-compat default). */
+  // When the alert should re-fire. default = EveryTime 
   triggerMode?: TriggerMode;
-
-  // ── Runtime engine state — not user-edited ─────────────────────────────
+  
+  // Runtime engine state — not user-edited ─────────────────────────────
   _lastHash?: string;
   _baseline?: unknown;
   /**

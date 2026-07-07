@@ -24,8 +24,10 @@ export type ScheduleMode =
   | { unit: "daily"; dailyAt: string } // 'HH:MM'
   | { unit: "custom"; expression: string };
 
-/** Sensible starting point for a freshly-created polling alert. Every 5 min. */
-export const DEFAULT_SCHEDULE = "*/5 * * * *";
+/** Sensible starting point for a freshly-created polling alert. Every 10 min.
+ *  Also the fallback when the user toggles from Advanced back to Basic with a
+ *  non-friendly cron (i.e. one that Basic mode can't represent). */
+export const DEFAULT_SCHEDULE = "*/10 * * * *";
 
 export const scheduler = {
   /** Serialize the wizard's friendly mode object into a cron expression. */

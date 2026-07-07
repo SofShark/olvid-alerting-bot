@@ -23,7 +23,8 @@
 
 import { AlertStatus } from "#shared/types/alert";
 import { Source } from "#shared/types/source";
-import { prisma } from "../db/prisma";
+import { prisma } from "#server/db/prisma"
+import { BundleModel } from "~~/shared/types/bundle";
 
 // ── BigInt / shape helpers ────────────────────────────────────────────────
 
@@ -124,10 +125,10 @@ export const alertRepository = {
   async create(data: {
     title: string;
     description?: string | null;
-    input: string;
+    input: Source;
     status: AlertStatus;
     alertParams?: any;
-    bundles?: any[];
+    bundles?: BundleModel[];
   }) {
     const incomingBundles: any[] = Array.isArray(data.bundles)
       ? data.bundles
@@ -152,7 +153,7 @@ export const alertRepository = {
     data: {
       title: string;
       description?: string | null;
-      input: string;
+      input: Source;
       status: AlertStatus;
       alertParams?: any;
       bundles?: any[];

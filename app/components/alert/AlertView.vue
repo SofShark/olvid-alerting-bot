@@ -211,11 +211,10 @@ const onSaveBundle = async ({
               />
             </div>
             <div class="split-right">
-
-
+              <AlertLogs :alert-id="form.id" />
             </div>
           </div>
-          
+
         </div>
         
       </div>
@@ -241,6 +240,10 @@ const onSaveBundle = async ({
   min-height: 0;
   height: 100%;
   overflow-y: auto;
+}
+
+.split-right{
+  padding-left: 10px;
 }
 
 </style>

@@ -2,7 +2,7 @@
   "topNav": {
     "title": "Alerting System",
     "themeToggle": "Toggle Theme",
-    "changeLanguage": "Change language"
+    "languageToggle": "Change language"
   },
 
   "index": {
@@ -24,12 +24,6 @@
     "active": "Active",
     "inactive": "Inactive",
     "draft": "Draft"
-  },
-
-  "alertStatusBadge": {
-    "active": "ACTIVE",
-    "inactive": "INACTIVE",
-    "draft": "DRAFT"
   },
 
   "alertPage": {
@@ -57,8 +51,8 @@
     "cancel": "Cancel",
     "delete": "Delete",
     "newAlert": "New Alert",
-    "backToList": "← Back to list",
-    "back": "← Back",
+    "backToList": "Back to list",
+    "back": "Back",
     "continue": "Continue →",
     "addBundles": "Add bundles →",
     "editAlert": "Edit Alert",
@@ -172,15 +166,22 @@
       "discussionsEmpty": "— none —"
     },
 
-    "interval": {
-      "everyDay": "every {n} day",
-      "everyDays": "every {n} days",
-      "everyHour": "every {n} hour",
-      "everyHours": "every {n} hours",
-      "everyMinute": "every {n} minute",
-      "everyMinutes": "every {n} minutes",
-      "everySeconds": "every {n} seconds",
-      "empty": "—"
+    "schedule":{
+      "interval": {
+        "everyDay": "every {n} day",
+        "everyDays": "every {n} days",
+        "everyHour": "every {n} hour",
+        "everyHours": "every {n} hours",
+        "everyMinute": "every {n} minute",
+        "everyMinutes": "every {n} minutes",
+        "everySeconds": "every {n} seconds",
+        "dailyAt": "daily at {time}",
+        "empty": "—"
+      },
+      "mode":{
+        "basic": "basic",
+        "advanced": "advanced"
+      }
     },
 
     "condition": {

@@ -133,8 +133,9 @@ const triggerModeLabel = computed(() => {
 }
 .data-row {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  align-items: center;
+  flex-direction: row;
+  gap: var(--space-5);
   padding-bottom: var(--space-4);
 }
 .data-row:last-child {
@@ -142,6 +143,7 @@ const triggerModeLabel = computed(() => {
   padding-bottom: 0;
 }
 .data-label {
+  width: 80px;
   margin: 0;
   font-size: 11px;
   font-weight: 700;

@@ -42,7 +42,7 @@ defineEmits<{
       class="btn btn-ghost"
       @click="$emit('back')"
     >
-      {{ $t("button.back") }}
+      🡐 {{ $t("button.back") }}
     </button>
 
     <div class="foot-spacer" />

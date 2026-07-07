@@ -1,3 +1,35 @@
+import { AlertStatus } from "#shared/types/alert";
+import { getErrorMessage } from "~/utils/errors";
+
+/**
+ * Webhook receiver. One log row per incoming request:
+ *   - success  : notifier accepted the payload and dispatched the alert
+ *   - warning  : the request arrived but the alert isn't Active — payload
+ *                is dropped without notifying
+ *   - error    : body parse failed OR the notifier threw
+ *
+ * The log-write is best-effort (wrapped in try/catch) so a repository
+ * outage never turns into a 500 that GitHub / GitLab would retry.
+ */
+
+async function safeLog(
+  alertId: number,
+  kind: "success" | "warning" | "error",
+  msg: string | null = null,
+) {
+  try {
+    if (kind === "success") await alertLogRepository.logSuccess(alertId);
+    else if (kind === "warning")
+      await alertLogRepository.logWarning(alertId, msg ?? "");
+    else await alertLogRepository.logError(alertId, msg ?? "");
+  } catch (e) {
+    console.warn(
+      `[webhook] alert #${alertId} failed to write log:`,
+      getErrorMessage(e),
+    );
+  }
+}
+
 export default defineEventHandler(async (event) => {
   const method = event.node.req.method;
 
@@ -36,16 +68,30 @@ export default defineEventHandler(async (event) => {
     } catch {
       /* body already consumed */
     }
+    const msg = parseErr?.message ?? "Failed to read request body";
     await alertRepository.upsertLastFailedPayload(alert.id, {
       raw: rawBody,
-      error: parseErr?.message ?? "Failed to read request body",
+      error: msg,
       stage: "parse",
     });
+    await safeLog(alert.id, "error", `Invalid body: ${msg}`);
     throw createError({ statusCode: 400, statusMessage: "Invalid body" });
   }
   console.log(
     `📥 [Webhook] Token ${token} — alert #${alert.id} with ${alert.bundles.length} bundle(s)`,
   );
+
+  // Inactive alerts still accept the webhook (so the sender doesn't retry
+  // in vain) but we log a warning so the operator sees the mismatch in
+  // the timeline.
+  if (alert.status !== AlertStatus.Active) {
+    await safeLog(
+      alert.id,
+      "warning",
+      `Alert is ${alert.status} — webhook received but not dispatched`,
+    );
+    return { status: "ignored", message: `Alert is ${alert.status}` };
+  }
 
   try {
     await notifierService.processAlert(alert, payload);
@@ -53,15 +99,17 @@ export default defineEventHandler(async (event) => {
     // id, so two webhook alerts with the same source no longer overwrite each
     // other's history.
     await alertRepository.upsertLastAlertPayload(alert.id, payload);
+    await safeLog(alert.id, "success");
   } catch (error: any) {
-    console.error("❌ [Webhook] Unexpected error:", error.message);
+    const msg = error?.message ?? "Unknown error during processAlert";
+    console.error("❌ [Webhook] Unexpected error:", msg);
     // Persist the failure for admin debugging. The body did parse, so we
     // have a structured `parsed` value; `raw` is left null since we'd have
     // to re-serialize (which would lose info for non-JSON bodies anyway).
     try {
       await alertRepository.upsertLastFailedPayload(alert.id, {
         parsed: payload ?? null,
-        error: error?.message ?? "Unknown error during processAlert",
+        error: msg,
         stage: "process",
       });
     } catch (persistErr: any) {
@@ -70,6 +118,7 @@ export default defineEventHandler(async (event) => {
         persistErr?.message,
       );
     }
+    await safeLog(alert.id, "error", msg);
     throw createError({
       statusCode: 500,
       statusMessage: "Internal Server Error",

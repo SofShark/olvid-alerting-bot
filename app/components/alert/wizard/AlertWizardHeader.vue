@@ -49,7 +49,7 @@ defineEmits<{
       </div>
     </div>
     <button type="button" class="btn btn-ghost" @click="$emit('back')">
-      {{ $t("button.backToList") }}
+      🡐 {{ $t("button.backToList") }}
     </button>
   </div>
 </template>

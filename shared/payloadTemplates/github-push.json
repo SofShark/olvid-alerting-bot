@@ -1,18 +1,125 @@
 {
   "ref": "refs/heads/main",
-  "repository": {
-    "name": "mi-proyecto-genial"
-  },
+  "before": "6113728f27ae82c7b1a177c8d03f9e96e0adf246",
+  "after": "ec26c3e57ca3a959ca5aad62de7213c562f8c821",
+  "created": false,
+  "deleted": false,
+  "forced": false,
+  "base_ref": null,
+  "compare": "https://github.com/sofia-maeso/alerting-bot/compare/6113728f27ae...ec26c3e57ca3",
   "commits": [
     {
-      "author": { "name": "Sofia" },
-      "modified": ["src/styles/main.css", "index.html"],
-      "message": "defined new interface"
-    },
-    {
-      "author": { "name": "tu-usuario" },
-      "modified": ["readme.md"],
-      "message": "deleted outdated box definition"
+      "id": "ec26c3e57ca3a959ca5aad62de7213c562f8c821",
+      "tree_id": "a1b2c3d4e5f67890abcdef1234567890fedcba98",
+      "distinct": true,
+      "message": "Fix typo in onboarding README",
+      "timestamp": "2026-06-30T15:20:32Z",
+      "url": "https://github.com/sofia-maeso/alerting-bot/commit/ec26c3e57ca3",
+      "author": {
+        "name": "Sofia Maeso",
+        "email": "sofia@example.com",
+        "username": "sofia-maeso"
+      },
+      "committer": {
+        "name": "Sofia Maeso",
+        "email": "sofia@example.com",
+        "username": "sofia-maeso"
+      },
+      "added": [],
+      "removed": [],
+      "modified": ["docs/getting-started.md"]
     }
-  ]
+  ],
+  "head_commit": {
+    "id": "ec26c3e57ca3a959ca5aad62de7213c562f8c821",
+    "tree_id": "a1b2c3d4e5f67890abcdef1234567890fedcba98",
+    "distinct": true,
+    "message": "Fix typo in onboarding README",
+    "timestamp": "2026-06-30T15:20:32Z",
+    "url": "https://github.com/sofia-maeso/alerting-bot/commit/ec26c3e57ca3",
+    "author": {
+      "name": "Sofia Maeso",
+      "email": "sofia@example.com",
+      "username": "sofia-maeso"
+    },
+    "committer": {
+      "name": "Sofia Maeso",
+      "email": "sofia@example.com",
+      "username": "sofia-maeso"
+    },
+    "added": [],
+    "removed": [],
+    "modified": ["docs/getting-started.md"]
+  },
+  "repository": {
+    "id": 186853002,
+    "node_id": "MDEwOlJlcG9zaXRvcnkxODY4NTMwMDI=",
+    "name": "alerting-bot",
+    "full_name": "sofia-maeso/alerting-bot",
+    "private": false,
+    "owner": {
+      "name": "sofia-maeso",
+      "email": "sofia@example.com",
+      "login": "sofia-maeso",
+      "id": 21031067,
+      "node_id": "MDQ6VXNlcjIxMDMxMDY3",
+      "avatar_url": "https://avatars.githubusercontent.com/u/21031067?v=4",
+      "url": "https://api.github.com/users/sofia-maeso",
+      "html_url": "https://github.com/sofia-maeso",
+      "type": "User",
+      "site_admin": false
+    },
+    "html_url": "https://github.com/sofia-maeso/alerting-bot",
+    "description": "Olvid webhook + polling alerts",
+    "fork": false,
+    "url": "https://github.com/sofia-maeso/alerting-bot",
+    "hooks_url": "https://api.github.com/repos/sofia-maeso/alerting-bot/hooks",
+    "commits_url": "https://api.github.com/repos/sofia-maeso/alerting-bot/commits{/sha}",
+    "contents_url": "https://api.github.com/repos/sofia-maeso/alerting-bot/contents/{+path}",
+    "compare_url": "https://api.github.com/repos/sofia-maeso/alerting-bot/compare/{base}...{head}",
+    "releases_url": "https://api.github.com/repos/sofia-maeso/alerting-bot/releases{/id}",
+    "created_at": 1715783965,
+    "updated_at": "2026-06-29T15:20:41Z",
+    "pushed_at": 1751303432,
+    "git_url": "git://github.com/sofia-maeso/alerting-bot.git",
+    "ssh_url": "git@github.com:sofia-maeso/alerting-bot.git",
+    "clone_url": "https://github.com/sofia-maeso/alerting-bot.git",
+    "homepage": null,
+    "size": 412,
+    "stargazers_count": 12,
+    "watchers_count": 12,
+    "language": "TypeScript",
+    "has_issues": true,
+    "has_projects": true,
+    "has_downloads": true,
+    "has_wiki": true,
+    "forks_count": 1,
+    "archived": false,
+    "disabled": false,
+    "open_issues_count": 2,
+    "license": {
+      "key": "mit",
+      "name": "MIT License",
+      "spdx_id": "MIT",
+      "url": "https://api.github.com/licenses/mit"
+    },
+    "default_branch": "main",
+    "master_branch": "main",
+    "topics": ["webhook", "polling", "alerts", "nuxt"],
+    "visibility": "public"
+  },
+  "pusher": {
+    "name": "sofia-maeso",
+    "email": "sofia@example.com"
+  },
+  "sender": {
+    "login": "sofia-maeso",
+    "id": 21031067,
+    "node_id": "MDQ6VXNlcjIxMDMxMDY3",
+    "avatar_url": "https://avatars.githubusercontent.com/u/21031067?v=4",
+    "url": "https://api.github.com/users/sofia-maeso",
+    "html_url": "https://github.com/sofia-maeso",
+    "type": "User",
+    "site_admin": false
+  }
 }

@@ -5,7 +5,7 @@ import { compactCondition, migrateCondition } from "#shared/condition/migrate";
 import { getErrorMessage, getErrorData } from "~/utils/errors";
 
 /*
-  Thin orchestration container for the alert create / edit flow. Owns
+  Orchestration container for the alert create / edit flow. Owns
   no UI semantics beyond layout: every visual region is a leaf component,
   every imperative concern is a composable.
 
@@ -17,7 +17,7 @@ import { getErrorMessage, getErrorData } from "~/utils/errors";
       │     bundle   → wizard/steps/StepBundles
       └─ Footer (Back / Save-as-draft / Continue / Save) — AlertWizardFooter
 
-  Cross-cutting:
+  Composables called:
     - useAlertForm     → form + bundle helpers + isExisting/isPolling/isWebhook
     - useAlertActions  → save + saving flag
     - useDirtyGuard    → snapshot + isDirty + route guards + beforeunload
@@ -34,12 +34,15 @@ const props = withDefaults(
 );
 
 const { t } = useI18n();
+
 const { availableDiscussions, discussionsLoading, fetchAlerts } = useAlerts();
 
 const { form, isExisting, isPolling, hasEmptyBundle } = useAlertForm(
   toRef(props, "alertaInicial"),
 );
+
 const { saving, saveAlert } = useAlertActions();
+
 const {
   isDirty,
   showDiscardPrompt,
@@ -48,6 +51,7 @@ const {
   allowNextLeave,
   dismissPrompt,
 } = useDirtyGuard(form);
+
 const {
   currentStep,
   stepDefs,
@@ -90,7 +94,7 @@ const effectiveFinalStatus = computed<AlertStatus>(() => {
 
 const buildPayload = (status: AlertStatus) => {
   // Compact the polling condition on the way out: drop unused fields for
-  // kind=None, drop `value` for operators that don't use it. Memory shape
+  // kind=None, drop `value` for operators that don't use it. During edition, memory shape
   // preserves all fields so the user can flip modes without losing context.
   const ap: any = { ...(form.value.alertParams ?? {}) };
   if (isPolling.value && ap.condition) {

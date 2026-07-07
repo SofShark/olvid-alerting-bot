@@ -9,14 +9,14 @@
     "conclusion": "failure",
     "run_number": 247,
     "event": "push",
-    "html_url": "https://github.com/org/repo/actions/runs/8123456789",
+    "html_url": "https://github.com/sofia-maeso/alerting-bot/actions/runs/8123456789",
     "actor": {
-      "login": "alice-dev"
+      "login": "sofia-maeso"
     }
   },
   "repository": {
-    "name": "frontend-app",
-    "full_name": "org/frontend-app",
-    "html_url": "https://github.com/org/frontend-app"
+    "name": "alerting-bot",
+    "full_name": "sofia-maeso/alerting-bot",
+    "html_url": "https://github.com/sofia-maeso/alerting-bot"
   }
 }

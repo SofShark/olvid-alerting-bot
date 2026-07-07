@@ -51,9 +51,7 @@ const initials = (title: string): string => {
         :aria-expanded="!collapsed"
         @click="toggle"
       >
-        <!-- Always the chevron-LEFT icon; we rotate 180° via CSS when the
-             sidebar is collapsed so the same glyph points right. Saves
-             registering both icons. -->
+    
         <FontAwesomeIcon
           class="chev-icon"
           :icon="['fas', 'chevron-left']"
@@ -195,13 +193,12 @@ const initials = (title: string): string => {
   gap: var(--space-3);
 
   width: 100%;
-  height: 35px; /* Adjust this value to match your exact design needs */
+  height: 35px;
   box-sizing: border-box;
 
   text-align: left;
   background: transparent;
   border: none;
-  border-left: 1px solid transparent;
   color: var(--color-text-secondary);
 
   padding-left: 9px;
@@ -212,9 +209,9 @@ const initials = (title: string): string => {
 
   .sidebar-collapsed & {
     position: relative;
-    justify-content: center; /* Centra el row-initials */
+    justify-content: center;
     border-radius: 0;
-    padding: 0; /* Quitamos el padding lateral para un centrado perfecto */
+    padding: 0; 
   }
 }
 
@@ -223,7 +220,6 @@ const initials = (title: string): string => {
 }
 .alert-row.selected {
   background: var(--color-bg-card-soft);
-  border-left-color: var(--color-accent);
   color: var(--color-text-primary);
 }
 
@@ -257,8 +253,8 @@ const initials = (title: string): string => {
   .sidebar-collapsed & {
     /* 2. Status dot as an exponent in smaller size  */
     position: absolute;
-    top: 6px;
-    right: 6px;
+    top: 5px;
+    right: 5px;
     width: 8px;
     height: 8px;
   }
@@ -287,7 +283,7 @@ const initials = (title: string): string => {
 
 /* ── New-alert button at the bottom ───────────────────────────────
  * Expanded: full pill with "+ New alert" label.
- * Collapsed: square with just "+", same affordance. */
+ * Collapsed: square with just "+". */
 .btn-new-bottom {
   margin-top: auto;
   margin-left: var(--space-2);

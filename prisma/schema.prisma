@@ -27,6 +27,7 @@ model AlertTable {
   bundles           Bundle[]
   lastPayload       LastAlertPayload?
   lastFailedPayload LastFailedPayload?
+  logs              AlertLog[]
 }
 
 model Bundle {
@@ -55,4 +56,19 @@ model LastFailedPayload {
   stage    String?
   failedAt DateTime   @updatedAt
   alert    AlertTable @relation(fields: [alertId], references: [id], onDelete: Cascade)
+}
+
+/// One-to-many events log per alert. Every poll (success or failure) inserts
+/// one row; the heartbeat's failure branches populate `error` with a
+/// human-readable message. The 200-row cap per alertId is enforced in
+/// `alertLogRepository.insert` — no DB trigger needed.
+model AlertLog {
+  id        Int        @id @default(autoincrement())
+  alertId   Int
+  status    String     // "success" | "warning" | "error"
+  error     String?    // populated only for warning / error rows
+  createdAt DateTime   @default(now())
+  alert     AlertTable @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@index([alertId, createdAt(sort: Desc)])
 }

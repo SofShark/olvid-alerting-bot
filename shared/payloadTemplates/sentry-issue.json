@@ -1,8 +1,39 @@
 {
+  "id": "abc123def456",
+  "project": "alerting-bot",
+  "project_name": "alerting-bot",
+  "url": "https://sentry.acme.io/organizations/acme/issues/4242/",
   "event": {
-    "title": "ZeroDivisionError",
+    "event_id": "5f6e1a2b3c4d5e6f",
+    "title": "ZeroDivisionError: integer division or modulo by zero",
+    "message": "ZeroDivisionError: integer division or modulo by zero",
+    "level": "error",
+    "platform": "python",
     "culprit": "app/views.py in divide",
-    "level": "error"
+    "environment": "production",
+    "release": "alerting-bot@2.4.1",
+    "logger": "app.views",
+    "tags": [
+      ["browser", "Chrome 124"],
+      ["os", "Linux"],
+      ["url", "https://app.acme.io/dashboard"]
+    ],
+    "user": {
+      "id": "u-9876",
+      "username": "alex-codes",
+      "email": "alex@example.com",
+      "ip_address": "203.0.113.42"
+    },
+    "extra": {
+      "function": "divide",
+      "args": [42, 0]
+    }
   },
-  "url": "https://sentry.io/org/project/issues/123/"
+  "triggering_rules": ["High error rate"],
+  "level": "error",
+  "actor": {
+    "type": "user",
+    "id": "u-system",
+    "name": "Sentry"
+  }
 }

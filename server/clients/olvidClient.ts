@@ -12,11 +12,13 @@
 
 import { OlvidClient } from "@olvid/bot-node";
 
+const client = new OlvidClient()
+
 export const olvidClient = {
+
   async sendMessage(discussions: bigint[], message: string) {
     try {
-      const client = new OlvidClient();
-
+      
       for (const discussionId of discussions) {
         await client.messageSend({
           discussionId: discussionId,
@@ -36,9 +38,7 @@ export const olvidClient = {
 
   async getDiscussions() {
     try {
-      const client = new OlvidClient();
       const discussions = client.discussionList();
-
       const arrayDiscussions: any[] = [];
 
       try {

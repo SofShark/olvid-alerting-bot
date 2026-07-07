@@ -2,7 +2,7 @@
   "topNav": {
     "title": "Bots d'alerting",
     "themeToggle": "Changer le thème",
-    "changeLanguage": "Changer la langue"
+    "languageToggle": "Changer la langue"
   },
 
   "index": {
@@ -24,12 +24,6 @@
     "active": "Active",
     "inactive": "Inactive",
     "draft": "Brouillon"
-  },
-
-  "alertStatusBadge": {
-    "active": "ACTIVE",
-    "inactive": "INACTIVE",
-    "draft": "BROUILLON"
   },
 
   "alertPage": {
@@ -57,8 +51,8 @@
     "cancel": "Annuler",
     "delete": "Supprimer",
     "newAlert": "Nouvelle alerte",
-    "backToList": "← Retour à la liste",
-    "back": "← Retour",
+    "backToList": "Retour à la liste",
+    "back": "Retour",
     "continue": "Continuer →",
     "addBundles": "Ajouter des lots →",
     "editAlert": "Modifier l'alerte",
@@ -172,16 +166,25 @@
       "discussionsEmpty": "— aucune —"
     },
 
-    "interval": {
-      "everyDay": "tous les {n} jour",
-      "everyDays": "tous les {n} jours",
-      "everyHour": "toutes les {n} heure",
-      "everyHours": "toutes les {n} heures",
-      "everyMinute": "toutes les {n} minute",
-      "everyMinutes": "toutes les {n} minutes",
-      "everySeconds": "toutes les {n} secondes",
-      "empty": "—"
-    },
+    "schedule":{
+      "interval": {
+        "everyDay": "tous les {n} jour",
+        "everyDays": "tous les {n} jours",
+        "everyHour": "toutes les {n} heure",
+        "everyHours": "toutes les {n} heures",
+        "everyMinute": "toutes les {n} minute",
+        "everyMinutes": "toutes les {n} minutes",
+        "everySeconds": "toutes les {n} secondes",
+        "dailyAt": "tous les jours à {time}",
+        "empty": "—"
+      },
+      "mode":{
+          "basic": "basique",
+          "advanced": "avancé"
+      }
+        
+    }
+    ,
 
     "condition": {
       "summaryNone": "Se déclenche à chaque cycle de polling (aucune condition).",
