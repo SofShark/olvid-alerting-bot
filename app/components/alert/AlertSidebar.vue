@@ -121,7 +121,7 @@ const initials = (title: string): string => {
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  background: var(--color-border-subtle);
+  background: var(--color-bg-sidebar-head);
   border-bottom: 1px solid var(--color-border-subtle);
 }
 .sidebar.collapsed .sidebar-head {

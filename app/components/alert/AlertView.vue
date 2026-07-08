@@ -26,7 +26,7 @@ const props = withDefaults(
 const { t } = useI18n();
 const { alerts, availableDiscussions, discussionsLoading, fetchAlerts } =
   useAlerts();
-const { form, isExisting, isPolling, isWebhook } = useAlertForm(
+const { form, isExisting, isPolling, isMonitoring, isWebhook } = useAlertForm(
   toRef(props, "alertaInicial"),
 );
 const { saving, saveAlert, deleteAlert, setStatus } = useAlertActions();
@@ -37,7 +37,8 @@ const canActivate = computed(() => form.value.bundles.length > 0);
 // Source name surfaced in the view-mode "Source" row. With the binary
 // Source enum, this IS just `form.input`.
 const inputTitle = computed(() => {
-  if (isPolling.value) return "Polling Alert";
+  if (isPolling.value) return "Data Polling Alert";
+  if (isMonitoring.value) return "Monitoring Alert";
   if (isWebhook.value) return "Webhook Alert";
   return form.value.input ? `${form.value.input} Alert` : "Alert";
 });
@@ -71,16 +72,16 @@ const onToggleStatus = async () => {
     form.value.status === AlertStatus.Active
       ? AlertStatus.Inactive
       : AlertStatus.Active;
-  try {
-    const newStatus = await setStatus(form.value.id as number, next);
-    // Optimistic local update. Mutating the alert in-place in the shared
-    // alerts ref avoids re-evaluating the page's `alert` computed, which
-    // would otherwise cascade through fillFrom and flash the form.
-    form.value.status = newStatus;
-    const idx = alerts.value.findIndex((a) => a.id === form.value.id);
-    if (idx >= 0 && alerts.value[idx]) alerts.value[idx].status = newStatus;
-  } catch (error: any) {
-    console.error("Error toggling:", error);
+    try {
+      const newStatus = await setStatus(form.value.id as number, next);
+      // Optimistic local update. Mutating the alert in-place in the shared
+      // alerts ref avoids re-evaluating the page's `alert` computed, which
+      // would otherwise cascade through fillFrom and flash the form.
+      form.value.status = newStatus;
+      const idx = alerts.value.findIndex((a) => a.id === form.value.id);
+      if (idx >= 0 && alerts.value[idx]) alerts.value[idx].status = newStatus;
+    } catch (error: any) {
+      console.error("Error toggling:", error);
   }
 };
 
@@ -114,10 +115,12 @@ const onSaveBundle = async ({
   index,
   bundle,
 }: {
-  index: number;
+  index: number | null;
   bundle: BundleModel;
 }) => {
-  if (!form.value.id) return;
+  // View mode only edits existing bundles — create (index null) is a
+  // wizard-only flow and can't be reached from here.
+  if (index === null || !form.value.id) return;
   // Patch only this bundle on the local form; the payload below carries
   // the user's intended state to the backend.
   const updated = form.value.bundles.map((b, i) => (i === index ? bundle : b));
@@ -176,6 +179,7 @@ const onSaveBundle = async ({
           @save="onSaveBundle"
           @cancel="closeBundleEditor"
         />
+        
 
         <AlertViewHeader
           :title="form.title"
@@ -208,7 +212,8 @@ const onSaveBundle = async ({
               <TestPoll
                 v-if="isPolling && form.status === AlertStatus.Inactive"
                 :alert-id="form.id"
-              />
+              /> 
+              <!--TODO Test also monitoring-->
             </div>
             <div class="split-right">
               <AlertLogs :alert-id="form.id" />

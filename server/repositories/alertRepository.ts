@@ -94,13 +94,25 @@ export const alertRepository = {
     return rows.map(serializeAlert);
   },
 
-  async getActivePolling(){
+  /**
+   * All active alerts whose input drives a scheduled probe (Polling or
+   * Monitoring). Webhook alerts are excluded — they're push-driven and
+   * the heartbeat has no work to do for them.
+   *
+   * Renamed from `getActivePolling` when Monitoring joined the family;
+   * the shape of every row is still an AlertModel — callers branch by
+   * `alert.input` if they need source-specific behaviour.
+   */
+  async getActiveScheduled(){
     const rows = await prisma.alertTable.findMany({
-      where: {status:AlertStatus.Active, input: Source.Polling},
+      where: {
+        status: AlertStatus.Active,
+        input: { in: [Source.Polling, Source.Monitoring] },
+      },
       include: {bundles: true}
     })
     return rows.map(serializeAlert)
-  }, 
+  },
 
   async getById(id: number) {
     const row = await prisma.alertTable.findUnique({

@@ -11,32 +11,43 @@ import { migrateCondition } from "#shared/condition/migrate";
  * view-mode "Condition" row of AlertEditor.
  *
  * Output shape: `{ headline, paths }`
- *   - `headline` is a localised sentence such as "Any of 3 fields changed".
+ *   - `headline` is a localised sentence such as
+ *     "Fires when the sum of these fields is greater than 100."
  *   - `paths`    is the list of watched dot-paths (rendered as code chips).
  *
- * The condition arrives as a `PollingCondition` from `alertParams.condition`
- * — possibly in its compact form (kind === None). `migrateCondition` is
- * applied internally so callers can pass anything they have on hand.
+ * Grammar: the headline composes `{subject} {phrase}` where the subject
+ * comes from the aggregation ("all of these fields", "the sum of these
+ * fields", …) and the phrase from the operator. Boolean aggregations
+ * (All/Any) take PLURAL operator phrases ("are greater than"); numeric
+ * reducers (Sum/Average/Min/Max) collapse to one value and take the
+ * SINGULAR variants ("is greater than").
  */
 export const useConditionSummary = () => {
   const { t } = useI18n();
 
-  // Operator → translated phrase. Used as a stitching piece inside the
-  // summary headline. `value` is interpolated by vue-i18n placeholders;
-  // operators that don't need a value ignore it.
-  const operatorPhrase = (op: ConditionOperator, v?: string): string => {
+  const isNumericAggregation = (a: ConditionAggregation): boolean =>
+    a !== ConditionAggregation.All && a !== ConditionAggregation.Any;
+
+  // Operator → translated phrase. `singular` picks the verb form that
+  // agrees with a collapsed (single-value) subject.
+  const operatorPhrase = (
+    op: ConditionOperator,
+    v?: string,
+    singular = false,
+  ): string => {
     const value = v ?? "";
+    const ns = singular ? "phraseSingular" : "phrase";
     switch (op) {
       case ConditionOperator.Changed:
-        return t("editor.condition.phrase.changed");
+        return t(`editor.condition.${ns}.changed`);
       case ConditionOperator.Equals:
-        return t("editor.condition.phrase.equals", { value });
+        return t(`editor.condition.${ns}.equals`, { value });
       case ConditionOperator.GreaterThan:
-        return t("editor.condition.phrase.greaterThan", { value });
+        return t(`editor.condition.${ns}.greaterThan`, { value });
       case ConditionOperator.LessThan:
-        return t("editor.condition.phrase.lessThan", { value });
+        return t(`editor.condition.${ns}.lessThan`, { value });
       case ConditionOperator.Contains:
-        return t("editor.condition.phrase.contains", { value });
+        return t(`editor.condition.${ns}.contains`, { value });
       default:
         return String(op);
     }
@@ -51,17 +62,14 @@ export const useConditionSummary = () => {
       return { headline: t("editor.condition.summaryNone"), paths: [] };
     }
     if (c.kind === ConditionKind.Rule) {
-      const isAny = c.aggregation === ConditionAggregation.Any;
-      const phrase = operatorPhrase(c.operator, c.value);
+      const numeric = isNumericAggregation(c.aggregation);
+      const subject = t(`editor.condition.subject.${c.aggregation}`);
+      const phrase = operatorPhrase(c.operator, c.value, numeric);
       const needsValue = OPERATORS_NEEDING_VALUE.has(c.operator) && !c.value;
       const key = needsValue
-        ? isAny
-          ? "editor.condition.summaryRuleAnyMissingValue"
-          : "editor.condition.summaryRuleAllMissingValue"
-        : isAny
-          ? "editor.condition.summaryRuleAny"
-          : "editor.condition.summaryRuleAll";
-      return { headline: t(key, { phrase }), paths: c.paths ?? [] };
+        ? "editor.condition.summaryRuleMissingValue"
+        : "editor.condition.summaryRule";
+      return { headline: t(key, { subject, phrase }), paths: c.paths ?? [] };
     }
     return { headline: t("common.emDash"), paths: [] };
   };

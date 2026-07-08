@@ -2,6 +2,26 @@
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import type { DiscussionModel } from "#shared/types/discussion";
 
+/*
+  WhatsApp-group-creation style destination picker.
+
+  Layout, top to bottom:
+    1. Selected strip — one avatar per selected discussion, name in small
+       font under the photo, a little ✕ badge to remove.
+    2. Search input.
+    3. Dropdown — every available discussion with its photo and a ✓ mark
+       on the right when already selected. Clicking a row TOGGLES the
+       discussion in/out of the list.
+
+  Membership is strictly boolean: a discussion is either in the list or
+  not. `toggle` guards against duplicates, so the same id can never
+  appear twice regardless of how fast the user clicks.
+
+  Photos come from /api/discussions/photo/:id. When the endpoint has no
+  photo for an id (404 / broken image) we fall back to an initials
+  circle, tracked per-id in `failedPhotos`.
+*/
+
 const { t } = useI18n();
 
 const props = withDefaults(
@@ -24,24 +44,29 @@ const searchQuery = ref("");
 const isDropdownOpen = ref(false);
 const containerRef = ref<HTMLElement | null>(null);
 
-// Collapsed by default so a long list of selected discussions doesn't
-// explode the bundle card vertically. The user clicks the summary header
-// to reveal the chips for review / removal. The state is per-mount; we
-// don't persist it across re-opens of the modal.
-const chipsExpanded = ref(false);
+const selectedIds = computed(() => new Set(props.modelValue.map((d) => d.id)));
+
+const isSelected = (d: DiscussionModel) => selectedIds.value.has(d.id);
 
 const filtered = computed(() => {
-  const selectedIds = new Set(props.modelValue.map((d) => d.id));
   const q = searchQuery.value.toLowerCase();
-  return props.available
-    .filter((d) => !selectedIds.has(d.id))
-    .filter((d) => !q || d.title.toLowerCase().includes(q));
+  return props.available.filter(
+    (d) => !q || d.title.toLowerCase().includes(q),
+  );
 });
 
-const add = (d: DiscussionModel) => {
-  emit("update:modelValue", [...props.modelValue, d]);
-  searchQuery.value = "";
-  // dropdown stays open so the user can keep selecting
+/** Boolean membership: in the list → remove; not in it → add. The
+ *  Set-based guard makes double-adds impossible. */
+const toggle = (d: DiscussionModel) => {
+  if (isSelected(d)) {
+    emit(
+      "update:modelValue",
+      props.modelValue.filter((x) => x.id !== d.id),
+    );
+  } else {
+    emit("update:modelValue", [...props.modelValue, d]);
+  }
+  // Dropdown stays open so the user can keep composing the audience.
 };
 
 const remove = (id: string) => {
@@ -49,6 +74,22 @@ const remove = (id: string) => {
     "update:modelValue",
     props.modelValue.filter((d) => d.id !== id),
   );
+};
+
+// ── Avatar fallback ───────────────────────────────────────────────────────
+const failedPhotos = ref<Set<string>>(new Set());
+const photoFailed = (id: string) => failedPhotos.value.has(id);
+const onPhotoError = (id: string) => {
+  const next = new Set(failedPhotos.value);
+  next.add(id);
+  failedPhotos.value = next;
+};
+/** Up-to-2-char initials for the fallback circle. */
+const initials = (title: string): string => {
+  const words = (title ?? "").trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "·";
+  if (words.length === 1) return words[0]!.slice(0, 2).toUpperCase();
+  return (words[0]![0]! + words[1]![0]!).toUpperCase();
 };
 
 const onClickOutside = (e: MouseEvent) => {
@@ -62,34 +103,31 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 
 <template>
   <div class="selector">
-    <!-- Selected — collapsed summary by default. Click to expand and
-         review / remove. Hidden entirely when nothing is selected. -->
-    <div v-if="modelValue.length > 0" class="selected">
-      <button
-        type="button"
-        class="selected-toggle"
-        :aria-expanded="chipsExpanded"
-        @click="chipsExpanded = !chipsExpanded"
-      >
-        <span class="selected-count">{{ modelValue.length }}</span>
-        <span class="selected-label">
-          {{ modelValue.length === 1 ? "destination selected" : "destinations selected" }}
-        </span>
-        <span class="selected-caret" :class="{ open: chipsExpanded }" aria-hidden="true" />
-      </button>
-
-      <div v-if="chipsExpanded" class="chips">
-        <div v-for="d in modelValue" :key="d.id" class="chip">
-          <span class="chip-title">{{ d.title }}</span>
+    <!-- ── Selected strip — avatars with name + ✕ badge ────────────────── -->
+    <div v-if="modelValue.length > 0" class="selected-strip">
+      <div v-for="d in modelValue" :key="d.id" class="strip-item">
+        <div class="strip-avatar-wrap">
+          <img
+            v-if="!photoFailed(d.id)"
+            :src="`/api/discussions/photo/${d.id}`"
+            :alt="d.title"
+            class="strip-avatar"
+            @error="onPhotoError(d.id)"
+          >
+          <div v-else class="strip-avatar strip-avatar-fallback">
+            {{ initials(d.title) }}
+          </div>
           <button
             v-if="!readonly"
             type="button"
-            class="chip-remove"
+            class="strip-remove"
+            :title="`Remove ${d.title}`"
             @click="remove(d.id)"
           >
             ✕
           </button>
         </div>
+        <span class="strip-name" :title="d.title">{{ d.title }}</span>
       </div>
     </div>
 
@@ -98,10 +136,10 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
       {{ $t("discussionSelector.empty") }}
     </p>
 
-    <!-- Search / add — hidden when readonly. -->
-    <div v-if="!readonly" ref="containerRef" class="search-wrap" >
+    <!-- ── Search + dropdown — hidden when readonly ────────────────────── -->
+    <div v-if="!readonly" ref="containerRef" class="search-wrap">
       <input
-        v-model="searchQuery" 
+        v-model="searchQuery"
         type="text"
         :placeholder="
           isLoading
@@ -117,11 +155,29 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
       <div v-if="isDropdownOpen" class="dropdown">
         <div
           v-for="d in filtered"
-          :key="d.id.toString()"
+          :key="d.id"
           class="dropdown-item"
-          @mousedown.prevent="add(d)"
+          :class="{ selected: isSelected(d) }"
+          @mousedown.prevent="toggle(d)"
         >
+          <img
+            v-if="!photoFailed(d.id)"
+            :src="`/api/discussions/photo/${d.id}`"
+            :alt="d.title"
+            class="item-avatar"
+            @error="onPhotoError(d.id)"
+          >
+          <div v-else class="item-avatar item-avatar-fallback">
+            {{ initials(d.title) }}
+          </div>
           <span class="item-title">{{ d.title }}</span>
+          <span v-if="isSelected(d)" class="item-check" aria-hidden="true">
+            <FontAwesomeIcon :icon="['fas', 'circle-check']" />
+          </span>
+          <span v-else class="item-check" aria-hidden="true">
+            <FontAwesomeIcon :icon="['far', 'circle']" />
+          </span>
+          
         </div>
         <div v-if="filtered.length === 0" class="dropdown-empty">
           {{
@@ -143,83 +199,73 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   width: 100%;
 }
 
-/* Selected — collapsible summary. The toggle reads as a row of dim
- * metadata so it doesn't compete with the search input below. */
-.selected {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-.selected-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: var(--color-text-dim);
-  font-size: var(--text-sm);
-  align-self: flex-start;
-  border-radius: var(--radius-sm);
-  transition: color .15s;
-}
-.selected-toggle:hover { color: var(--color-text-primary); }
-.selected-count {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  color: var(--color-text-secondary);
-}
-.selected-label { color: inherit; }
-.selected-caret {
-  width: 0;
-  height: 0;
-  border-top:    4px solid transparent;
-  border-bottom: 4px solid transparent;
-  border-left:   6px solid currentColor;
-  opacity: 0.6;
-  transition: transform .15s ease, opacity .15s ease;
-}
-.selected-caret.open { transform: rotate(90deg); opacity: 0.9; }
-
-/* Chip layout overrides the global chip's tight padding — discussion chips
- * carry a wider title + a × button so a touch more breathing room helps. */
-.chips {
+/* ── Selected strip ───────────────────────────────────────────────────
+ * Horizontal row of avatar+name columns, wraps when the audience grows.
+ * Mirrors the WhatsApp "new group" member strip. */
+.selected-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
-.chip {
+.strip-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 56px;
+}
+.strip-avatar-wrap {
+  position: relative;
+}
+.strip-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  border: 1px solid var(--color-border-subtle);
+}
+.strip-avatar-fallback {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: center;
   background: var(--color-accent-soft);
-  border: 1px solid var(--color-accent-border);
-  border-radius: var(--radius-sm);
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--text-md);
-}
-.chip-title {
   color: var(--color-accent-text);
-  font-weight: 500;
-}
-.chip-id {
-  color: var(--color-text-faint);
-  font-family: var(--font-mono);
   font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
-.chip-remove {
-  background: none;
+.strip-remove {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
   border: none;
-  color: var(--color-danger);
-  cursor: pointer;
-  padding: 0;
-  font-size: var(--text-sm);
+  background: var(--color-bg-panel);
+  color: var(--color-text-secondary);
+  font-size: 9px;
   line-height: 1;
-  transition: color 0.15s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: background-color 0.15s, color 0.15s;
 }
-.chip-remove:hover {
-  color: var(--color-danger-text);
+.strip-remove:hover {
+  background: var(--color-danger, #ef4444);
+  color: #fff;
+}
+.strip-name {
+  max-width: 56px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Search input ─────────────────────────────────────────────────── */
@@ -264,17 +310,18 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-  max-height: 200px;
+  max-height: 240px;
   overflow-y: auto;
   z-index: 50;
 }
 .dropdown-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 9px var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
   cursor: pointer;
   border-bottom: 1px solid var(--color-border-subtle);
+  transition: background-color 0.12s;
 }
 .dropdown-item:last-child {
   border-bottom: none;
@@ -282,16 +329,43 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 .dropdown-item:hover {
   background: var(--color-border-subtle);
 }
+.dropdown-item.selected {
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
 
+.item-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border-subtle);
+}
+.item-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
 .item-title {
+  flex: 1;
+  min-width: 0;
   color: var(--color-text-secondary);
   font-size: var(--text-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.item-id {
-  color: var(--color-text-faint);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
+.item-check {
+  color: var(--color-accent);
+  font-weight: 700;
+  font-size: var(--text-md);
+  flex-shrink: 0;
 }
+
 .dropdown-empty {
   padding: var(--space-3) var(--space-4);
   color: var(--color-text-faint);

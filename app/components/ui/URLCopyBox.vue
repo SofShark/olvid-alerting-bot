@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { ref } from "vue";
 
 const props = defineProps<{ url: string }>();
@@ -30,7 +31,9 @@ const copyWebhook = () => {
       "
       @click="copyWebhook"
     >
-      {{ copied ? "✓" : "📋" }}
+    <span v-if="copied"> ✓ </span>
+    <span v-else > <FontAwesomeIcon class="clipboard-icon" :icon="['fas', 'copy']"/>  </span>
+      <!--span class="copy-icon"> {{ copied ? "✓" : "📋" }}</span-->
     </button>
   </div>
 </template>
@@ -39,8 +42,8 @@ const copyWebhook = () => {
 .url-box {
   display: flex;
   align-items: center;
+  height: 35px;
   min-width: 30%;
-  width: fit-content;
   gap: var(--space-3);
   background: var(--color-bg-code);
   border: 1px solid var(--color-border-subtle);
@@ -56,6 +59,10 @@ const copyWebhook = () => {
   white-space: nowrap;
   flex: 1;
 }
+
+.clipboard-icon{
+  color: #bebebe;
+}
 /* Copy button — small scale + color pulse on click, swaps to ✓ for ~1.4s.
  * Used a CSS animation rather than a one-shot scale so consecutive clicks
  * always restart the pulse cleanly. */
@@ -63,6 +70,7 @@ const copyWebhook = () => {
   background: transparent;
   border: none;
   cursor: pointer;
+  width: 25px;
   font-size: var(--text-lg);
   line-height: 1;
   padding: 2px var(--space-2);
@@ -74,7 +82,7 @@ const copyWebhook = () => {
     transform 0.1s;
 }
 .btn-copy:hover {
-  background: var(--color-border-subtle);
+  background: var(--color-border-code);
 }
 .btn-copy:active {
   transform: scale(0.88);

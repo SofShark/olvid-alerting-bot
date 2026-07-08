@@ -16,12 +16,21 @@ import type { BundleModel } from "#shared/types/bundle";
       alert's main title.
 */
 
-const props = defineProps<{
-  bundle: BundleModel;
-  index: number;
-}>();
+const props = withDefaults(
+  defineProps<{
+    bundle: BundleModel;
+    index: number;
+    /** Wizard rows can be removed; view-mode rows can't. Off by default
+     *  so existing view-mode usage is untouched. */
+    removable?: boolean;
+  }>(),
+  { removable: false },
+);
 
-defineEmits<{ (e: "edit", index: number): void }>();
+defineEmits<{
+  (e: "edit", index: number): void;
+  (e: "remove", index: number): void;
+}>();
 
 const { formatLabel } = useFormatLabel();
 const { bundleStatus } = useBundleStatus();
@@ -55,14 +64,25 @@ const destSummary = computed(() => {
       </span>
     </div>
 
-    <button
-      type="button"
-      class="row-edit"
-      title="Edit bundle"
-      @click="$emit('edit', index)"
-    >
-      <FontAwesomeIcon :icon="['fas', 'pencil']" />
-    </button>
+    <div class="row-actions">
+      <button
+        type="button"
+        class="row-edit"
+        title="Edit bundle"
+        @click="$emit('edit', index)"
+      >
+        <FontAwesomeIcon :icon="['fas', 'pencil']" />
+      </button>
+      <button
+        v-if="removable"
+        type="button"
+        class="row-edit row-remove"
+        title="Remove bundle"
+        @click="$emit('remove', index)"
+      >
+        ✕
+      </button>
+    </div>
   </div>
 </template>
 
@@ -73,7 +93,7 @@ const destSummary = computed(() => {
   gap: var(--space-4);
   align-items: center;
   padding: var(--space-3) var(--space-4);
-  background: transparent;
+  background: var(--color-bg-card);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   transition: background-color .15s, border-color .15s;
@@ -89,7 +109,7 @@ const destSummary = computed(() => {
   gap: 2px;
   min-width: 0;
 }
-.row-title {
+.row-title { 
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--color-text-primary);
@@ -111,6 +131,11 @@ const destSummary = computed(() => {
 .meta-sep    { color: var(--color-text-faint); }
 .meta-warn   { color: var(--color-warning-text); font-weight: 500; }
 
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
 .row-edit {
   background: transparent;
   border: none;
@@ -127,5 +152,9 @@ const destSummary = computed(() => {
 .row-edit:hover {
   background: var(--color-border-subtle);
   color: var(--color-text-primary);
+}
+.row-remove:hover {
+  background: color-mix(in srgb, var(--color-danger, #ef4444) 12%, transparent);
+  color: var(--color-danger-text, #b91c1c);
 }
 </style>

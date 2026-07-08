@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { Source } from "#shared/types/source";
 import type { AlertModel } from "#shared/types/alert";
 import { TriggerMode, type PollingParams } from "#shared/types/polling";
 import {
@@ -8,20 +9,28 @@ import {
 } from "#shared/types/condition";
 
 /*
-  Step 2 (polling only): ConditionEditor + trigger-mode picker.
+  Step 2: source-specific trigger configuration.
+    - Polling    → ConditionEditor over paths + operator + value, plus
+                   the TriggerMode picker (hidden for edge-native cases).
+    - Monitoring → StatusMatchEditor over HTTP codes / range / not-ok,
+                   with its own TriggerMode picker embedded.
+    - Webhook    → this step is not reached (useWizardSteps skips it).
 
-  Trigger mode lives here (not in TriggerParamsEditor / Step 1) because the
-  gate "only meaningful when condition.kind=Rule and operator!=Changed"
-  needs the user to have actually shaped the condition first. Showing it in
-  Step 1 means it stays hidden until you come back, which is backwards.
+  Trigger mode for polling lives here (not in TriggerParamsEditor / Step 1)
+  because the gate "only meaningful when condition.kind=Rule and
+  operator!=Changed" needs the user to have actually shaped the condition
+  first.
 
   Re-emits `update:payload` upward so the wizard can pipe the parsed
-  payload into the BundleCard preview on step 3.
+  payload into the bundle dialog's preview on step 3.
 */
 
 const form = defineModel<AlertModel>({ required: true });
 
 defineEmits<{ (e: "update:payload", v: any): void }>();
+
+const isPolling = computed(() => form.value.input === Source.Polling);
+const isMonitoring = computed(() => form.value.input === Source.Monitoring);
 
 const condition = computed({
   get: () => (form.value.alertParams as PollingParams | undefined)?.condition,
@@ -85,31 +94,40 @@ const triggerModeHint = computed(
 
 <template>
   <div class="step-trigger">
-    <ConditionEditor
-      :model-value="condition"
-      :url="(form.alertParams as PollingParams | undefined)?.url"
-      :format="(form.alertParams as PollingParams | undefined)?.format"
-      @update:model-value="condition = $event"
-      @update:payload="$emit('update:payload', $event)"
-    />
+    <!-- Polling: condition over parsed body + trigger-mode picker. -->
+    <template v-if="isPolling">
+      <ConditionEditor
+        :model-value="condition"
+        :url="(form.alertParams as PollingParams | undefined)?.url"
+        :format="(form.alertParams as PollingParams | undefined)?.format"
+        @update:model-value="condition = $event"
+        @update:payload="$emit('update:payload', $event)"
+      />
 
-    <div v-if="showTriggerMode" class="field trigger-mode-field">
-      <label class="field-label">Trigger mode</label>
-      <select
-        :value="selectedTriggerMode"
-        class="field-input"
-        @change="onTriggerModeChange(($event.target as HTMLSelectElement).value)"
-      >
-        <option
-          v-for="opt in TRIGGER_MODE_OPTIONS"
-          :key="opt.value"
-          :value="opt.value"
+      <div v-if="showTriggerMode" class="field trigger-mode-field">
+        <label class="field-label">Trigger mode</label>
+        <select
+          :value="selectedTriggerMode"
+          class="field-input"
+          @change="onTriggerModeChange(($event.target as HTMLSelectElement).value)"
         >
-          {{ opt.label }}
-        </option>
-      </select>
-      <span class="field-hint">{{ triggerModeHint }}</span>
-    </div>
+          <option
+            v-for="opt in TRIGGER_MODE_OPTIONS"
+            :key="opt.value"
+            :value="opt.value"
+          >
+            {{ opt.label }}
+          </option>
+        </select>
+        <span class="field-hint">{{ triggerModeHint }}</span>
+      </div>
+    </template>
+
+    <!-- Monitoring: status-match editor + its own trigger-mode picker
+         (embedded — status alerts always have a meaningful mode). -->
+    <template v-else-if="isMonitoring">
+      <StatusMatchEditor v-model="form" />
+    </template>
   </div>
 </template>
 

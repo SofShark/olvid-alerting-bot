@@ -6,18 +6,28 @@
 // Cherry-pick imports keep the bundle small: each `faXxx` is ~200 bytes;
 // importing the whole pack (`import { fas } from '...'`) ships ~1.5MB.
 
-import { library, config } from "@fortawesome/fontawesome-svg-core";
+import {
+  library,
+  config,
+  type IconDefinition,
+} from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
-// ── FREE PATH (solid style) ─────────────────────────────────
+/* Cherry-picked icons — solid, regular and brand packs. */
 import {
   faPencil,
   faPenToSquare,
-  faCopy,
   faTrashCan,
   faChevronRight,
   faChevronLeft,
+  faCircleCheck,
+  faCopy
 } from "@fortawesome/free-solid-svg-icons";
+
+import { 
+  faCircle, 
+
+} from "@fortawesome/free-regular-svg-icons";
 
 import { faGithub } from "@fortawesome/free-brands-svg-icons";
 
@@ -32,17 +42,30 @@ import "@fortawesome/fontawesome-svg-core/styles.css";
 // again at runtime (would otherwise duplicate styles).
 config.autoAddCss = false;
 
-// Register every icon the app uses. Adding new icons later: import them
-// here, append to library.add(...).
-library.add(
+// Two copies of `@fortawesome/fontawesome-common-types` end up in
+// node_modules when `free-regular-svg-icons` and the other packs sit on
+// different minor versions (7.2 vs 7.3 here). Same shape, different
+// module identity → TS treats their `IconDefinition` as unrelated
+// nominal types and `library.add(faCircle)` fails.
+//
+// The bridge cast is safe: the shape IS identical; the error is purely
+// about identity. The proper fix lives in package.json (`overrides`
+// block pins a single common-types version — see repo root); this cast
+// keeps the build green even if the node_modules haven't been
+// deduplicated yet.
+const icons: IconDefinition[] = [
   faPencil,
   faPenToSquare,
-  faCopy,
   faGithub,
   faTrashCan,
   faChevronRight,
   faChevronLeft,
-);
+  faCircleCheck,
+  faCircle as unknown as IconDefinition,
+  faCopy
+];
+
+library.add(...icons);
 
 export default defineNuxtPlugin((nuxtApp) => {
   // Component name is PascalCase here; Vue will also resolve it as

@@ -12,6 +12,7 @@ import { PollingFormat } from "#shared/types/polling";
 import { migrateCondition } from "#shared/condition/migrate";
 import { expandPath, hasWildcard } from "#shared/condition/pathExpand";
 import { conditionEvaluator } from "#shared/condition/conditionEvaluator";
+import { orderedAggregations } from "#shared/condition/aggregators/aggregatorFactory";
 import { getErrorMessage } from "~/utils/errors";
 
 const { t } = useI18n();
@@ -234,6 +235,14 @@ const verdicts = computed(() => {
   return conditionEvaluator.evaluate(current.value, parsed.value).verdicts;
 });
 
+// Numeric reducers (Sum/Average/Min/Max) collapse everything into one
+// synthetic verdict — the All/Any "X of Y fields" phrasing doesn't apply.
+const isNumericAgg = computed(
+  () =>
+    aggregation.value !== ConditionAggregation.All &&
+    aggregation.value !== ConditionAggregation.Any,
+);
+
 const verdictSummary = computed(() => {
   if (kind.value === ConditionKind.None) {
     return { ok: true, label: t("conditionEditor.summary.firesEvery") };
@@ -267,6 +276,23 @@ const verdictSummary = computed(() => {
   }
   if (!retrieved.value) {
     return { ok: false, label: t("conditionEditor.summary.waitingForSource") };
+  }
+  // Numeric aggregation: a single synthetic verdict carries the collapsed
+  // value + comparison in its detail — surface it directly.
+  if (isNumericAgg.value) {
+    const v = verdicts.value[0];
+    if (!v) {
+      return { ok: false, label: t("conditionEditor.summary.waitingForSource") };
+    }
+    return {
+      ok: v.fired,
+      label: t(
+        v.fired
+          ? "conditionEditor.summary.wouldFireAgg"
+          : "conditionEditor.summary.wouldNotFireAgg",
+        { detail: v.detail },
+      ),
+    };
   }
   const fired =
     aggregation.value === ConditionAggregation.All
@@ -476,7 +502,9 @@ const OPERATORS = computed<Array<{ value: ConditionOperator; label: string }>>(
 
             <!-- Always shown: a single chip can be a wildcard pattern that
                  resolves to many paths at poll time, so aggregation matters
-                 even with one chip on the list. -->
+                 even with one chip on the list. Options derive from the
+                 aggregator factory — new aggregations appear here without
+                 touching this file. -->
             <select
               class="rule-select agg"
               :value="aggregation"
@@ -487,11 +515,8 @@ const OPERATORS = computed<Array<{ value: ConditionOperator; label: string }>>(
                 })
               "
             >
-              <option :value="ConditionAggregation.All">
-                {{ $t("conditionEditor.aggregation.all") }}
-              </option>
-              <option :value="ConditionAggregation.Any">
-                {{ $t("conditionEditor.aggregation.any") }}
+              <option v-for="a in orderedAggregations" :key="a" :value="a">
+                {{ $t(`conditionEditor.aggregation.${a}`) }}
               </option>
             </select>
 

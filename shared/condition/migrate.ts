@@ -42,7 +42,15 @@ export function migrateCondition(c: any): PollingCondition {
   if (Array.isArray(c.paths)) out.paths = c.paths.filter(Boolean);
   if (c.operator) out.operator = c.operator as ConditionOperator;
   if (typeof c.value === "string") out.value = c.value;
-  if (c.aggregation) out.aggregation = c.aggregation as ConditionAggregation;
+  // Only accept known aggregation values — a legacy/corrupt string would
+  // otherwise flow into the factory and silently degrade to All anyway;
+  // normalizing here keeps the stored shape honest.
+  if (
+    c.aggregation &&
+    (Object.values(ConditionAggregation) as string[]).includes(c.aggregation)
+  ) {
+    out.aggregation = c.aggregation as ConditionAggregation;
+  }
 
   return out;
 }

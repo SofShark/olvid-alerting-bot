@@ -24,6 +24,7 @@ const xmlReader = new XMLParser({
     leadingZeros: true, // trim extra zeros to the left of a number
   },
   processEntities: false, // recommended in docunmentation to prevent EntityExpansion attacks
+  maxNestedTags: 200,
 });
 
 // Specific xml Parser implements generic "Parser" interface

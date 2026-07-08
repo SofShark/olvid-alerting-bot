@@ -1,12 +1,41 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
+/*
+  Renders parsed XML as it would look in the original document:
+
+    <sens_termica>
+      <maxima>41</maxima>
+      <dato hora="06">23</dato>
+      <dato hora="12">39</dato>
+    </sens_termica>
+
+  Rules:
+    - Arrays never occupy a visual slot. In XML they come from repeated
+      tags, so each element re-uses THIS node's own `nodeName` as its
+      tag. The numeric index stays in `path` for Handlebars.
+    - Object values are classified into attrs (`@_xxx`), text (`#text`)
+      and children (everything else) so the raw fast-xml-parser shape
+      renders as native-looking XML.
+    - Click semantics preserve per-leaf granularity — the paths emitted
+      match what the shared conditionEvaluator resolves against the
+      payload:
+        · primitive element                       → emits `path`
+        · text-only element (parsed as `{#text}`)  → emits `path.#text`
+        · attribute click                         → emits `path.@_name`
+        · text-in-mixed-content click             → emits `path.#text`
+    - Attrs, text and single-line elements get their own `.selected`
+      highlight so the user sees which fields are already watched.
+*/
+
+defineOptions({ name: "XmlTreeNode" });
+
 const props = withDefaults(
   defineProps<{
     nodeName: string;
     nodeValue: any;
     path: string;
-    selected?: string[]; // currently-selected paths (for highlighting)
+    selected?: string[]; // paths already watched (highlight targets)
     depth?: number;
   }>(),
   {
@@ -17,151 +46,354 @@ const props = withDefaults(
 
 const emit = defineEmits<{ (e: "select", path: string): void }>();
 
-// Branch  : object or array — recurse.
-// Leaf    : primitive — click to pick its path.
-const isBranch = computed(
-  () => props.nodeValue !== null && typeof props.nodeValue === "object",
+const { isBranch, isArray, isObject } = useTreeNode(props);
+
+/** Split an object value into XML-native buckets. */
+const parts = computed(() => {
+  const attrs: Array<[string, unknown]> = [];
+  let text: unknown = undefined;
+  const children: Array<[string, unknown]> = [];
+  if (isObject.value) {
+    for (const [k, v] of Object.entries(
+      props.nodeValue as Record<string, unknown>,
+    )) {
+      if (k.startsWith("@_")) attrs.push([k.slice(2), v]);
+      else if (k === "#text") text = v;
+      else children.push([k, v]);
+    }
+  }
+  return { attrs, text, children };
+});
+
+const hasChildren = computed(() => parts.value.children.length > 0);
+const hasText = computed(() => parts.value.text !== undefined);
+const hasAttrs = computed(() => parts.value.attrs.length > 0);
+
+const indent = (d: number) => ({ paddingLeft: `${d * 12}px` });
+
+const attrPath = (name: string) => `${props.path}.@_${name}`;
+const textPath = computed(() => `${props.path}.#text`);
+const isSelected = (p: string) => props.selected.includes(p);
+
+/** Path emitted by the whole-line click. For a text-only element the
+ *  meaningful leaf is the text node, so we emit the `.#text` path — that
+ *  resolves to the number/string against the payload, not to the
+ *  `{#text: ...}` wrapper object. Primitives keep their own path. */
+const linePath = computed<string | null>(() => {
+  if (!isBranch.value) return props.path; // primitive value
+  if (!hasChildren.value && !hasAttrs.value && hasText.value)
+    return textPath.value; // text-only object
+  return null; // attrs / self-closing / mixed → per-piece clicks only
+});
+
+const isLineSelected = computed(() =>
+  linePath.value ? isSelected(linePath.value) : false,
 );
 
-const isArray = computed(() => Array.isArray(props.nodeValue));
-
-// fast-xml-parser surfaces attributes under "@_xxx" keys. We keep them visible
-// (they're often the interesting field to watch — e.g. <entry id="…">) but
-// flag them so the UI can label them differently.
-const isAttribute = computed(() => props.nodeName.startsWith("@_"));
-const displayName = computed(() =>
-  isAttribute.value ? props.nodeName.slice(2) : props.nodeName,
-);
-
-const isSelected = computed(() => props.selected.includes(props.path));
-
-function entries(v: any): Array<[string, any]> {
-  if (Array.isArray(v)) return v.map((item, i) => [String(i), item]);
-  return Object.entries(v ?? {});
-}
-
-function childPath(key: string): string {
-  return props.path ? `${props.path}.${key}` : key;
-}
-
-function onLeafClick() {
-  if (!isBranch.value) emit("select", props.path);
+function onLineClick() {
+  if (linePath.value !== null) emit("select", linePath.value);
 }
 </script>
 
 <template>
-  <div class="tree-node" :style="{ paddingLeft: depth > 0 ? '12px' : '0' }">
-    <!-- Branch (object / array) — render the tag + recurse over children. -->
-    <template v-if="isBranch">
-      <div class="branch-line">
-        <span class="branch-name">
-          &lt;{{ displayName }}{{ isArray ? "[]" : "" }}&gt;
-        </span>
+  <!-- Array — no visual slot. Each element reuses THIS node's tag name;
+       only the path index changes so Handlebars still resolves
+       `parent.0`, `parent.1`, … -->
+  <template v-if="isArray">
+    <XmlTreeNode
+      v-for="(item, i) in (nodeValue as unknown[])"
+      :key="i"
+      :node-name="nodeName"
+      :node-value="item"
+      :path="`${path}.${i}`"
+      :selected="selected"
+      :depth="depth"
+      @select="emit('select', $event)"
+    />
+  </template>
+
+  <!-- Primitive value inline: `<name>value</name>`. -->
+  
+
+  <template v-else-if="!isBranch">
+
+    <div class="element opening" :style="indent(depth)">
+        <span class="punct">&lt;</span
+        ><span class="tag">{{ nodeName }}</span
+        ><span
+          v-for="[k, v] in parts.attrs"
+          :key="k"
+          class="attr"
+          :class="{ selected: isSelected(attrPath(k)) }"
+          :title="attrPath(k)"
+          @click.stop="emit('select', attrPath(k))"
+          >&nbsp;<span class="attr-name">{{ k }}</span
+          ><span class="punct">="</span
+          ><span class="attr-value">{{ v }}</span
+          ><span class="punct">"</span></span
+        ><span class="punct">&gt;</span>
+    </div>      
+      
+    <div
+        class="text-line"
+        :class="{ selected: isSelected(textPath) }"
+        :style="indent(depth + 1)"
+        :depth="depth + 1"
+        :title="textPath"
+        @click="emit('select', textPath)"
+      >
+        <span class="text">{{ nodeValue }}</span>
+  </div>
+
+    
+    <div class="element closing" :style="indent(depth)">
+          <span class="punct">&lt;/</span
+          ><span class="tag">{{ nodeName }}</span
+          ><span class="punct">&gt;</span>
+    </div>
+
+  </template>
+  
+  
+  <!-- Object — dispatch by classification. -->
+  <template v-else>
+    <!-- Text only, no attrs, no children — line acts as the text leaf. -->
+    <template v-if="!hasChildren && !hasAttrs && hasText">
+      <div class="element opening" :style="indent(depth)">
+        <span class="punct">&lt;</span>
+        <span class="tag">{{ nodeName }}</span>
+        <span class="punct">&gt;</span>
       </div>
+
+      <div
+        class="text-line"
+        :class="{ selected: isLineSelected }"
+        :style="indent(depth + 1)"
+        :title="textPath"
+        @click="onLineClick"
+      >
+        <span class="text">{{ parts.text }}</span>
+      </div>
+
+      <div class="element closing" :style="indent(depth)">
+        <span class="punct">&lt;/</span>
+        <span class="tag">{{ nodeName }}</span>
+        <span class="punct">&gt;</span>
+      </div>
+    </template>
+
+    <!-- Attrs + text, no children — attrs and text clickable individually. -->
+    <div
+      v-else-if="!hasChildren && hasText"
+      class="element inline"
+      :style="indent(depth)"
+    >
+      <span class="punct">&lt;</span
+      ><span class="tag">{{ nodeName }}</span
+      ><span
+        v-for="[k, v] in parts.attrs"
+        :key="k"
+        class="attr"
+        :class="{ selected: isSelected(attrPath(k)) }"
+        :title="attrPath(k)"
+        @click.stop="emit('select', attrPath(k))"
+        >&nbsp;<span class="attr-name">{{ k }}</span
+        ><span class="punct">="</span
+        ><span class="attr-value">{{ v }}</span
+        ><span class="punct">"</span></span
+      ><span class="punct">&gt;</span
+      ><span
+        class="text clickable"
+        :class="{ selected: isSelected(textPath) }"
+        :title="textPath"
+        :depth="depth + 1"
+        @click.stop="emit('select', textPath)"
+        >{{ parts.text }}</span
+      ><span class="punct">&lt;/</span
+      ><span class="tag">{{ nodeName }}</span
+      ><span class="punct">&gt;</span>
+    </div>
+
+    <!-- Attrs only, no text, no children — self-closing tag. -->
+    <div
+      v-else-if="!hasChildren"
+      class="element inline"
+      :style="indent(depth)"
+    >
+      <span class="punct">&lt;</span
+      ><span class="tag">{{ nodeName }}</span
+      ><span
+        v-for="[k, v] in parts.attrs"
+        :key="k"
+        class="attr"
+        :class="{ selected: isSelected(attrPath(k)) }"
+        :title="attrPath(k)"
+        @click.stop="emit('select', attrPath(k))"
+        >&nbsp;<span class="attr-name">{{ k }}</span
+        ><span class="punct">="</span
+        ><span class="attr-value">{{ v }}</span
+        ><span class="punct">"</span></span
+      ><span class="punct">/&gt;</span>
+    </div>
+
+    <!-- Has children — multi-line block. Opening tag first (with
+         clickable attrs), then mixed text if any, then recursive
+         children, then closing tag. -->
+    <template v-else>
+      <div class="element opening" :style="indent(depth)">
+        <span class="punct">&lt;</span
+        ><span class="tag">{{ nodeName }}</span
+        ><span
+          v-for="[k, v] in parts.attrs"
+          :key="k"
+          class="attr"
+          :class="{ selected: isSelected(attrPath(k)) }"
+          :title="attrPath(k)"
+          @click.stop="emit('select', attrPath(k))"
+          >&nbsp;<span class="attr-name">{{ k }}</span
+          ><span class="punct">="</span
+          ><span class="attr-value">{{ v }}</span
+          ><span class="punct">"</span></span
+        ><span class="punct">&gt;</span>
+      </div>
+
+      <div
+        v-if="hasText"
+        class="text-line"
+        :class="{ selected: isSelected(textPath) }"
+        :style="indent(depth + 1)"
+        :depth="depth + 1"
+        :title="textPath"
+        @click="emit('select', textPath)"
+      >
+        <span class="text">{{ parts.text }}</span>
+      </div>
+
       <XmlTreeNode
-        v-for="[k, v] in entries(nodeValue)"
+        v-for="[k, v] in parts.children"
         :key="k"
         :node-name="k"
         :node-value="v"
-        :path="childPath(k)"
+        :path="`${path}.${k}`"
         :selected="selected"
         :depth="depth + 1"
-        @select="$emit('select', $event)"
+        @select="emit('select', $event)"
       />
-    </template>
 
-    <!-- Leaf — clickable. -->
-    <div
-      v-else
-      class="leaf-line"
-      :class="{ selected: isSelected, attribute: isAttribute }"
-      :title="$t('xmlTree.leafTitle', { path })"
-      @click="onLeafClick"
-    >
-      <span class="leaf-name">
-        <span v-if="isAttribute" class="attr-sigil">@</span>{{ displayName }}:
-      </span>
-      <span class="leaf-value">{{ nodeValue }}</span>
-      <span class="leaf-path">{{ path }}</span>
-    </div>
-  </div>
+      <div class="element closing" :style="indent(depth)">
+        <span class="punct">&lt;/</span
+        ><span class="tag">{{ nodeName }}</span
+        ><span class="punct">&gt;</span>
+      </div>
+    </template>
+  </template>
 </template>
 
 <style scoped>
-/* Syntax-highlighting-style colors for the parsed-XML tree. Element names
- * sit in the accent color, attribute names in pink (only used here so it
- * doesn't earn a global token), leaf values in normal code color. Hover and
- * selected states tint via the accent / success tokens.
- */
-
-.tree-node {
+/* Baseline element line — used by the inline / opening / closing rows.
+ * Only inline lines have a click affordance; opening/closing serve as
+ * container chrome. */
+.element {
   font-family: var(--font-mono);
   font-size: var(--text-md);
   line-height: 1.55;
-}
-
-.branch-line {
-  color: #60a5fa;
-}
-.branch-name {
-  font-weight: 600;
-}
-
-.leaf-line {
-  display: grid;
-  grid-template-columns: minmax(60px, auto) 1fr auto;
-  gap: var(--space-3);
-  align-items: center;
-  padding: 2px var(--space-2);
-  margin: 1px 0;
+  white-space: nowrap;
   border-radius: var(--radius-sm);
-  cursor: pointer;
   border: 1px solid transparent;
+  padding: 2px var(--space-2);
   transition:
     background-color 0.12s,
     border-color 0.12s;
-  min-width: max-content;
 }
-.leaf-line:hover {
+.element.inline {
+  cursor: pointer;
+}
+.element.inline:hover {
   background: color-mix(in srgb, var(--color-accent) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
 }
-.leaf-line.selected {
+.element.inline.selected {
   background: color-mix(in srgb, var(--color-success) 16%, transparent);
   border-color: color-mix(in srgb, var(--color-success) 50%, transparent);
 }
 
-.leaf-name {
-  color: #c4b5fd;
-  font-weight: 600;
-  white-space: nowrap;
+.text-line {
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  line-height: 1.55;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s;
 }
-.attribute .leaf-name {
-  color: #f472b6;
+.text-line:hover {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
 }
-.attr-sigil {
-  color: #f472b6;
-  margin-right: 1px;
+.text-line.selected {
+  background: color-mix(in srgb, var(--color-success) 16%, transparent);
+  border-color: color-mix(in srgb, var(--color-success) 50%, transparent);
 }
 
-.leaf-value {
-  color: blanchedalmond;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+/* Syntax colors — same VS Code XML feel as the JSON tree. */
+.tag {
+  color: #60a5fa;
+  font-weight: 500;
 }
-
-.leaf-path {
+.punct {
   color: var(--color-text-faint);
-  font-size: var(--text-xs);
-  white-space: nowrap;
-  text-align: right;
-  opacity: 0;
-  transition: opacity 0.12s;
 }
-.leaf-line:hover .leaf-path,
-.leaf-line.selected .leaf-path {
-  opacity: 1;
+.text {
+  color: rgb(255, 255, 255);
+}
+
+/* Attribute chip — its own click zone within the tag, with hover +
+ * selected states so the user sees which attrs are already watched. */
+.attr {
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0 2px;
+  transition:
+    background-color 0.1s,
+    border-color 0.1s;
+  border: 1px solid transparent;
+}
+.attr:hover {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+.attr.selected {
+  background: color-mix(in srgb, var(--color-success) 22%, transparent);
+  border-color: color-mix(in srgb, var(--color-success) 55%, transparent);
+}
+.attr-name {
+  color: #f472b6;
+  font-weight: 500;
+}
+.attr-value {
+  color: blanchedalmond;
+}
+
+/* Text used as an in-line click zone (mixed content case). Same hover /
+ * selected feel as attrs. */
+.text.clickable {
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0 2px;
+  border: 1px solid transparent;
+  transition:
+    background-color 0.1s,
+    border-color 0.1s;
+}
+.text.clickable:hover {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+.text.clickable.selected {
+  background: color-mix(in srgb, var(--color-success) 22%, transparent);
+  border-color: color-mix(in srgb, var(--color-success) 55%, transparent);
 }
 </style>

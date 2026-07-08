@@ -2,6 +2,8 @@ import { ref, computed, watch, type Ref } from "vue";
 import { Source } from "#shared/types/source";
 import { ConditionKind } from "#shared/types/condition";
 import type { AlertModel } from "#shared/types/alert";
+import type { MonitorParams } from "#shared/types/monitor";
+import { isStatusMatchValid } from "#shared/polling/matcher";
 
 export type WizardStepKey = "general" | "trigger" | "bundle";
 export type WizardStepDef = {
@@ -12,12 +14,20 @@ export type WizardStepDef = {
 };
 
 /**
- * Step state-machine for AlertWizard. Polling alerts have 3 steps
- * (general → trigger condition → bundles); webhook alerts have 2 (general → bundles).
+ * Step state-machine for AlertWizard.
+ *
+ * Two step counts by source:
+ *   - Polling / Monitoring → 3 steps (general → trigger → bundles).
+ *   - Webhook               → 2 steps (general → bundles); the trigger
+ *                             step is skipped because webhooks fire on
+ *                             every valid POST.
  *
  * Completeness gates:
- *   - `isStep1Complete` — source picked + polling-cfg fields filled (webhook auto-passes)
- *   - `isConditionComplete` — kind=None passes; kind=Rule requires ≥1 path + (value if needed)
+ *   - `isStep1Complete`  → source picked AND its params filled
+ *                          (per-source rules below; webhook auto-passes).
+ *   - `isTriggerComplete` → per-source trigger validation
+ *                          (PollingCondition well-formed OR StatusMatch
+ *                          well-formed; webhook auto-passes).
  *
  * `canAdvance` is the gate for the "Continue" button in the footer. The
  * "Bundles" step has no gate — the save handler decides draft-vs-active.
@@ -30,34 +40,55 @@ export const useWizardSteps = (form: Ref<AlertModel>) => {
   const currentStep = ref(1);
 
   const isPolling = computed(() => form.value.input === Source.Polling);
+  const isMonitoring = computed(() => form.value.input === Source.Monitoring);
+  /** True when the source drives a trigger step (Polling / Monitoring).
+   *  Webhook skips the trigger step entirely. */
+  const hasTriggerStep = computed(() => isPolling.value || isMonitoring.value);
 
+  // Per-source "step 1 params are usable" checks — kept together so
+  // adding a new scheduled source is one arm here + one in isTriggerComplete.
   const isPollingConfigComplete = computed(() => {
-    if (!isPolling.value) return true;
     const p = (form.value.alertParams ?? {}) as any;
     return !!p.url && !!p.format && !!p.schedule;
   });
+  const isMonitorConfigComplete = computed(() => {
+    const p = (form.value.alertParams ?? {}) as any;
+    return !!p.url && !!p.schedule;
+  });
+
+  const isSourceConfigComplete = computed(() => {
+    if (isPolling.value) return isPollingConfigComplete.value;
+    if (isMonitoring.value) return isMonitorConfigComplete.value;
+    return true; // Webhook has no source-side config.
+  });
 
   const isStep1Complete = computed(
-    () => !!form.value.input && isPollingConfigComplete.value,
+    () => !!form.value.input && isSourceConfigComplete.value,
   );
 
-  const isConditionComplete = computed(() => {
-    if (!isPolling.value) return true;
-    const c = ((form.value.alertParams as any)?.condition ?? {}) as any;
-    if (c.kind === ConditionKind.None) return true;
-    if (c.kind === ConditionKind.Rule) {
-      if (!Array.isArray(c.paths) || c.paths.length === 0) return false;
-      if (c.operator && c.operator !== "changed" && !c.value) return false;
-      return true;
+  const isTriggerComplete = computed(() => {
+    if (isPolling.value) {
+      const c = ((form.value.alertParams as any)?.condition ?? {}) as any;
+      if (c.kind === ConditionKind.None) return true;
+      if (c.kind === ConditionKind.Rule) {
+        if (!Array.isArray(c.paths) || c.paths.length === 0) return false;
+        if (c.operator && c.operator !== "changed" && !c.value) return false;
+        return true;
+      }
+      return false;
     }
-    return false;
+    if (isMonitoring.value) {
+      const p = form.value.alertParams as MonitorParams | undefined;
+      return isStatusMatchValid(p?.match);
+    }
+    return true; // Webhook: no trigger validation.
   });
 
   const stepDefs = computed<WizardStepDef[]>(() => {
     const general: WizardStepDef = {
       key: "general",
       title: t("wizard.steps.general.title"),
-      description: isPolling.value
+      description: hasTriggerStep.value
         ? t("wizard.steps.general.descriptionPolling")
         : t("wizard.steps.general.descriptionWebhook"),
       disabled: false,
@@ -72,9 +103,11 @@ export const useWizardSteps = (form: Ref<AlertModel>) => {
       key: "bundle",
       title: t("wizard.steps.bundle.title"),
       description: t("wizard.steps.bundle.description"),
-      disabled: !isStep1Complete.value || !isConditionComplete.value,
+      disabled: !isStep1Complete.value || !isTriggerComplete.value,
     };
-    return isPolling.value ? [general, trigger, bundle] : [general, bundle];
+    return hasTriggerStep.value
+      ? [general, trigger, bundle]
+      : [general, bundle];
   });
 
   const currentStepKey = computed<WizardStepKey>(
@@ -97,7 +130,7 @@ export const useWizardSteps = (form: Ref<AlertModel>) => {
       case "general":
         return isStep1Complete.value;
       case "trigger":
-        return isConditionComplete.value;
+        return isTriggerComplete.value;
       default:
         return false;
     }
@@ -118,8 +151,14 @@ export const useWizardSteps = (form: Ref<AlertModel>) => {
     canAdvance,
     isOnBundleStep,
     isOnLastConfigStep,
-    isPollingConfigComplete,
-    isConditionComplete,
+    // Source-agnostic completeness gates. Old names
+    // (`isPollingConfigComplete` / `isConditionComplete`) kept as aliases
+    // so the wizard's `wouldBeComplete` computation keeps working
+    // without a rewrite.
+    isSourceConfigComplete,
+    isTriggerComplete,
+    isPollingConfigComplete: isSourceConfigComplete,
+    isConditionComplete: isTriggerComplete,
     next,
     back,
   };

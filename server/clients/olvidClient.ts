@@ -60,4 +60,17 @@ export const olvidClient = {
       return [];
     }
   },
+
+  async getDiscussionPhoto(discussionId: bigint) {
+    try {
+      const avatar = await client.discussionDownloadPhoto({ discussionId });
+      return avatar;
+    } catch (error: any) {
+      console.error(
+        "❌ [Olvid] A critical error occurred while getting discussion photo",
+        error,
+      );
+      return null;
+    }
+  },
 };

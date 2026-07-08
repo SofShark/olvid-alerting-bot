@@ -22,9 +22,10 @@
   --color-bg-panel: #15181e; /* main panel = surface level */
   --color-bg-card: #1f2229; /* cards sit ONE level above panel */
   --color-bg-card-soft: #272b34; /* hover / nested */
+  --color-bg-sidebar-head: #15181e; /* sidebar header */
   --color-bundle-card: #262a31; /* matches card */
   --color-bg-input: #0f1115; /* inputs read as recessed wells */
-  --color-bg-code: #292829;
+  --color-bg-code: #151515;
   --color-bg-code-header: #302c2c;
   --color-bg-code-soft: #262626;
 
@@ -33,7 +34,7 @@
   --color-border-default: #3a3f4b;
   --color-border-strong: #4e5562;
   --color-border-code: #272b34;
-
+ 
   /* ── Text ─────────────────────────────────────── */
   --color-text-primary: #f9fafb;
   --color-text-secondary: #bfc6cf;
@@ -120,6 +121,7 @@
   --color-bg-panel: #ffffff;
   --color-bg-card: #f8fcff;
   --color-bg-card-soft: #e2e8f0;
+  --color-bg-sidebar-head: #e2e8f0;
   --color-bg-input: #ffffff;
   --color-bg-code: #343434;
   --color-bg-code-header: #2d2d2d;

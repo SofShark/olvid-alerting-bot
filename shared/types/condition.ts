@@ -27,9 +27,28 @@ export const ConditionOperator = {
 export type ConditionOperator =
   (typeof ConditionOperator)[keyof typeof ConditionOperator];
 
+// How the observed values of the watched paths are AGGREGATED before /
+// while the operator applies. Two families:
+//
+//   Boolean combinators — the operator evaluates EVERY path's value
+//   individually and the per-path verdicts are combined:
+//     All  → every path must verify   (logical AND)
+//     Any  → at least one path        (logical OR)
+//
+//   Numeric reducers — the observed values are first collapsed into ONE
+//   number, and the operator evaluates that single result:
+//     Sum / Average / Minimum / Maximum
+//
+// e.g. paths=[..temperature.max], aggregation=Average, operator=GreaterThan,
+// value=30 reads as: "fire when the AVERAGE of every matched temperature
+// exceeds 30".
 export const ConditionAggregation = {
-  All: "all", // every path must verify   (logical AND)
-  Any: "any", // at least one path        (logical OR)
+  All: "all",
+  Any: "any",
+  Sum: "sum",
+  Average: "average",
+  Minimum: "minimum",
+  Maximum: "maximum",
 } as const;
 export type ConditionAggregation =
   (typeof ConditionAggregation)[keyof typeof ConditionAggregation];

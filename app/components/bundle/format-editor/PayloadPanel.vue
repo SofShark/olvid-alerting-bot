@@ -109,7 +109,7 @@ const parsedJson = computed(() => {
         {{ $t("formatEditor.sourceNoPayloads") }}
       </div>
       <div v-else class="tree-panel">
-        <JsonTreeNodeExp
+        <JsonTreeNode
           node-name=""
           :node-value="parsedJson"
           path=""
@@ -117,14 +117,6 @@ const parsedJson = computed(() => {
           @select="$emit('select-path', $event)"
         />
 
-        <!--JsonTreeNode
-          v-for="[k, v] in jsonRootEntries"
-          :key="k"
-          :node-name="k"
-          :node-value="v"
-          :path="k"
-          @select="$emit('select-path', $event)"
-        /-->
       </div>
     </template>
 

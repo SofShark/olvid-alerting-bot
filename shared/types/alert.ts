@@ -21,6 +21,7 @@
 
 import type { BundleModel } from "./bundle";
 import type { PollingParams } from "./polling";
+import type { MonitorParams } from "./monitor";
 import { Source } from "./source";
 
 export const AlertStatus = {
@@ -35,7 +36,7 @@ export type AlertStatus = (typeof AlertStatus)[keyof typeof AlertStatus];
  * contribute one type here; sources without per-alert config (Webhook)
  * contribute nothing (undefined). Adding a new source is a one-line union extension.
  */
-export type AlertParams = PollingParams | undefined; // future: | CronParams | OlvidParams
+export type AlertParams = PollingParams | MonitorParams | undefined;
 
 export type AlertModel = {
   id: number | null;
@@ -72,4 +73,16 @@ export const getPollingParams = (
 ): PollingParams | undefined =>
   alert?.input === Source.Polling
     ? (alert.alertParams as PollingParams | undefined)
+    : undefined;
+
+/**
+ * Same as getPollingParams but for the Monitoring branch of the union.
+ * Returns undefined when the alert isn't a monitoring alert or has no
+ * params yet.
+ */
+export const getMonitorParams = (
+  alert: AlertModel | null | undefined,
+): MonitorParams | undefined =>
+  alert?.input === Source.Monitoring
+    ? (alert.alertParams as MonitorParams | undefined)
     : undefined;

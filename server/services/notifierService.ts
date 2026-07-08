@@ -19,10 +19,7 @@
 // message gets a "✓ RECOVERED:" prefix; the per-bundle script doesn't need
 // to be recovery-aware.
 
-import { Formatting } from "#shared/types/bundle";
 import { AlertStatus } from "#shared/types/alert";
-import { buildPollingDefaultMessage } from "#shared/polling/message";
-import { formatMessage as runHandlebars } from "#shared/handlebars";
 
 export type FireKind = "alert" | "recovery";
 
@@ -95,33 +92,11 @@ export const notifierService = {
   },
 };
 
-// Internal: builds the bundle's message body (no recovery prefix). Kept
-// outside the object so the prefix logic in formatMessage stays in one
-// branch — the per-format switch doesn't need to know about kind.
+// Internal: builds the bundle's message body (no recovery prefix). The
+// per-format logic lives in server/services/formatters/ — one strategy
+// per Formatting value, selected by the factory. Strategies never throw.
 function renderBody(alert: any, bundle: any, payload: any): string {
-  const jsonString = JSON.stringify(payload, null, 2);
-
-  switch (bundle.formating) {
-    case Formatting.PollingDefault:
-      return buildPollingDefaultMessage(alert, payload);
-
-    case Formatting.PollingCustom:
-    case Formatting.Custom: {
-      try {
-        return runHandlebars(bundle.custom_script, payload);
-      } catch (error: any) {
-        console.error(
-          `❌ [Notifier] Error running script for alert **${alert.title}**:`,
-          error,
-        );
-        return `🚨 An error occurred while running the custom script for alert **${alert.title}**\n\n\`\`\`json\n${JSON.stringify(payload, null, 2)}\n\`\`\``;
-      }
-    }
-
-    case Formatting.Simple:
-      return `🚨 ${alert.title}\n${alert.description ?? ""}\n`;
-
-    default:
-      return `\`\`\`json\n${jsonString}\n\`\`\``;
-  }
+  return formatterFactory
+    .forFormatting(bundle.formating)
+    .render(alert, bundle, payload);
 }

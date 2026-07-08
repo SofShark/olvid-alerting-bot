@@ -88,7 +88,7 @@ const statusModel = computed({
   padding: var(--space-3) var(--space-3) 0 0;
   margin-left: auto;
   flex-shrink: 0;
-  gap: var(--space-2);
+  gap: var(--space-4);
 }
 .view-title {
   display: flex;

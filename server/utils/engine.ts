@@ -1,5 +1,5 @@
 // Polling orchestrator. Two entry points so far, both side-effect-free with
-// respect to alert state (no bundle firing, no baseline persistence):
+// respect to alert state (no bundle firing):
 //
 //   retrieve(url, format) — just fetch + parse. Used by the wizard's
 //     "Retrieve" button to populate the click-to-select tree.
@@ -50,7 +50,7 @@ export const pollingEngine = {
       return { ok: !error, url, format, raw, parsed, error };
     } catch (e: any) {
       console.error(
-        "[pollingEngine] parse threw despite internal try/catch:",
+        "[pollingEngine] parse threw despite internal try/catch:", 
         e,
       );
       return {
@@ -63,10 +63,12 @@ export const pollingEngine = {
     }
   },
 
+  // TODO Add test to monitor as well
+
   async test(alert: any): Promise<RunResult> {
     // alertParams is the new name (post-refactor); fall back to alertParams
     // for any in-flight legacy alert that hasn't been re-saved yet.
-    const params = (alert?.alertParams ?? alert?.alertParams ?? {}) as any;
+    const params = (alert?.alertParams ?? {}) as PollingParams; 
     const url = params.url;
     const format = params.format;
     const r = await this.retrieve(url, format);
@@ -95,6 +97,8 @@ export const pollingEngine = {
         }
         return r;
       }
+
+      // TODO Last alert payload isn't currently being handled for non-webhook
       if (r.parsed !== undefined) {
         try {
           await alertRepository.upsertLastAlertPayload(alert.id, r.parsed);

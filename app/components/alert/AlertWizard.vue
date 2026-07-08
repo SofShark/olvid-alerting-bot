@@ -65,8 +65,8 @@ const {
   back,
 } = useWizardSteps(form);
 
-// Last parsed payload from ConditionEditor — piped into BundleCard's
-// polling-default preview on the bundles step. Not persisted.
+// Last parsed payload from ConditionEditor — piped into the bundle
+// dialog's polling-default preview on the bundles step. Not persisted.
 const lastPollPayload = ref<any>(null);
 
 // ── Save semantics ────────────────────────────────────────────────────────

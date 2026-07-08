@@ -2,6 +2,18 @@
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { Source } from "#shared/types/source";
 
+const { t } = useI18n();
+
+/** UI label for a source enum value. Reads from
+ *  `inputSourceSelector.labels.<enum-value>` so translations own the
+ *  label ("Polling Source" → "Data Polling"). Falls back to the raw
+ *  value if the key is missing. */
+const labelFor = (s: string): string => {
+  const key = `inputSourceSelector.labels.${s}`;
+  const translated = t(key);
+  return translated === key ? s : translated;
+};
+
 const props = withDefaults(
   defineProps<{
     modelValue: string;
@@ -20,7 +32,13 @@ const containerRef = ref<HTMLElement | null>(null);
 
 const filtered = computed(() => {
   const q = searchQuery.value.toLowerCase();
-  return q ? sources.filter((s) => s.toLowerCase().includes(q)) : sources;
+  if (!q) return sources;
+  // Match against both raw enum value AND translated label so users can
+  // type "Data Polling" and still find Source.Polling.
+  return sources.filter(
+    (s) =>
+      s.toLowerCase().includes(q) || labelFor(s).toLowerCase().includes(q),
+  );
 });
 
 const select = (s: string) => {
@@ -49,7 +67,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
     <div v-if="modelValue" class="selected-badge">
       <div class="selected-left">
         <span class="check">✔</span>
-        <strong>{{ modelValue }}</strong>
+        <strong>{{ labelFor(modelValue) }}</strong>
       </div>
       <button
         v-if="!locked"
@@ -78,7 +96,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
           class="dropdown-item"
           @mousedown.prevent="select(s)"
         >
-          {{ s }}
+          {{ labelFor(s) }}
         </div>
         <div v-if="filtered.length === 0" class="dropdown-empty">
           {{ $t("inputSourceSelector.noResults") }}

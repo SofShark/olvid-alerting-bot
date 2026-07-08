@@ -101,7 +101,8 @@
 
     "fieldLabels": {
       "inputSource": "Input Source",
-      "pollingConfiguration": "Polling configuration"
+      "pollingConfiguration": "Polling configuration",
+      "monitorConfiguration": "Monitoring configuration"
     },
 
     "communicationHint": "Communication: ",
@@ -186,16 +187,29 @@
 
     "condition": {
       "summaryNone": "Fires every poll cycle (no condition).",
-      "summaryRuleAll": "Fires when all of these fields {phrase}.",
-      "summaryRuleAny": "Fires when any of these fields {phrase}.",
-      "summaryRuleAllMissingValue": "Fires when all of these fields {phrase} (value missing — edit to set).",
-      "summaryRuleAnyMissingValue": "Fires when any of these fields {phrase} (value missing — edit to set).",
+      "summaryRule": "Fires when {subject} {phrase}.",
+      "summaryRuleMissingValue": "Fires when {subject} {phrase} (value missing — edit to set).",
+      "subject": {
+        "all": "all of these fields",
+        "any": "any of these fields",
+        "sum": "the sum of these fields",
+        "average": "the average of these fields",
+        "minimum": "the minimum of these fields",
+        "maximum": "the maximum of these fields"
+      },
       "phrase": {
         "changed": "change between polls",
         "equals": "equal \"{value}\"",
         "greaterThan": "are greater than {value}",
         "lessThan": "are less than {value}",
         "contains": "contain \"{value}\""
+      },
+      "phraseSingular": {
+        "changed": "changes between polls",
+        "equals": "equals \"{value}\"",
+        "greaterThan": "is greater than {value}",
+        "lessThan": "is less than {value}",
+        "contains": "contains \"{value}\""
       }
     },
 
@@ -219,13 +233,15 @@
 
     "bundleModal": {
       "title": "Edit bundle {n}",
+      "newTitle": "New bundle",
       "closeTitle": "Close",
       "savingButton": "Saving…",
       "saveButton": "Save bundle",
       "cancelButton": "Cancel",
       "discardWarning": "⚠ Discard unsaved changes to this bundle?",
       "keepEditingButton": "Keep editing",
-      "discardButton": "Discard"
+      "discardButton": "Discard",
+      "untitled":"Untitled"
     },
 
     "errors": {
@@ -259,7 +275,11 @@
     },
     "aggregation": {
       "all": "all of them",
-      "any": "at least one"
+      "any": "at least one",
+      "sum": "the sum",
+      "average": "the average",
+      "minimum": "the minimum",
+      "maximum": "the maximum"
     },
     "operator": {
       "changed": "has changed since last poll",
@@ -279,6 +299,8 @@
       "changedNeedsBaselinePlural": "Change is detected at poll time (needs a baseline). Watching {n} fields.",
       "operatorNeedsValue": "Operator \"{operator}\" needs a value.",
       "waitingForSource": "Waiting for source data…",
+      "wouldFireAgg": "Would fire — {detail}.",
+      "wouldNotFireAgg": "Would not fire — {detail}.",
       "wouldFireAll": "Would fire — all of {total} field verified ({passing}/{total}).",
       "wouldFireAllPlural": "Would fire — all of {total} fields verified ({passing}/{total}).",
       "wouldFireAny": "Would fire — more than one of {total} field verified ({passing}/{total}).",
@@ -386,7 +408,12 @@
     "lockedHint": "🔒 Can't be changed, bundles already depend on this source",
     "searchPlaceholder": "Search source (GitHub, Grafana, Sentry...)",
     "noResults": "No results",
-    "changeButton": "Change"
+    "changeButton": "Change",
+    "labels": {
+      "Polling Source": "Data Polling",
+      "Monitoring Source": "Monitoring",
+      "Webhook Source": "Webhook"
+    }
   },
 
   "alertParamsEditor": {
@@ -427,5 +454,41 @@
 
   "xmlTree": {
     "leafTitle": "Click to watch: {path}"
+  },
+
+  "monitorEditor": {
+    "url": {
+      "label": "Endpoint URL",
+      "placeholder": "https://example.com/health",
+      "hint": "The URL whose HTTP response status will be watched."
+    },
+    "interval": {
+      "label": "Check interval"
+    },
+    "match": {
+      "label": "Trigger when",
+      "kind": {
+        "codes": "Specific codes",
+        "range": "Range",
+        "notOk": "Any non-2xx"
+      },
+      "codesEmpty": "No codes yet — add at least one below.",
+      "codesPlaceholder": "e.g. 404",
+      "codesHint": "The alert fires whenever the response status is in this list.",
+      "addCode": "Add",
+      "notOkHint": "Fires on any response outside the 200-299 range (redirects, client errors, server errors).",
+      "rangeOptions": {
+        "2xx": "2xx — success",
+        "3xx": "3xx — redirect",
+        "4xx": "4xx — client error",
+        "5xx": "5xx — server error"
+      }
+    },
+    "view": {
+      "triggersOn": "Triggers on",
+      "codes": "Codes: {codes}",
+      "range": "Any {range} response",
+      "notOk": "Any non-2xx response"
+    }
   }
 }

@@ -38,6 +38,7 @@ export default defineNuxtConfig({
     { path: "~/components/bundle", pathPrefix: false },
     { path: "~/components/bundle/format-editor", pathPrefix: false },
     { path: "~/components/condition", pathPrefix: false },
+    { path: "~/components/monitoring", pathPrefix: false },
     { path: "~/components/payload", pathPrefix: false },
   ],
 
@@ -58,6 +59,10 @@ export default defineNuxtConfig({
         "server/repositories",
         "server/services",
         "server/clients",
+        // Strategy + Factory folders — one object per Source / Formatting
+        // value. Registered here so the factories resolve without imports.
+        "server/services/dispatchers",
+        "server/services/formatters",
       ],
     },
     

@@ -1,39 +1,71 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { Formatting, type BundleModel } from "#shared/types/bundle";
+import { ref, computed } from "vue";
+import type { BundleModel } from "#shared/types/bundle";
 import type { AlertModel } from "#shared/types/alert";
 
 /*
-  Step 3 (always last): per-alert bundles grid.
+  Step 3 (always last): the alert's bundles as a ROW list — the same
+  AlertBundleRow the view mode uses, so the wizard and the detail page
+  read identically. A dashed "+" row appends; clicking it (or a row's
+  pencil) opens BundleEditDialog, the single bundle editor for the whole
+  app.
 
-  Owns the add / update / remove operations on `form.bundles` directly;
-  the wizard doesn't need to thread three event handlers down. The empty-
-  bundle warning ("save will be downgraded to draft") only renders when
-  at least one bundle exists and any of them has no destinations.
+  Bundles are only mutated through the dialog's `save`:
+    - index === null → create → push.
+    - index === n    → edit   → replace in place.
+  Cancelling a create leaves the form untouched (no phantom empty
+  bundle, unlike the old inline-card flow).
 */
 
 const form = defineModel<AlertModel>({ required: true });
 
-const props = defineProps<{
+defineProps<{
   availableDiscussions: any[];
   discussionsLoading: boolean;
   pollPayload: any;
 }>();
 
-const blankBundle = (): BundleModel => ({
-  discussion_list: [],
-  formating: Formatting.Unformatted,
-  custom_script: "",
-});
+// ── Dialog state ──────────────────────────────────────────────────────────
+// editingIndex null + open ⇒ create mode (dialog seeds its own blank).
+const dialogOpen = ref(false);
+const editingIndex = ref<number | null>(null);
 
-const addBundle = () => {
-  form.value.bundles.push(blankBundle());
+const editingBundle = computed<BundleModel | null>(() =>
+  editingIndex.value !== null
+    ? (form.value.bundles[editingIndex.value] ?? null)
+    : null,
+);
+
+const openCreate = () => {
+  editingIndex.value = null;
+  dialogOpen.value = true;
 };
-const updateBundle = (i: number, b: BundleModel) => {
-  form.value.bundles[i] = b;
+const openEdit = (index: number) => {
+  editingIndex.value = index;
+  dialogOpen.value = true;
 };
-const removeBundle = (i: number) => {
-  form.value.bundles.splice(i, 1);
+const closeDialog = () => {
+  dialogOpen.value = false;
+  editingIndex.value = null;
+};
+
+const onSave = ({
+  index,
+  bundle,
+}: {
+  index: number | null;
+  bundle: BundleModel;
+}) => {
+  if (index === null) {
+    form.value.bundles.push(bundle);
+  } else {
+    form.value.bundles[index] = bundle;
+  }
+  closeDialog();
+};
+
+const removeBundle = (index: number) => {
+  form.value.bundles.splice(index, 1);
 };
 
 const hasEmptyBundle = computed(() =>
@@ -51,23 +83,20 @@ const hasEmptyBundle = computed(() =>
       </i18n-t>
     </p>
 
-    <div class="bundles-grid">
-      <BundleCard
+    <div class="bundles-table">
+      <AlertBundleRow
         v-for="(b, i) in form.bundles"
-        :key="i"
+        :key="b.id ?? i"
         :bundle="b"
         :index="i"
-        :available-discussions="availableDiscussions"
-        :discussions-loading="discussionsLoading"
-        :input-source="form.input"
-        :alert-context="form"
-        :poll-payload="pollPayload"
-        :alert-params="form.alertParams"
-        @update:bundle="updateBundle(i, $event)"
-        @remove="removeBundle(i)"
+        removable
+        @edit="openEdit"
+        @remove="removeBundle"
       />
 
-      <button type="button" class="card-add" @click="addBundle">
+      <!-- The "+" row — same silhouette as a bundle row, dashed border,
+           mirrors the old +card affordance in row form. -->
+      <button type="button" class="row-add" @click="openCreate">
         <span class="plus">+</span>
         <span>{{
           form.bundles.length === 0
@@ -84,12 +113,26 @@ const hasEmptyBundle = computed(() =>
         >
       </i18n-t>
     </p>
+
+    <BundleEditDialog
+      :open="dialogOpen"
+      :bundle="editingBundle"
+      :index="editingIndex"
+      :alert-context="form"
+      :alert-params="form.alertParams"
+      :input-source="form.input"
+      :available-discussions="availableDiscussions"
+      :discussions-loading="discussionsLoading"
+      :poll-payload="pollPayload"
+      @save="onSave"
+      @cancel="closeDialog"
+    />
   </div>
 </template>
 
 <style scoped>
 .step-intro {
-  margin: 0 0 var(--space-1);
+  margin: 0 0 var(--space-4);
   color: var(--color-text-muted);
   font-size: var(--text-base);
   line-height: 1.5;
@@ -98,10 +141,41 @@ const hasEmptyBundle = computed(() =>
   color: var(--color-text-secondary);
 }
 
-.bundles-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-5);
+/* Same column layout as the view-mode bundles table. */
+.bundles-table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+/* Dashed add-row — the row-shaped sibling of the old +card. */
+.row-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: 1px dashed var(--color-border-default);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.row-add:hover {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-border);
+  color: var(--color-text-primary);
+}
+.row-add .plus {
+  font-size: var(--text-xl);
+  line-height: 1;
 }
 
 .warn-hint {

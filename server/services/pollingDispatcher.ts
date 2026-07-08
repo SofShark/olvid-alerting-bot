@@ -1,111 +1,79 @@
-// Polling dispatcher — takes ONE alert that's known to be due and runs
-// the full poll pipeline against it:
+// Dispatcher — takes ONE alert that's known to be due and runs it through
+// its source's dispatch strategy, then handles the common tail:
 //
-//   1. retrieve   pollingEngine fetches + parses the source
-//   2. evaluate   conditionEvaluator turns payload + condition → verdict
-//   3. decide     firePolicy applies the trigger-mode (EveryTime/OneShot/…)
-//   4. notify     notifierService dispatches to bundles (if fire)
-//   5. persist    alertRepository writes the runtime state back
-//   6. log        alertLogRepository appends the outcome to the timeline
+//   1. resolve   dispatcherFactory picks the strategy for alert.input
+//   2. execute   the strategy runs probe → evaluate → decide → notify
+//   3. persist   runtime-state patch is merged into alertParams
+//   4. log       the outcome is appended to the AlertLog timeline
 //
-// The heartbeat task is now just "who + when" (collect the due alerts,
-// hand them off). This module is "how" — the entire pipeline lives in
-// one place so tracing a poll's lifecycle is a single-file exercise.
+// Steps 3-4 are identical for every source, which is why they live here
+// and not in the strategies (Strategy pattern: only the varying part is
+// delegated).
 //
-// Errors are caught internally. Callers only need to `await dispatch(alert)`
-// and don't have to worry about crashing the caller loop — the dispatcher
-// records the failure to the log and swallows it. `Promise.allSettled` on
-// the caller side is still good hygiene for concurrent dispatches.
+// The heartbeat task is just "who + when" (collect the due alerts, hand
+// them off). Errors are caught internally — callers only need to
+// `await dispatch(alert)` and never worry about crashing the caller
+// loop. `Promise.allSettled` on the caller side is still good hygiene.
 
 import type { AlertModel } from "#shared/types/alert";
-import type { PollingParams } from "#shared/types/polling";
-import { ConditionOperator } from "#shared/types/condition";
-import { conditionEvaluator } from "#shared/condition/conditionEvaluator";
-import { firePolicy } from "#shared/condition/firePolicy";
+import type { DispatchOutcome } from "#shared/types/dispatchStrategy";
 import { getErrorMessage } from "~/utils/errors";
 
-// Outcome tracked across the pipeline so the final log-write in the
-// `finally` block can record what actually happened (or didn't).
-type Outcome = {
-  status: "success" | "warning" | "error";
-  error: string | null;
-};
-
 async function dispatch(alert: AlertModel): Promise<void> {
-  const params = alert.alertParams as PollingParams;
-  const patch: Partial<PollingParams> = { _lastPolledAt: Date.now() };
-  const outcome: Outcome = { status: "success", error: null };
+  const strategy = dispatcherFactory.forSource(alert.input);
+  if (!strategy) {
+    console.warn(
+      `[pollingDispatcher] alert #${alert.id} has no dispatch strategy for input "${alert.input}" — skipping`,
+    );
+    return;
+  }
+
+  // Stamp the attempt time up front so a crashed probe still counts as
+  // "polled" — otherwise a failing alert would re-run on every tick.
+  const startedAt = Date.now();
+  let outcome: DispatchOutcome = { status: "success", error: null };
+  let paramsPatch: Record<string, unknown> = {};
 
   try {
-    // 1) Fetch + parse the source.
-    const run = await pollingEngine.retrieve(params.url, params.format);
-    if (!run.ok) {
-      const msg = run.error ?? "Retrieve failed";
-      console.error(
-        `[pollingDispatcher] alert #${alert.id} retrieve failed: ${msg}`,
-      );
-      outcome.status = "error";
-      outcome.error = msg;
-      return; // _lastPolledAt still gets written in `finally`.
-    }
-
-    // 2) Evaluate the condition against the freshly-parsed payload.
-    const evalResult = conditionEvaluator.evaluate(
-      params.condition,
-      run.parsed,
-      params._baseline,
-    );
-
-    // 3) Apply the trigger-mode policy (EveryTime / OneShot / WithRecovery).
-    const decision = firePolicy.decide(
-      params.condition,
-      params.triggerMode,
-      evalResult.fired,
-      params._lastFired,
-    );
-
-    // 4) Dispatch — the notifier knows about 'alert' vs 'recovery' kinds.
-    if (decision.fire) {
-      await notifierService.processAlert(alert, run.parsed, decision.kind);
-    }
-
-    // 5) Build the runtime state patch. `_baseline` is only meaningful
-    //    for operator=Changed; for other operators it just bloats the JSON.
-    patch._lastFired = evalResult.fired;
-    if (params.condition.operator === ConditionOperator.Changed) {
-      patch._baseline = run.parsed;
-    }
-  } catch (e) {
-    const msg = getErrorMessage(e, "Unexpected error during poll");
-    console.error(`[pollingDispatcher] alert #${alert.id} threw:`, e);
-    outcome.status = "error";
-    outcome.error = msg;
+    const result = await strategy.execute(alert);
+    outcome = result.outcome;
+    paramsPatch = result.paramsPatch;
+  } catch (error: unknown) {
+    const msg = getErrorMessage(error, "Unexpected error during dispatch");
+    console.error(`[pollingDispatcher] alert #${alert.id} threw:`, msg);
+    outcome = { status: "error", error: msg };
   } finally {
-    // 6) Persist runtime state + append to the log. Both are best-effort —
-    //    a repository failure here should never crash the heartbeat loop.
+    // Persist + log are best-effort — a repository failure here should
+    // never crash the heartbeat loop.
     if (alert.id != null) {
-      await persistRuntimeState(alert.id, params, patch);
+      await persistRuntimeState(alert, {
+        _lastPolledAt: startedAt,
+        ...paramsPatch,
+      });
       await writeOutcomeLog(alert.id, outcome);
     }
   }
 }
 
+/** Merge the strategy's runtime-state patch into the alert's params. */
 async function persistRuntimeState(
-  alertId: number,
-  params: PollingParams,
-  patch: Partial<PollingParams>,
+  alert: AlertModel,
+  patch: Record<string, unknown>,
 ) {
   try {
-    await alertRepository.updateAlertParams(alertId, { ...params, ...patch });
-  } catch (e) {
+    await alertRepository.updateAlertParams(alert.id as number, {
+      ...(alert.alertParams ?? {}),
+      ...patch,
+    });
+  } catch (error: unknown) {
     console.warn(
-      `[pollingDispatcher] alert #${alertId} failed to persist runtime state:`,
-      e,
+      `[pollingDispatcher] alert #${alert.id} failed to persist runtime state:`,
+      getErrorMessage(error, "unknown"),
     );
   }
 }
 
-async function writeOutcomeLog(alertId: number, outcome: Outcome) {
+async function writeOutcomeLog(alertId: number, outcome: DispatchOutcome) {
   try {
     if (outcome.status === "success") {
       await alertLogRepository.logSuccess(alertId);
@@ -114,10 +82,10 @@ async function writeOutcomeLog(alertId: number, outcome: Outcome) {
     } else {
       await alertLogRepository.logError(alertId, outcome.error ?? "");
     }
-  } catch (e) {
+  } catch (error: unknown) {
     console.warn(
       `[pollingDispatcher] alert #${alertId} failed to write log:`,
-      e,
+      getErrorMessage(error, "unknown"),
     );
   }
 }

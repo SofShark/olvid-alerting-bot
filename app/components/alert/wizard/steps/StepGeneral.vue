@@ -1,14 +1,18 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { Source } from "#shared/types/source";
 import type { AlertModel } from "#shared/types/alert";
 import type { PollingParams } from "#shared/types/polling";
+import type { MonitorParams } from "#shared/types/monitor";
 
 /*
-  Step 1: source picker + inline polling configuration (URL / format /
-  timing) or webhook info card.
+  Step 1: source picker + inline configuration per source.
+    - Polling    → URL + format + schedule (TriggerParamsEditor).
+    - Monitoring → URL + schedule (MonitorParamsEditor — no format).
+    - Webhook    → info card inline (no per-alert config).
 
   Takes the wizard's `form` as a v-model so the source-binding setter
-  (which seeds PollingParams on polling-pick, clears them on webhook)
+  (which seeds the right params shape on pick, clears them on webhook)
   writes through to the parent without ceremony.
 */
 
@@ -16,7 +20,17 @@ const form = defineModel<AlertModel>({ required: true });
 
 const selectedSource = useSourceBinding(form);
 const isPolling = computed(() => form.value.input === Source.Polling);
+const isMonitoring = computed(() => form.value.input === Source.Monitoring);
 const isWebhook = computed(() => form.value.input === Source.Webhook);
+
+// Localised label for the source hint line (matches what the selector shows).
+const { t } = useI18n();
+const sourceLabel = computed(() => {
+  if (!form.value.input) return "";
+  const key = `inputSourceSelector.labels.${form.value.input}`;
+  const translated = t(key);
+  return translated === key ? form.value.input : translated;
+});
 </script>
 
 <template>
@@ -28,7 +42,7 @@ const isWebhook = computed(() => form.value.input === Source.Webhook);
       </label>
       <InputSourceSelector v-model="selectedSource" />
       <p v-if="form.input" class="field-hint">
-        {{ $t("wizard.communicationHint") }}<strong>{{ form.input }}</strong
+        {{ $t("wizard.communicationHint") }}<strong>{{ sourceLabel }}</strong
         >{{ $t("wizard.communicationHintSuffix") }}
       </p>
     </div>
@@ -46,6 +60,18 @@ const isWebhook = computed(() => form.value.input === Source.Webhook);
       />
     </div>
 
+    <!-- Monitoring sources expose URL + timing only (no body parsing). -->
+    <div v-if="isMonitoring" class="field">
+      <label class="field-label">
+        {{ $t("wizard.fieldLabels.monitorConfiguration") }}
+        <span class="field-required">*</span>
+      </label>
+      <MonitorParamsEditor
+        :model-value="(form.alertParams ?? {}) as Partial<MonitorParams>"
+        @update:model-value="form.alertParams = $event as MonitorParams"
+      />
+    </div>
+
     <!-- Webhook source: info card inline here (no separate Trigger step). -->
     <template v-if="isWebhook">
       <div class="info-box">
@@ -53,7 +79,7 @@ const isWebhook = computed(() => form.value.input === Source.Webhook);
         <div>
           <p class="info-title">{{ $t("wizard.webhookInfo.title") }}</p>
           <p class="info-text">
-            <strong>{{ form.input }}</strong
+            <strong>{{ sourceLabel }}</strong
             >{{ $t("wizard.webhookInfo.body") }}
           </p>
         </div>

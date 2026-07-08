@@ -1,9 +1,17 @@
 import { ref, computed, watch, type Ref } from "vue";
-import { Source, isPolling as isPollingType } from "#shared/types/source";
-import { AlertStatus, type AlertModel } from "#shared/types/alert";
+import {
+  Source,
+  isPolling as isPollingType,
+  isMonitoring as isMonitoringType,
+  isScheduled,
+} from "#shared/types/source";
+import {
+  AlertStatus,
+  type AlertModel,
+  type AlertParams,
+} from "#shared/types/alert";
 import { Formatting, type BundleModel } from "#shared/types/bundle";
 import type { DiscussionModel } from "#shared/types/discussion";
-import type { PollingParams } from "#shared/types/polling";
 
 /**
  * Owns the AlertModel form shared by AlertView (read) and AlertWizard (write).
@@ -40,11 +48,14 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
     });
 
   const fillFrom = (a: AlertModel | null | undefined) => {
-    if (a && a.id) { 
+    if (a && a.id) {
       const incomingParams = (a as any).alertParams;
-      const alertParams: PollingParams | undefined =
-        a.input === Source.Polling && incomingParams
-          ? (incomingParams as PollingParams)
+      // Any scheduled source (Polling OR Monitoring) carries params; the
+      // union member is discriminated by `input` downstream. Webhook
+      // alerts carry none.
+      const alertParams: AlertParams =
+        isScheduled(a.input) && incomingParams
+          ? (incomingParams as AlertParams)
           : undefined;
 
       form.value = {
@@ -104,6 +115,7 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
   // ── Derived shape flags ───────────────────────────────────────────────────
   const isExisting = computed(() => form.value.id !== null);
   const isPolling = computed(() => isPollingType(form.value.input));
+  const isMonitoring = computed(() => isMonitoringType(form.value.input));
   const isWebhook = computed(() => form.value.input === Source.Webhook);
 
   return {
@@ -118,6 +130,7 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
     hasEmptyBundle,
     isExisting,
     isPolling,
+    isMonitoring,
     isWebhook,
   };
 };

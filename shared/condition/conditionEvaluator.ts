@@ -1,16 +1,17 @@
 // Centralized polling-condition evaluation. The single place that knows
-// how to: resolve dot-paths, expand wildcard patterns, evaluate operators,
-// and aggregate per-path verdicts. Pure — no IO, no DOM — safe to call
-// from the Vue side (preview), the server side (engine), or anywhere else.
+// how to: resolve dot-paths, expand wildcard patterns, and aggregate
+// per-path verdicts. Pure — no IO, no DOM — safe to call from the Vue
+// side (preview), the server side (engine), or anywhere else.
 //
-// Same shape as alertRepository / notifierService: one exported object
-// (`conditionEvaluator`) groups the public methods. Internal helpers
-// (deepEqual, asNumbers, evalOne) stay module-private.
+// Operator comparison itself is DELEGATED: `operatorFactory` returns the
+// strategy for the condition's operator (Strategy pattern) and evalOne
+// just invokes it. No operator switch lives here anymore — adding an
+// operator touches only shared/condition/operators/.
 //
 // Consumers:
 //   - ConditionEditor              → per-path verdicts for the live preview.
 //   - buildPollingDefaultMessage   → which paths fired + observed values.
-//   - server polling evaluator     → real evaluation against a baseline.
+//   - server polling strategy      → real evaluation against a baseline.
 //
 // Wildcards: any chip whose path contains `..` is expanded against
 // `payload` before evaluation. So one wildcard chip can produce many
@@ -20,103 +21,53 @@
 import {
   ConditionAggregation,
   ConditionKind,
-  ConditionOperator,
+  type ConditionOperator,
   OPERATORS_NEEDING_VALUE,
   type EvaluationResult,
   type Verdict,
 } from "../types/condition";
 import { migrateCondition } from "./migrate";
 import { expandPath, hasWildcard } from "./pathExpand";
+import { operatorFactory } from "./operators/operatorFactory";
+import { aggregatorFactory } from "./aggregators/aggregatorFactory";
 
-// ── Internal helpers (module-private) ──────────────────────────────────────
-
-function deepEqual(a: any, b: any): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
-
-function asNumbers(a: any, b: any): [number, number] | null {
-  if (a === null || a === undefined || a === "") return null;
-  if (b === null || b === undefined || b === "") return null;
-  const na = Number(a),
-    nb = Number(b);
-  if (Number.isNaN(na) || Number.isNaN(nb)) return null;
-  return [na, nb];
-}
-
-/** Evaluate a single concrete path against an observed value (and optional baseline). */
+/** Evaluate a single concrete path against an observed value (and optional
+ *  baseline). Pure delegation to the operator's strategy. */
 function evalOne(
   operator: ConditionOperator,
   threshold: string | undefined,
-  observed: any,
-  baseline: any | undefined,
+  observed: unknown,
+  baseline: unknown,
 ): { fired: boolean; detail: string } {
-  switch (operator) {
-    case ConditionOperator.Changed: {
-      // No baseline → treat as "would fire when next change happens". This
-      // is the right answer for previews; the server passes a real baseline
-      // at poll time so this branch only triggers in the UI.
-      if (baseline === undefined) {
-        return {
-          fired: true,
-          detail: "would fire on next change (no baseline yet)",
-        };
-      }
-      const changed = !deepEqual(observed, baseline);
-      return {
-        fired: changed,
-        detail: changed
-          ? "changed since last poll"
-          : "unchanged since last poll",
-      };
-    }
-    case ConditionOperator.Equals: {
-      const fired = String(observed ?? "") === String(threshold ?? "");
-      return {
-        fired,
-        detail: fired
-          ? `equals "${threshold}"`
-          : `is "${observed}" (expected "${threshold}")`,
-      };
-    }
-    case ConditionOperator.GreaterThan: {
-      const nums = asNumbers(observed, threshold);
-      if (!nums)
-        return {
-          fired: false,
-          detail: `non-numeric: "${observed}" or "${threshold}"`,
-        };
-      const fired = nums[0] > nums[1];
-      return {
-        fired,
-        detail: fired ? `${nums[0]} > ${nums[1]}` : `${nums[0]} ≤ ${nums[1]}`,
-      };
-    }
-    case ConditionOperator.LessThan: {
-      const nums = asNumbers(observed, threshold);
-      if (!nums)
-        return {
-          fired: false,
-          detail: `non-numeric: "${observed}" or "${threshold}"`,
-        };
-      const fired = nums[0] < nums[1];
-      return {
-        fired,
-        detail: fired ? `${nums[0]} < ${nums[1]}` : `${nums[0]} ≥ ${nums[1]}`,
-      };
-    }
-    case ConditionOperator.Contains: {
-      const hay = String(observed ?? "");
-      const ndl = String(threshold ?? "");
-      const fired = ndl.length > 0 && hay.includes(ndl);
-      return {
-        fired,
-        detail: fired ? `contains "${ndl}"` : `does not contain "${ndl}"`,
-      };
-    }
-    default:
-      return { fired: false, detail: `unknown operator: ${operator}` };
+  const strategy = operatorFactory.forOperator(operator);
+  if (!strategy) {
+    return { fired: false, detail: `unknown operator: ${operator}` };
   }
+  return strategy.evaluate(threshold, observed, baseline);
 }
+
+/** Coerce a list of observed values to numbers, silently dropping the
+ *  non-numeric ones. Numeric aggregators (Sum, Average, …) only consume
+ *  what survives; the evaluator reports how many were skipped. */
+function toNumbers(values: readonly unknown[]): number[] {
+  const nums: number[] = [];
+  for (const v of values) {
+    if (v === null || v === undefined || v === "") continue;
+    const n = Number(v);
+    if (!Number.isNaN(n)) nums.push(n);
+  }
+  return nums;
+}
+
+/** One concrete (post-wildcard-expansion) observation point. `missing`
+ *  marks a wildcard chip that matched nothing — kept visible in the
+ *  breakdown instead of silently dropped. */
+type Observation = {
+  path: string;
+  observed: unknown;
+  baseline: unknown;
+  missing?: boolean;
+};
 
 // ── Public service ─────────────────────────────────────────────────────────
 
@@ -185,65 +136,138 @@ export const conditionEvaluator = {
       };
     }
 
-    // Expand wildcard patterns into concrete paths against the CURRENT
-    // payload. One wildcard chip ("..temperatura.maxima") becomes one
-    // verdict per match. New array entries between polls are picked up
-    // automatically — we re-expand every time.
-    const verdicts: Verdict[] = condition.paths.flatMap((pathOrPattern) => {
-      if (!hasWildcard(pathOrPattern)) {
-        const observed = this.resolvePath(payload, pathOrPattern);
-        const prev =
-          baseline === undefined
-            ? undefined
-            : this.resolvePath(baseline, pathOrPattern);
-        const { fired, detail } = evalOne(
-          condition.operator,
-          condition.value,
-          observed,
-          prev,
-        );
-        return [{ path: pathOrPattern, fired, observed, baseline: prev, detail }];
+    // First pass: expand wildcard patterns into concrete observations
+    // against the CURRENT payload. One wildcard chip ("..temperatura.maxima")
+    // becomes one observation per match — re-expanded every call, so new
+    // array entries between polls are picked up automatically. A pattern
+    // that matches nothing yields a `missing` placeholder so the preview
+    // shows it instead of silently dropping the chip.
+    const observations: Observation[] = condition.paths.flatMap(
+      (pathOrPattern) => {
+        if (!hasWildcard(pathOrPattern)) {
+          return [
+            {
+              path: pathOrPattern,
+              observed: this.resolvePath(payload, pathOrPattern),
+              baseline:
+                baseline === undefined
+                  ? undefined
+                  : this.resolvePath(baseline, pathOrPattern),
+            },
+          ];
+        }
+        const concretes = expandPath(pathOrPattern, payload);
+        if (concretes.length === 0) {
+          return [
+            {
+              path: pathOrPattern,
+              observed: undefined,
+              baseline: undefined,
+              missing: true,
+            },
+          ];
+        }
+        return concretes.map((concretePath) => ({
+          path: concretePath,
+          observed: this.resolvePath(payload, concretePath),
+          baseline:
+            baseline === undefined
+              ? undefined
+              : this.resolvePath(baseline, concretePath),
+        }));
+      },
+    );
+
+    // Strategy dispatch — the ONLY branch on the aggregation family.
+    const aggregator = aggregatorFactory.forAggregation(condition.aggregation);
+
+    // ── Numeric reducers (Sum / Average / Minimum / Maximum) ──────────────
+    // Collapse every numeric observed value into ONE number, then run the
+    // operator once against that result. Baselines collapse the same way,
+    // so `Changed` compares aggregate-vs-aggregate ("the sum changed").
+    if (aggregator.kind === "numeric") {
+      const present = observations.filter((o) => !o.missing);
+      const nums = toNumbers(present.map((o) => o.observed));
+      const label = `${aggregator.label}(${present.length} field${present.length === 1 ? "" : "s"})`;
+
+      if (nums.length === 0) {
+        const verdict: Verdict = {
+          path: label,
+          fired: false,
+          observed: undefined,
+          baseline: undefined,
+          detail: "no numeric values to aggregate",
+        };
+        return {
+          kind: condition.kind,
+          fired: false,
+          reason: `No numeric values for ${aggregator.label} — condition cannot fire.`,
+          verdicts: [verdict],
+          condition,
+        };
       }
-      const concretes = expandPath(pathOrPattern, payload);
-      if (concretes.length === 0) {
-        return [
-          {
-            path: pathOrPattern,
-            fired: false,
-            observed: undefined,
-            baseline: undefined,
-            detail: "pattern matched no paths in the current source",
-          },
-        ];
+
+      const collapsed = aggregator.collapse(nums);
+      const baselineNums =
+        baseline === undefined ? [] : toNumbers(present.map((o) => o.baseline));
+      const collapsedBaseline =
+        baseline !== undefined && baselineNums.length > 0
+          ? aggregator.collapse(baselineNums)
+          : undefined;
+
+      const skipped = present.length - nums.length;
+      const skippedNote =
+        skipped > 0 ? ` (${skipped} non-numeric skipped)` : "";
+      const { fired, detail } = evalOne(
+        condition.operator,
+        condition.value,
+        collapsed,
+        collapsedBaseline,
+      );
+      const verdict: Verdict = {
+        path: label,
+        fired,
+        observed: collapsed,
+        baseline: collapsedBaseline,
+        detail: `${detail}${skippedNote}`,
+      };
+      return {
+        kind: condition.kind,
+        fired,
+        reason: `${label} = ${collapsed} — ${detail}${skippedNote}.`,
+        verdicts: [verdict],
+        condition,
+      };
+    }
+
+    // ── Boolean combinators (All / Any) — one verdict per path ────────────
+    const verdicts: Verdict[] = observations.map((o) => {
+      if (o.missing) {
+        return {
+          path: o.path,
+          fired: false,
+          observed: undefined,
+          baseline: undefined,
+          detail: "pattern matched no paths in the current source",
+        };
       }
-      return concretes.map((concretePath) => {
-        const observed = this.resolvePath(payload, concretePath);
-        const prev =
-          baseline === undefined
-            ? undefined
-            : this.resolvePath(baseline, concretePath);
-        const { fired, detail } = evalOne(
-          condition.operator,
-          condition.value,
-          observed,
-          prev,
-        );
-        return { path: concretePath, fired, observed, baseline: prev, detail };
-      });
+      const { fired, detail } = evalOne(
+        condition.operator,
+        condition.value,
+        o.observed,
+        o.baseline,
+      );
+      return { path: o.path, fired, observed: o.observed, baseline: o.baseline, detail };
     });
 
     // "All of N" = every concrete (post-expansion) path must fire — the
     // meaningful semantics, not "all chips fired" (which would ignore
     // expansion).
-    const aggregation = condition.aggregation ?? ConditionAggregation.All;
-    const fired =
-      aggregation === ConditionAggregation.All
-        ? verdicts.every((v) => v.fired)
-        : verdicts.some((v) => v.fired);
+    const fired = aggregator.combine(verdicts.map((v) => v.fired));
 
     const firedCount = verdicts.filter((v) => v.fired).length;
     const total = verdicts.length;
-    const reason = `${aggregation === ConditionAggregation.All ? "All" : "Any"} of ${total} field${total === 1 ? "" : "s"} — ${firedCount}/${total} verified.`;
+    const reason = `${condition.aggregation === ConditionAggregation.Any ? "Any" : "All"} of ${total} field${total === 1 ? "" : "s"} — ${firedCount}/${total} verified.`;
 
     return { kind: condition.kind, fired, reason, verdicts, condition };
   },

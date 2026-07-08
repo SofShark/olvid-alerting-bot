@@ -101,7 +101,8 @@
 
     "fieldLabels": {
       "inputSource": "Source d'entrée",
-      "pollingConfiguration": "Configuration du polling"
+      "pollingConfiguration": "Configuration du polling",
+      "monitorConfiguration": "Configuration du monitoring"
     },
 
     "communicationHint": "Communication : ",
@@ -188,16 +189,29 @@
 
     "condition": {
       "summaryNone": "Se déclenche à chaque cycle de polling (aucune condition).",
-      "summaryRuleAll": "Se déclenche quand tous ces champs {phrase}.",
-      "summaryRuleAny": "Se déclenche quand au moins un de ces champs {phrase}.",
-      "summaryRuleAllMissingValue": "Se déclenche quand tous ces champs {phrase} (valeur manquante — éditez pour la définir).",
-      "summaryRuleAnyMissingValue": "Se déclenche quand au moins un de ces champs {phrase} (valeur manquante — éditez pour la définir).",
+      "summaryRule": "Se déclenche quand {subject} {phrase}.",
+      "summaryRuleMissingValue": "Se déclenche quand {subject} {phrase} (valeur manquante — éditez pour la définir).",
+      "subject": {
+        "all": "tous ces champs",
+        "any": "au moins un de ces champs",
+        "sum": "la somme de ces champs",
+        "average": "la moyenne de ces champs",
+        "minimum": "le minimum de ces champs",
+        "maximum": "le maximum de ces champs"
+      },
       "phrase": {
         "changed": "changent entre deux pollings",
         "equals": "valent \"{value}\"",
         "greaterThan": "sont supérieurs à {value}",
         "lessThan": "sont inférieurs à {value}",
         "contains": "contiennent \"{value}\""
+      },
+      "phraseSingular": {
+        "changed": "change entre deux pollings",
+        "equals": "vaut \"{value}\"",
+        "greaterThan": "est supérieure à {value}",
+        "lessThan": "est inférieure à {value}",
+        "contains": "contient \"{value}\""
       }
     },
 
@@ -221,13 +235,15 @@
 
     "bundleModal": {
       "title": "Modifier le lot {n}",
+      "newTitle": "Nouveau lot",
       "closeTitle": "Fermer",
       "savingButton": "Enregistrement…",
       "saveButton": "Enregistrer le lot",
       "cancelButton": "Annuler",
       "discardWarning": "⚠ Abandonner les modifications non enregistrées de ce lot ?",
       "keepEditingButton": "Continuer l'édition",
-      "discardButton": "Abandonner"
+      "discardButton": "Abandonner",
+      "untitled": "Sans titre"
     },
 
     "errors": {
@@ -261,7 +277,11 @@
     },
     "aggregation": {
       "all": "tous",
-      "any": "au moins un"
+      "any": "au moins un",
+      "sum": "la somme",
+      "average": "la moyenne",
+      "minimum": "le minimum",
+      "maximum": "le maximum"
     },
     "operator": {
       "changed": "a changé depuis le dernier polling",
@@ -281,6 +301,8 @@
       "changedNeedsBaselinePlural": "Le changement est détecté au moment du polling (nécessite une référence). Surveillance de {n} champs.",
       "operatorNeedsValue": "L'opérateur \"{operator}\" nécessite une valeur.",
       "waitingForSource": "En attente des données de la source…",
+      "wouldFireAgg": "Se déclencherait — {detail}.",
+      "wouldNotFireAgg": "Ne se déclencherait pas — {detail}.",
       "wouldFireAll": "Se déclencherait — tous les {total} champ vérifié ({passing}/{total}).",
       "wouldFireAllPlural": "Se déclencherait — tous les {total} champs vérifiés ({passing}/{total}).",
       "wouldFireAny": "Se déclencherait — plus d'un des {total} champ vérifié ({passing}/{total}).",
@@ -388,7 +410,12 @@
     "lockedHint": "🔒 Ne peut pas être changée, des lots dépendent déjà de cette source",
     "searchPlaceholder": "Rechercher une source (GitHub, Grafana, Sentry...)",
     "noResults": "Aucun résultat",
-    "changeButton": "Changer"
+    "changeButton": "Changer",
+    "labels": {
+      "Polling Source": "Data Polling",
+      "Monitoring Source": "Monitoring",
+      "Webhook Source": "Webhook"
+    }
   },
 
   "alertParamsEditor": {
@@ -429,5 +456,41 @@
 
   "xmlTree": {
     "leafTitle": "Cliquer pour surveiller : {path}"
+  },
+
+  "monitorEditor": {
+    "url": {
+      "label": "URL du endpoint",
+      "placeholder": "https://exemple.com/health",
+      "hint": "L'URL dont on surveille le code de statut HTTP."
+    },
+    "interval": {
+      "label": "Intervalle de vérification"
+    },
+    "match": {
+      "label": "Déclencher quand",
+      "kind": {
+        "codes": "Codes spécifiques",
+        "range": "Plage",
+        "notOk": "Tout non-2xx"
+      },
+      "codesEmpty": "Aucun code — ajoutez-en au moins un ci-dessous.",
+      "codesPlaceholder": "ex. 404",
+      "codesHint": "L'alerte se déclenche dès que le statut de la réponse figure dans cette liste.",
+      "addCode": "Ajouter",
+      "notOkHint": "Se déclenche pour toute réponse hors de 200-299 (redirections, erreurs client, erreurs serveur).",
+      "rangeOptions": {
+        "2xx": "2xx — succès",
+        "3xx": "3xx — redirection",
+        "4xx": "4xx — erreur client",
+        "5xx": "5xx — erreur serveur"
+      }
+    },
+    "view": {
+      "triggersOn": "Se déclenche sur",
+      "codes": "Codes : {codes}",
+      "range": "Toute réponse {range}",
+      "notOk": "Toute réponse non-2xx"
+    }
   }
 }

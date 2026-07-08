@@ -6,6 +6,7 @@ import {
   TriggerMode,
   type PollingParams,
 } from "#shared/types/polling";
+import type { MonitorParams } from "#shared/types/monitor";
 import { DEFAULT_SCHEDULE } from "#shared/polling/scheduler";
 import { blankCondition } from "#shared/condition/migrate";
 
@@ -14,11 +15,14 @@ import { blankCondition } from "#shared/condition/migrate";
  * Writing reconciles `form.alertParams` to the right shape for the picked
  * source:
  *
- *   - Polling → seed a valid PollingParams (or preserve existing fields).
- *               `blankCondition()` ensures `condition` always satisfies the
- *               PollingCondition type even before the user picks a rule.
- *   - Webhook (or any future non-polling source) → `alertParams = undefined`.
- *               Webhook alerts have no per-alert config — the field is absent.
+ *   - Polling    → seed a valid PollingParams (or preserve existing fields).
+ *                  `blankCondition()` ensures `condition` always satisfies
+ *                  the PollingCondition type even before the user picks a
+ *                  rule.
+ *   - Monitoring → seed a valid MonitorParams with `not-ok` as the default
+ *                  match (most common "endpoint is broken" case).
+ *   - Webhook    → `alertParams = undefined`. Webhook alerts have no
+ *                  per-alert config — the field is absent.
  *
  * The empty string represents the blank-form state (no source picked yet).
  */
@@ -35,8 +39,6 @@ export const useSourceBinding = (
       }
       form.value.input = src as Source;
       if (src === Source.Polling) {
-        // Cast: while alertParams is currently `AlertParams = PollingParams`,
-        // the access path will need this once more members join the union.
         const prev = form.value.alertParams as PollingParams | undefined;
         form.value.alertParams = {
           url: prev?.url ?? "",
@@ -50,6 +52,23 @@ export const useSourceBinding = (
             : {}),
           ...(prev?._lastHash !== undefined
             ? { _lastHash: prev._lastHash }
+            : {}),
+          ...(prev?._lastFired !== undefined
+            ? { _lastFired: prev._lastFired }
+            : {}),
+          ...(prev?._lastPolledAt !== undefined
+            ? { _lastPolledAt: prev._lastPolledAt }
+            : {}),
+        };
+      } else if (src === Source.Monitoring) {
+        const prev = form.value.alertParams as MonitorParams | undefined;
+        form.value.alertParams = {
+          url: prev?.url ?? "",
+          schedule: prev?.schedule ?? DEFAULT_SCHEDULE,
+          match: prev?.match ?? { kind: "not-ok" },
+          triggerMode: prev?.triggerMode ?? TriggerMode.EveryTime,
+          ...(prev?._lastStatus !== undefined
+            ? { _lastStatus: prev._lastStatus }
             : {}),
           ...(prev?._lastFired !== undefined
             ? { _lastFired: prev._lastFired }
