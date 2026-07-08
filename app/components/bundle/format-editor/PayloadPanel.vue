@@ -2,24 +2,35 @@
 import { computed } from "vue";
 
 /*
-  Source-pane host. Three render modes:
-    - polling           → XML tree of the fetched source
-    - webhook + picker  → JSON tree (click-to-insert)
-    - webhook (default) → JSON textarea (editable)
+  Source-pane host. Four render modes, dispatched by source:
+
+    - polling           → XML tree of the fetched source (⟳ refresh)
+    - monitoring        → JSON tree of the probe result   (⟳ refresh)
+    - webhook + picker  → JSON tree of last received payload
+    - webhook (default) → editable JSON textarea
 
   Owns no state; everything routes back to the container via emits. The
-  toolbar (webhook only) is composed in here so the panel header stays
-  a single `<div class="code-header">` row.
+  Load-Templates toolbar is a webhook-only affordance — there are no
+  bundled templates for polling or monitoring, so those branches show a
+  plain ⟳ refresh button in the same header slot instead.
 */
 
 const props = defineProps<{
   isPolling: boolean;
+  isMonitoring: boolean;
   pickerMode: boolean;
   format: string;
   // Polling state
   pollingLoading: boolean;
   pollingError: string;
   rootEntries: Array<[string, unknown]>;
+  // Monitoring state — the probe payload is a flat object
+  //   { status, url, body, latencyMs }
+  // ready to be rendered by JsonTreeNodeExp.
+  monitorLoading: boolean;
+  monitorError: string;
+  monitorProbe: unknown;
+  monitorRootEntries: Array<[string, unknown]>;
   // Webhook state
   jsonPayload: string;
   jsonRootEntries: Array<[string, unknown]>;
@@ -33,12 +44,12 @@ defineEmits<{
   (e: "update:jsonPayload", v: string): void;
   (e: "select-path", path: string): void;
   (e: "retrieve"): void;
+  (e: "retrieve-monitor"): void;
   (e: "open-load", anchor: DOMRect): void;
   (e: "toggle-picker"): void;
   (e: "prettify"): void;
   (e: "clear"): void;
 }>();
-
 
 const parsedJson = computed(() => {
   try {
@@ -54,11 +65,22 @@ const parsedJson = computed(() => {
     <div class="code-header">
       <span class="dot dot-red" /><span class="dot dot-yellow" /><span class="dot dot-green" />
       <span class="code-title">
-        {{ isPolling
-          ? $t("formatEditor.sourceTitlePollingFormat", { format: (format ?? "xml").toLowerCase() })
-          : "payload.json (Test Data)" }}
+        <template v-if="isPolling">
+          {{
+            $t("formatEditor.sourceTitlePollingFormat", {
+              format: (format ?? "xml").toLowerCase(),
+            })
+          }}
+        </template>
+        <template v-else-if="isMonitoring">
+          monitor-probe.json
+        </template>
+        <template v-else>payload.json (Test Data)</template>
       </span>
 
+      <!-- Polling + Monitoring share the same refresh affordance: a plain
+           ⟳ button. Webhook keeps the richer PayloadToolbar because it
+           has the Load Templates dropdown + prettify + clear. -->
       <button
         v-if="isPolling"
         type="button"
@@ -67,6 +89,15 @@ const parsedJson = computed(() => {
         :title="$t('formatEditor.sourceRefreshTitle')"
         @click="$emit('retrieve')"
       >{{ pollingLoading ? "…" : "⟳" }}</button>
+
+      <button
+        v-else-if="isMonitoring"
+        type="button"
+        class="payload-refresh"
+        :disabled="monitorLoading"
+        :title="$t('formatEditor.monitorProbeTitle')"
+        @click="$emit('retrieve-monitor')"
+      >{{ monitorLoading ? "…" : "⟳" }}</button>
 
       <PayloadToolbar
         v-else
@@ -100,7 +131,32 @@ const parsedJson = computed(() => {
       </div>
     </template>
 
-    <!-- Webhook + picker mode: JSON tree -->
+    <!-- Monitoring: JSON tree over the probe result. No templates to
+         load, no picker toggle — click-to-insert is always on because
+         there are only four fields (status / url / body / latencyMs) and
+         a textarea would be strictly worse. -->
+    <template v-else-if="isMonitoring">
+      <div v-if="monitorLoading" class="payload-notice">
+        {{ $t("formatEditor.sourceLoadingMonitor") }}
+      </div>
+      <div v-else-if="monitorError" class="payload-empty">
+        ⚠ {{ monitorError }}
+      </div>
+      <div v-else-if="!monitorProbe" class="payload-empty">
+        {{ $t("formatEditor.sourceEmptyMonitor") }}
+      </div>
+      <div v-else class="tree-panel">
+        <JsonTreeNode
+          node-name=""
+          :node-value="monitorProbe"
+          path=""
+          :is-root="true"
+          @select="$emit('select-path', $event)"
+        />
+      </div>
+    </template>
+
+    <!-- Webhook + picker mode: JSON tree of the last received payload. -->
     <template v-else-if="pickerMode">
       <div v-if="lastPayloadLoading" class="payload-notice">
         {{ $t("formatEditor.sourceLoadingWebhook") }}
@@ -116,7 +172,6 @@ const parsedJson = computed(() => {
           :is-root="true"
           @select="$emit('select-path', $event)"
         />
-
       </div>
     </template>
 
@@ -140,7 +195,7 @@ const parsedJson = computed(() => {
 </template>
 
 <style scoped>
-/* Refresh button — small chrome action, polling-only. */
+/* Refresh button — small chrome action, shared by polling + monitoring. */
 .payload-refresh {
   background: #3a3a3a;
   color: #a3a3a3;

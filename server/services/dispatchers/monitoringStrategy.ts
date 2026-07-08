@@ -1,11 +1,21 @@
 // Dispatch strategy for Source.Monitoring.
 //
-// Pipeline: probe the endpoint capturing the HTTP status code (the body
-// is never parsed) → match the status against the alert's StatusMatch
-// rule → apply the trigger-mode policy → notify bundles.
+// Pipeline: probe the endpoint capturing status + body preview + latency
+// → match the status against the alert's StatusMatch rule → apply the
+// trigger-mode policy → notify bundles.
 //
-// A non-2xx response is a LEGITIMATE outcome for a monitor, not a fetch
+// A non-2xx res is a LEGITIMATE outcome for a monitor, not a fetch
 // failure — only network errors go through the error path.
+//
+// The payload handed to the notifier (and to the format-editor preview
+// via /api/monitor/probe) is a flat, Handlebars-friendly object:
+//
+//   { status, url, body, latencyMs }
+//
+// Body is capped at MONITOR_BODY_PREVIEW_MAX chars — enough to
+// distinguish "Not Found" / "internal error: xxx" in a template without
+// bloating the notifier payload or the persisted last-alert-payload
+// row. See MONITOR_BODY_PREVIEW_MAX below for the exact limit.
 
 import type { DispatchStrategy, DispatchResult } from "#shared/types/dispatchStrategy";
 import type { AlertModel } from "#shared/types/alert";
@@ -31,6 +41,34 @@ const SYNTHETIC_RULE: PollingCondition = {
   aggregation: ConditionAggregation.All,
 };
 
+/** Max chars of res body surfaced in the notifier payload and in
+ *  the format-editor preview. Same limit used by /api/monitor/probe so
+ *  what the user sees at design time matches what runtime notifiers
+ *  receive at fire time. */
+export const MONITOR_BODY_PREVIEW_MAX = 100;
+
+/** Shape handed to the notifier and returned by /api/monitor/probe.
+ *  Kept flat so Handlebars templates can reference `{{status}}`,
+ *  `{{body}}`, `{{url}}`, `{{latencyMs}}` without ceremony. */
+
+export type MonitorProbePayload = {
+  status: number;
+  statusText: string;
+  ok: boolean;
+
+  url: string;
+  body?: string;
+
+  latencyMs: number;
+
+  redirected: boolean;
+  type: ResponseType;
+
+  contentType?: string | null;
+  contentLength?: number | null;
+  headers?: Record<string, string>;
+};
+
 export const monitoringStrategy: DispatchStrategy = {
   async execute(alert: AlertModel): Promise<DispatchResult> {
     const params = getMonitorParams(alert);
@@ -41,11 +79,25 @@ export const monitoringStrategy: DispatchStrategy = {
       };
     }
 
-    // 1) Probe. Capture the status; do NOT throw on 4xx/5xx.
+    // 1) Probe. Capture status + body preview + latency; do NOT throw on
+    //    4xx/5xx — those are legitimate outcomes. Only network / abort
+    //    errors bail out through the catch.
+    const t0 = Date.now();
     let httpStatus = 0;
+    let bodyPreview = "";
+    let res: Response;
     try {
-      const res = await fetch(params.url, { method: "GET" });
+      res = await fetch(params.url, { method: "GET" });
       httpStatus = res.status;
+      // Reading the body is best-effort — a hostile server might close
+      // the socket mid-read. The status alone is still meaningful, so
+      // we degrade to an empty body preview instead of failing.
+      try {
+        const text = await res.text();
+        bodyPreview = text.slice(0, MONITOR_BODY_PREVIEW_MAX);
+      } catch {
+        bodyPreview = "";
+      }
     } catch (error: unknown) {
       const msg = getErrorMessage(error, "Fetch failed");
       console.error(
@@ -53,6 +105,7 @@ export const monitoringStrategy: DispatchStrategy = {
       );
       return { outcome: { status: "error", error: msg }, paramsPatch: {} };
     }
+    const latencyMs = Date.now() - t0;
 
     // 2) Match the observed status against the alert's rule.
     const fired = statusMatches(params.match, httpStatus);
@@ -65,15 +118,29 @@ export const monitoringStrategy: DispatchStrategy = {
       fired,
       params._lastFired,
     );
-
-    // 4) Notify. Payload is the observed status + URL, enough for a
-    //    Handlebars template to say "endpoint X returned status Y".
+    
+    // 4) Notify. Flat payload for Handlebars — see MonitorProbePayload.
     if (decision.fire) {
-      await notifierService.processAlert(
-        alert,
-        { status: httpStatus, url: params.url },
-        decision.kind,
-      );
+      const payload: MonitorProbePayload = {
+      status: res.status,
+      statusText: res.statusText,
+      ok: res.ok,
+
+      url: res.url,
+      body: bodyPreview,
+
+      latencyMs,
+
+      redirected: res.redirected,
+      type: res.type,
+
+      contentType: res.headers.get("content-type"),
+      contentLength: res.headers.get("content-length")
+        ? Number(res.headers.get("content-length"))
+        : null,
+    };
+
+      await notifierService.processAlert(alert, payload, decision.kind);
     }
 
     return {

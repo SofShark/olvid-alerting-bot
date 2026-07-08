@@ -340,6 +340,7 @@
     "title": "Éditeur de format personnalisé",
     "intro": {
       "polling": "Construisez le message envoyé lorsque cette alerte de polling se déclenche. Cliquez sur n'importe quelle valeur à droite pour insérer son chemin, ou utilisez les raccourcis de chemins surveillés sous le script.",
+      "monitoring": "Construisez le message envoyé lorsque ce monitor se déclenche. Appuyez sur ⟳ pour interroger l'URL ; cliquez sur n'importe quel champ à droite ({status}, {body}, {url}, {latencyMs}) pour insérer son chemin.",
       "webhook": "Configurez le message que les utilisateurs recevront sur Olvid."
     },
     "scriptTitle": "script.hbs (Handlebars)",
@@ -348,15 +349,20 @@
     "sourceTitlePollingFormat": "source.{format}",
     "sourceTitleWebhook": "payload.json (Données de test)",
     "sourceRefreshTitle": "Re-récupérer la source",
+    "monitorProbeTitle": "Interroger l'URL du monitor",
     "sourceExampleButton": "Exemple",
     "sourceLastReceivedButton": "Dernier reçu",
     "sourceLoadingPolling": "Chargement de la source…",
+    "sourceLoadingMonitor": "Interrogation du endpoint…",
     "sourceEmptyPolling": "Aucune donnée pour le moment.",
+    "sourceEmptyMonitor": "Appuyez sur ⟳ pour interroger l'URL du monitor.",
     "sourceLoadingWebhook": "Chargement…",
     "sourceNoPayloads": "Aucune charge utile reçue depuis cette source d'entrée pour le moment.",
     "errors": {
       "noUrlPolling": "Aucune URL configurée pour cette alerte — définissez-en une dans la configuration de polling de l'alerte.",
+      "noUrlMonitoring": "Aucune URL configurée pour ce monitor — définissez-en une dans la configuration monitoring de l'alerte.",
       "failedToRetrieveSource": "Échec de la récupération de la source",
+      "failedToProbeMonitor": "Échec de l'interrogation de l'URL du monitor",
       "jsonError": "Erreur dans le JSON : {message}",
       "handlebarsError": "Erreur dans Handlebars : {message}"
     },

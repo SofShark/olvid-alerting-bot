@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, toRef } from "vue";
-import { Source, isPolling as isPollingSource } from "#shared/types/source";
+import {
+  Source,
+  isPolling as isPollingSource,
+  isMonitoring as isMonitoringSource,
+} from "#shared/types/source";
 
 /*
   Smart container for the Handlebars script editor modal. Mounts the
@@ -31,6 +35,7 @@ const props = defineProps({
 const emit = defineEmits(["save", "close"]);
 
 const isPolling = computed(() => isPollingSource(props.inputSource));
+const isMonitoring = computed(() => isMonitoringSource(props.inputSource));
 
 // Seed from `initialScript` so re-opening the editor on a saved bundle shows
 // the persisted Handlebars template. The editor is mounted fresh on every
@@ -39,12 +44,18 @@ const isPolling = computed(() => isPollingSource(props.inputSource));
 const scriptContent = ref(props.initialScript ?? "");
 
 // ── Composables ────────────────────────────────────────────────────────────
+// One state composable per source (polling / monitoring / webhook). Only
+// the one matching the active source is used by PayloadPanel; the others
+// idle. Cheap enough to instantiate all three unconditionally.
 const payload = useFormatEditorPayload(() => props.alertId);
 const polling = useFormatEditorPolling(() => props.alertParams);
+const monitoring = useFormatEditorMonitoring(() => props.alertParams);
 const preview = useFormatEditorPreview({
   scriptContent,
   isPolling,
+  isMonitoring,
   parsedTree: polling.parsedTree,
+  monitorProbe: monitoring.probe,
   jsonPayload: payload.jsonPayload,
 });
 
@@ -100,6 +111,9 @@ const onClose = () => emit("close");
         <div class="header-titles">
           <h3>{{ $t("formatEditor.title") }}</h3>
           <p v-if="isPolling">{{ $t("formatEditor.intro.polling") }}</p>
+          <p v-else-if="isMonitoring">
+            {{ $t("formatEditor.intro.monitoring") }}
+          </p>
           <p v-else>{{ $t("formatEditor.intro.webhook") }}</p>
         </div>
         <button
@@ -121,11 +135,16 @@ const onClose = () => emit("close");
 
           <PayloadPanel
             :is-polling="isPolling"
+            :is-monitoring="isMonitoring"
             :picker-mode="pickerMode"
             :format="alertParams?.format ?? 'xml'"
             :polling-loading="polling.pollingLoading.value"
             :polling-error="polling.pollingError.value"
             :root-entries="polling.rootEntries.value"
+            :monitor-loading="monitoring.monitorLoading.value"
+            :monitor-error="monitoring.monitorError.value"
+            :monitor-probe="monitoring.probe.value"
+            :monitor-root-entries="monitoring.rootEntries.value"
             :json-payload="payload.jsonPayload.value"
             :json-root-entries="payload.jsonRootEntries.value"
             :last-payload-loading="payload.lastPayloadLoading.value"
@@ -134,6 +153,7 @@ const onClose = () => emit("close");
             @update:json-payload="payload.jsonPayload.value = $event"
             @select-path="cursor.onPathSelect"
             @retrieve="polling.retrievePolling"
+            @retrieve-monitor="monitoring.retrieveMonitor"
             @open-load="onOpenLoad"
             @toggle-picker="pickerMode = !pickerMode"
             @prettify="payload.formatJson"

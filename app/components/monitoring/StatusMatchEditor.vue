@@ -259,11 +259,9 @@ const summaryLabel = computed(() => {
           <p class="hint">{{ $t("monitorEditor.match.notOkHint") }}</p>
         </div>
 
-        <!-- Verdict preview -->
-        <div class="verdict" :class="{ ok: isValid, ko: !isValid }">
-          <span class="verdict-dot" />
-          <span class="verdict-label">{{ summaryLabel }}</span>
-        </div>
+        <!-- Verdict preview — shared with ConditionEditor via the ui/
+             VerdictStrip primitive. -->
+        <VerdictStrip :ok="isValid" :label="summaryLabel" />
       </div>
     </div>
 
@@ -427,35 +425,8 @@ const summaryLabel = computed(() => {
   border-color: var(--color-danger, #ef4444);
 }
 
-/* ── Verdict strip (green when the match is valid, muted when not) ── */
-.verdict {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-}
-.verdict.ok {
-  background: color-mix(in srgb, var(--color-success, #22c55e) 12%, transparent);
-  color: var(--color-text-primary);
-}
-.verdict.ko {
-  background: var(--color-border-subtle);
-  color: var(--color-text-muted);
-}
-.verdict-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.verdict.ok .verdict-dot {
-  background: var(--color-success, #22c55e);
-}
-.verdict.ko .verdict-dot {
-  background: var(--color-text-dim);
-}
+/* Verdict strip now delegated to ui/VerdictStrip (shared with the
+ * polling ConditionEditor). Local styles removed to avoid divergence. */
 
 .trigger-mode-field {
   max-width: 420px;

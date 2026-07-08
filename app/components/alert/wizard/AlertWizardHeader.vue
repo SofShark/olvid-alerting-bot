@@ -89,7 +89,6 @@ defineEmits<{
   font-weight: 600;
   line-height: 1.2;
   padding: 2px var(--space-2);
-  border-radius: var(--radius-sm);
   transition:
     background-color 0.15s ease,
     border-bottom-color 0.15s ease;
@@ -120,7 +119,6 @@ defineEmits<{
   font-weight: 400;
   line-height: 1.4;
   padding: 2px var(--space-2);
-  border-radius: var(--radius-sm);
   font-family: inherit;
   transition:
     background-color 0.15s ease,

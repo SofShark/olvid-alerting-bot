@@ -338,6 +338,7 @@
     "title": "Custom Format Editor",
     "intro": {
       "polling": "Build the message that fires when this polling alert triggers. Click any value on the right to insert its path, or use the watched-path shortcuts below the script.",
+      "monitoring": "Build the message that fires when this monitor triggers. Press ⟳ to probe the URL; click any field on the right ({status}, {body}, {url}, {latencyMs}) to insert its path.",
       "webhook": "Configure the message that users will receive on Olvid."
     },
     "scriptTitle": "script.hbs (Handlebars)",
@@ -346,15 +347,20 @@
     "sourceTitlePollingFormat": "source.{format}",
     "sourceTitleWebhook": "payload.json (Test Data)",
     "sourceRefreshTitle": "Re-fetch the source",
+    "monitorProbeTitle": "Probe the monitor URL now",
     "sourceExampleButton": "Example",
     "sourceLastReceivedButton": "Last received",
     "sourceLoadingPolling": "Loading source…",
+    "sourceLoadingMonitor": "Probing endpoint…",
     "sourceEmptyPolling": "No data yet.",
+    "sourceEmptyMonitor": "Press ⟳ to probe the monitor URL.",
     "sourceLoadingWebhook": "Loading…",
     "sourceNoPayloads": "No payloads from this input source have been received yet.",
     "errors": {
       "noUrlPolling": "No URL configured for this alert — set one in the alert's polling configuration.",
+      "noUrlMonitoring": "No URL configured for this monitor — set one in the alert's monitoring configuration.",
       "failedToRetrieveSource": "Failed to retrieve source",
+      "failedToProbeMonitor": "Failed to probe the monitor URL",
       "jsonError": "Error in JSON: {message}",
       "handlebarsError": "Error in Handlebars: {message}"
     },

@@ -14,3 +14,4 @@ export const pollingDefaultStrategy: FormattingStrategy = {
     return buildPollingDefaultMessage(alert, payload);
   },
 };
+  

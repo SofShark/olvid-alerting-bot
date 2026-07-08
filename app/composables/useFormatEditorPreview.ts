@@ -4,10 +4,14 @@ import { formatMessage } from "#shared/handlebars";
 /**
  * Live preview of the Handlebars script run against the current payload.
  *
- * Two error surfaces handled here:
- *   - JSON parse error (only for the webhook path — the polling path
- *     uses `parsedTree` directly, which is already an object).
- *   - Handlebars render error (any path).
+ * Three payload sources, in priority order:
+ *   - polling    → `parsedTree` (already an object from the retrieve).
+ *   - monitoring → `monitorProbe` (already an object from the probe).
+ *   - webhook    → `jsonPayload` (raw JSON string, needs parsing here).
+ *
+ * Only the webhook path can throw a JSON parse error; the other two
+ * receive shapes that are already parsed on the server. Handlebars
+ * render errors can surface from any source.
  *
  * The output text gets a tiny markdown-lite pass (`**bold**` → <strong>,
  * `\n-` → `\n•`) so the chat-bubble preview matches what Olvid renders.
@@ -18,7 +22,9 @@ import { formatMessage } from "#shared/handlebars";
 export const useFormatEditorPreview = (opts: {
   scriptContent: Ref<string>;
   isPolling: Ref<boolean>;
+  isMonitoring: Ref<boolean>;
   parsedTree: Ref<unknown>;
+  monitorProbe: Ref<unknown>;
   jsonPayload: Ref<string>;
 }) => {
   const { t } = useI18n();
@@ -32,6 +38,8 @@ export const useFormatEditorPreview = (opts: {
     let context: unknown;
     if (opts.isPolling.value) {
       context = opts.parsedTree.value ?? {};
+    } else if (opts.isMonitoring.value) {
+      context = opts.monitorProbe.value ?? {};
     } else {
       try {
         context = JSON.parse(opts.jsonPayload.value);
