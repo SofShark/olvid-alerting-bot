@@ -1,0 +1,224 @@
+<script setup lang="ts">
+import { computed, onMounted } from "vue";
+import { Source } from "#shared/types/source";
+import {
+  TriggerMode,
+  type PollingParams,
+} from "#shared/types/polling";
+import type { MonitorParams } from "#shared/types/monitor";
+import {
+  ConditionKind,
+  ConditionOperator,
+} from "#shared/types/condition";
+
+/*
+  INPUT block in view mode. Renders the alert's source-side configuration:
+    - Webhook    → just the endpoint URL.
+    - Polling    → URL, format · interval, condition summary, trigger mode.
+    - Monitoring → URL, interval, "Triggers on" summary, trigger mode.
+
+  Layout-only — delegates rendering of the condition row to
+  AlertConditionSummary, and the status match label to
+  useStatusMatchLabel. Both hide themselves for edge-native cases so the
+  view never lies about the effective trigger mode.
+*/
+
+const props = defineProps<{
+  inputTitle: string; //TODO deprecated
+  source: string;
+  alertParams?: AlertParams;
+  webhookUrl?: string;
+}>();
+
+const { scheduleLabel } = useScheduleLabel();
+const { statusMatchLabel } = useStatusMatchLabel();
+const { labelFor: triggerModeLabelFor } = useTriggerModeOptions();
+
+const isPolling = computed(() => props.source === Source.Polling);
+const isMonitoring = computed(() => props.source === Source.Monitoring);
+const isWebhook = computed(() => props.source === Source.Webhook);
+
+// Typed accessors — TS narrows AlertParams by the source discriminator,
+// which lives outside the union in `props.source`, so we cast at read
+// time. Cheap: same shape either way.
+const pollingParams = computed(() =>
+  isPolling.value ? (props.alertParams as PollingParams | undefined) : undefined,
+);
+const monitorParams = computed(() =>
+  isMonitoring.value
+    ? (props.alertParams as MonitorParams | undefined)
+    : undefined,
+);
+
+
+const pollingInterval = computed(() =>
+  scheduleLabel(props.alertParams?.schedule), // todo 
+);
+
+// Trigger-mode row only renders when it's meaningful — edge-native conditions
+// (kind=None, operator=Changed) ignore the mode in the engine, so showing it
+// would lie. Matches the gating logic in TriggerParamsEditor.
+const triggerModeMeaningful = computed(() => {
+  if (isPolling.value) {
+    const c = pollingParams.value?.condition;
+    return (
+      c?.kind === ConditionKind.Rule &&
+      c.operator !== ConditionOperator.Changed
+    );
+  }
+  // Monitoring: the trigger mode is always meaningful — matching is a
+  // discrete boolean flip, so OneShot/WithRecovery both make sense.
+  if (isMonitoring.value) return true;
+  return false;
+});
+
+const triggerModeLabel = computed(() =>
+  triggerModeLabelFor(props.alertParams?.triggerMode ?? TriggerMode.EveryTime),
+);
+
+onMounted(() => {
+  // Sanity check: the view should never be rendered with a source that
+  // doesn't match the alertParams type.
+  if (isPolling.value && !pollingParams.value) {
+    console.error("AlertInputSummary: Polling source but no PollingParams");
+  } //TODO monitoring params aren't being loadedd
+  if (isMonitoring.value && !monitorParams.value) {
+    console.error("AlertInputSummary: Monitoring source but no MonitorParams");
+  }
+});
+
+</script>
+
+<template>
+  <div class="data-block">
+    <h4 class="section-eyebrow">Configuration</h4>
+
+    <dl class="data-grid">
+      <template v-if="isWebhook">
+        <div v-if="webhookUrl" class="data-row">
+          <dt class="data-label">{{ $t("editor.view.fields.endpoint") }}</dt>
+          <dd class="data-value">
+            <URLCopyBox :url="webhookUrl" />
+          </dd>
+        </div>
+      </template>
+
+      <template v-else-if="isPolling">
+        <div class="data-row">
+          <dt class="data-label">{{ $t("editor.view.fields.url") }}</dt>
+          <dd class="data-value">
+            <URLCopyBox :url="pollingParams?.url || '——'" />
+          </dd>
+        </div>
+        <div class="data-row">
+          <dt class="data-label">{{ $t("editor.view.fields.polling") }}</dt>
+          <dd class="data-value">
+            {{ pollingParams?.format || $t("editor.interval.empty") }}
+            <span class="dim">· {{ pollingInterval }}</span>
+          </dd>
+        </div>
+        <div class="data-row">
+          <dt class="data-label">{{ $t("editor.view.fields.condition") }}</dt>
+          <dd class="data-value">
+            <AlertConditionSummary :condition="pollingParams?.condition" />
+          </dd>
+        </div>
+        <div v-if="triggerModeMeaningful" class="data-row">
+          <dt class="data-label">Trigger</dt>
+          <dd class="data-value">{{ triggerModeLabel }}</dd>
+        </div>
+      </template>
+
+      <!-- Monitoring: URL + schedule + status-match summary + trigger mode.
+           No `condition` row (StatusMatch is the trigger definition), no
+           `format` row (Monitoring never parses a body). -->
+      <template v-else-if="isMonitoring">
+        <div class="data-row">
+          <dt class="data-label">{{ $t("editor.view.fields.url") }}</dt>
+          <dd class="data-value">
+            <URLCopyBox :url="monitorParams?.url || '——'" />
+          </dd>
+        </div>
+        <div class="data-row">
+          <dt class="data-label">{{ $t("editor.view.fields.polling") }}</dt>
+          <dd class="data-value">
+            <span class="dim">{{ pollingInterval }}</span>
+          </dd>
+        </div>
+        <div class="data-row">
+          <dt class="data-label">{{ $t("monitorEditor.view.triggersOn") }}</dt>
+          <dd class="data-value">{{ statusMatchLabel(monitorParams?.match) }}</dd>
+        </div>
+        <div v-if="triggerModeMeaningful" class="data-row">
+          <dt class="data-label">Trigger</dt>
+          <dd class="data-value">{{ triggerModeLabel }}</dd>
+        </div>
+      </template>
+    </dl>
+  </div>
+</template>
+
+<style scoped>
+.data-block {
+  margin-bottom: var(--space-8);
+}
+.data-block:last-child {
+  margin-bottom: 0;
+}
+
+/* Small-caps eyebrow label — demoted so it doesn't compete with the
+ * main h2 alert title in the view header. Common admin-UI pattern
+ * (Linear, Vercel, Stripe). */
+.section-eyebrow {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+.data-grid {
+  margin: 0;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.data-row {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: var(--space-5);
+  padding-bottom: var(--space-4);
+}
+.data-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.data-label {
+  width: 80px;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+.data-value {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  min-width: 0;
+}
+.data-value .dim {
+  color: var(--color-text-dim);
+  margin-left: var(--space-2);
+}
+</style>

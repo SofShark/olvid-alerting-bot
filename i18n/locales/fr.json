@@ -2,7 +2,7 @@
   "topNav": {
     "title": "Bots d'alerting",
     "themeToggle": "Changer le thème",
-    "changeLanguage": "Changer la langue"
+    "languageToggle": "Changer la langue"
   },
 
   "index": {
@@ -24,12 +24,6 @@
     "active": "Active",
     "inactive": "Inactive",
     "draft": "Brouillon"
-  },
-
-  "alertStatusBadge": {
-    "active": "ACTIVE",
-    "inactive": "INACTIVE",
-    "draft": "BROUILLON"
   },
 
   "alertPage": {
@@ -57,8 +51,8 @@
     "cancel": "Annuler",
     "delete": "Supprimer",
     "newAlert": "Nouvelle alerte",
-    "backToList": "← Retour à la liste",
-    "back": "← Retour",
+    "backToList": "Retour à la liste",
+    "back": "Retour",
     "continue": "Continuer →",
     "addBundles": "Ajouter des lots →",
     "editAlert": "Modifier l'alerte",
@@ -107,7 +101,8 @@
 
     "fieldLabels": {
       "inputSource": "Source d'entrée",
-      "pollingConfiguration": "Configuration du polling"
+      "pollingConfiguration": "Configuration du polling",
+      "monitorConfiguration": "Configuration du monitoring"
     },
 
     "communicationHint": "Communication : ",
@@ -142,10 +137,42 @@
     "errors": {
       "saving": "Erreur lors de l'enregistrement de l'alerte :",
       "deleting": "Erreur lors de la suppression de l'alerte :"
+    },
+
+    "triggerMode": {
+      "fieldLabel": "Mode de déclenchement",
+      "labels": {
+        "every-time": "À chaque fois",
+        "one-shot": "Une fois",
+        "with-recovery": "Une fois + à la récupération"
+      },
+      "hints": {
+        "polling": {
+          "every-time": "Déclenche à chaque scrutation tant que la condition est vraie.",
+          "one-shot": "Déclenche uniquement à la première scrutation où la condition devient vraie.",
+          "with-recovery": "Déclenche une fois, puis à nouveau quand la condition n'est plus vraie."
+        },
+        "monitoring": {
+          "every-time": "Déclenche à chaque scrutation où le statut correspond.",
+          "one-shot": "Déclenche uniquement la première fois que le statut correspond (transition vers l'état correspondant).",
+          "with-recovery": "Déclenche une fois, puis à nouveau quand le statut ne correspond plus (récupération)."
+        }
+      }
+    },
+
+    "firingBehavior": {
+      "title": "Comportement au déclenchement",
+      "triggerModeLabel": "Mode de déclenchement",
+      "datapointsLabel": "Points de données",
+      "datapointsSentence": "Déclencher après que {n} des {m} dernières évaluations correspondent.",
+      "datapointsHint": "Réduit les fausses alertes en attendant des confirmations consécutives. Par défaut 1 sur 1 (déclenche immédiatement)."
     }
   },
 
   "editor": {
+    "header": {
+      "editAlert": "Modifier l'alerte"
+    },
     "view": {
       "fields": {
         "source": "Source",
@@ -169,29 +196,51 @@
       "discussionsEmpty": "— aucune —"
     },
 
-    "interval": {
-      "everyDay": "tous les {n} jour",
-      "everyDays": "tous les {n} jours",
-      "everyHour": "toutes les {n} heure",
-      "everyHours": "toutes les {n} heures",
-      "everyMinute": "toutes les {n} minute",
-      "everyMinutes": "toutes les {n} minutes",
-      "everySeconds": "toutes les {n} secondes",
-      "empty": "—"
-    },
+    "schedule":{
+      "interval": {
+        "everyDay": "tous les {n} jour",
+        "everyDays": "tous les {n} jours",
+        "everyHour": "toutes les {n} heure",
+        "everyHours": "toutes les {n} heures",
+        "everyMinute": "toutes les {n} minute",
+        "everyMinutes": "toutes les {n} minutes",
+        "everySeconds": "toutes les {n} secondes",
+        "dailyAt": "tous les jours à {time}",
+        "empty": "—"
+      },
+      "mode":{
+          "basic": "basique",
+          "advanced": "avancé"
+      }
+        
+    }
+    ,
 
     "condition": {
       "summaryNone": "Se déclenche à chaque cycle de polling (aucune condition).",
-      "summaryRuleAll": "Se déclenche quand tous ces champs {phrase}.",
-      "summaryRuleAny": "Se déclenche quand au moins un de ces champs {phrase}.",
-      "summaryRuleAllMissingValue": "Se déclenche quand tous ces champs {phrase} (valeur manquante — éditez pour la définir).",
-      "summaryRuleAnyMissingValue": "Se déclenche quand au moins un de ces champs {phrase} (valeur manquante — éditez pour la définir).",
+      "summaryRule": "Se déclenche quand {subject} {phrase}.",
+      "summaryRuleMissingValue": "Se déclenche quand {subject} {phrase} (valeur manquante — éditez pour la définir).",
+      "subject": {
+        "all": "tous ces champs",
+        "any": "au moins un de ces champs",
+        "sum": "la somme de ces champs",
+        "average": "la moyenne de ces champs",
+        "minimum": "le minimum de ces champs",
+        "maximum": "le maximum de ces champs"
+      },
       "phrase": {
         "changed": "changent entre deux pollings",
         "equals": "valent \"{value}\"",
         "greaterThan": "sont supérieurs à {value}",
         "lessThan": "sont inférieurs à {value}",
         "contains": "contiennent \"{value}\""
+      },
+      "phraseSingular": {
+        "changed": "change entre deux pollings",
+        "equals": "vaut \"{value}\"",
+        "greaterThan": "est supérieure à {value}",
+        "lessThan": "est inférieure à {value}",
+        "contains": "contient \"{value}\""
       }
     },
 
@@ -215,18 +264,15 @@
 
     "bundleModal": {
       "title": "Modifier le lot {n}",
+      "newTitle": "Nouveau lot",
       "closeTitle": "Fermer",
       "savingButton": "Enregistrement…",
       "saveButton": "Enregistrer le lot",
       "cancelButton": "Annuler",
       "discardWarning": "⚠ Abandonner les modifications non enregistrées de ce lot ?",
       "keepEditingButton": "Continuer l'édition",
-      "discardButton": "Abandonner"
-    },
-
-    "footer": {
-      "delete": "Supprimer",
-      "editAlert": "Modifier l'alerte"
+      "discardButton": "Abandonner",
+      "untitled": "Sans titre"
     },
 
     "errors": {
@@ -260,7 +306,11 @@
     },
     "aggregation": {
       "all": "tous",
-      "any": "au moins un"
+      "any": "au moins un",
+      "sum": "la somme",
+      "average": "la moyenne",
+      "minimum": "le minimum",
+      "maximum": "le maximum"
     },
     "operator": {
       "changed": "a changé depuis le dernier polling",
@@ -280,6 +330,8 @@
       "changedNeedsBaselinePlural": "Le changement est détecté au moment du polling (nécessite une référence). Surveillance de {n} champs.",
       "operatorNeedsValue": "L'opérateur \"{operator}\" nécessite une valeur.",
       "waitingForSource": "En attente des données de la source…",
+      "wouldFireAgg": "Se déclencherait — {detail}.",
+      "wouldNotFireAgg": "Ne se déclencherait pas — {detail}.",
       "wouldFireAll": "Se déclencherait — tous les {total} champ vérifié ({passing}/{total}).",
       "wouldFireAllPlural": "Se déclencherait — tous les {total} champs vérifiés ({passing}/{total}).",
       "wouldFireAny": "Se déclencherait — plus d'un des {total} champ vérifié ({passing}/{total}).",
@@ -317,6 +369,7 @@
     "title": "Éditeur de format personnalisé",
     "intro": {
       "polling": "Construisez le message envoyé lorsque cette alerte de polling se déclenche. Cliquez sur n'importe quelle valeur à droite pour insérer son chemin, ou utilisez les raccourcis de chemins surveillés sous le script.",
+      "monitoring": "Construisez le message envoyé lorsque ce monitor se déclenche. Appuyez sur ⟳ pour interroger l'URL ; cliquez sur n'importe quel champ à droite ({status}, {body}, {url}, {latencyMs}) pour insérer son chemin.",
       "webhook": "Configurez le message que les utilisateurs recevront sur Olvid."
     },
     "scriptTitle": "script.hbs (Handlebars)",
@@ -325,15 +378,20 @@
     "sourceTitlePollingFormat": "source.{format}",
     "sourceTitleWebhook": "payload.json (Données de test)",
     "sourceRefreshTitle": "Re-récupérer la source",
+    "monitorProbeTitle": "Interroger l'URL du monitor",
     "sourceExampleButton": "Exemple",
     "sourceLastReceivedButton": "Dernier reçu",
     "sourceLoadingPolling": "Chargement de la source…",
+    "sourceLoadingMonitor": "Interrogation du endpoint…",
     "sourceEmptyPolling": "Aucune donnée pour le moment.",
+    "sourceEmptyMonitor": "Appuyez sur ⟳ pour interroger l'URL du monitor.",
     "sourceLoadingWebhook": "Chargement…",
     "sourceNoPayloads": "Aucune charge utile reçue depuis cette source d'entrée pour le moment.",
     "errors": {
       "noUrlPolling": "Aucune URL configurée pour cette alerte — définissez-en une dans la configuration de polling de l'alerte.",
+      "noUrlMonitoring": "Aucune URL configurée pour ce monitor — définissez-en une dans la configuration monitoring de l'alerte.",
       "failedToRetrieveSource": "Échec de la récupération de la source",
+      "failedToProbeMonitor": "Échec de l'interrogation de l'URL du monitor",
       "jsonError": "Erreur dans le JSON : {message}",
       "handlebarsError": "Erreur dans Handlebars : {message}"
     },
@@ -387,10 +445,15 @@
     "lockedHint": "🔒 Ne peut pas être changée, des lots dépendent déjà de cette source",
     "searchPlaceholder": "Rechercher une source (GitHub, Grafana, Sentry...)",
     "noResults": "Aucun résultat",
-    "changeButton": "Changer"
+    "changeButton": "Changer",
+    "labels": {
+      "Polling Source": "Data Polling",
+      "Monitoring Source": "Monitoring",
+      "Webhook Source": "Webhook"
+    }
   },
 
-  "triggerParamsEditor": {
+  "alertParamsEditor": {
     "url": {
       "label": "URL",
       "placeholder": "https://example.com/feed.xml",
@@ -428,5 +491,41 @@
 
   "xmlTree": {
     "leafTitle": "Cliquer pour surveiller : {path}"
+  },
+
+  "monitorEditor": {
+    "url": {
+      "label": "URL du endpoint",
+      "placeholder": "https://exemple.com/health",
+      "hint": "L'URL dont on surveille le code de statut HTTP."
+    },
+    "interval": {
+      "label": "Intervalle de vérification"
+    },
+    "match": {
+      "label": "Déclencher quand",
+      "kind": {
+        "codes": "Codes spécifiques",
+        "range": "Plage",
+        "notOk": "Tout non-2xx"
+      },
+      "codesEmpty": "Aucun code — ajoutez-en au moins un ci-dessous.",
+      "codesPlaceholder": "ex. 404",
+      "codesHint": "L'alerte se déclenche dès que le statut de la réponse figure dans cette liste.",
+      "addCode": "Ajouter",
+      "notOkHint": "Se déclenche pour toute réponse hors de 200-299 (redirections, erreurs client, erreurs serveur).",
+      "rangeOptions": {
+        "2xx": "2xx — succès",
+        "3xx": "3xx — redirection",
+        "4xx": "4xx — erreur client",
+        "5xx": "5xx — erreur serveur"
+      }
+    },
+    "view": {
+      "triggersOn": "Se déclenche sur",
+      "codes": "Codes : {codes}",
+      "range": "Toute réponse {range}",
+      "notOk": "Toute réponse non-2xx"
+    }
   }
 }

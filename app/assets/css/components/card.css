@@ -32,12 +32,15 @@
   background: transparent;
   border: 1px solid var(--color-border-subtle);
   color: var(--color-danger);
-  width: 24px; height: 24px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--radius-md);
   cursor: pointer;
   font-size: var(--text-md);
   line-height: 1;
-  transition: background-color .15s, border-color .15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
 }
 .card-remove:hover {
   background: var(--color-border-subtle);
@@ -59,14 +62,20 @@
   cursor: pointer;
   font-size: var(--text-base);
   font-weight: 600;
-  transition: border-color .15s, color .15s, background-color .15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background-color 0.15s;
 }
 .card-add:hover {
   border-color: var(--color-accent);
   color: var(--color-accent-text);
   background: var(--color-bg-card);
 }
-.card-add .plus { font-size: 28px; line-height: 1; }
+.card-add .plus {
+  font-size: 28px;
+  line-height: 1;
+}
 
 /* ── Full-height panel (editor / wizard / sidebar shell) ─────────── */
 .panel {
@@ -102,7 +111,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  padding: var(--space-5) var(--space-7);
+  padding: var(--space-1) var(--space-7);
   background: var(--color-border-subtle);
   border-top: 1px solid var(--color-border-subtle);
+  
 }

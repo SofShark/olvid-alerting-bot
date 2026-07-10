@@ -2,7 +2,7 @@
   "topNav": {
     "title": "Alerting System",
     "themeToggle": "Toggle Theme",
-    "changeLanguage": "Change language"
+    "languageToggle": "Change language"
   },
 
   "index": {
@@ -24,12 +24,6 @@
     "active": "Active",
     "inactive": "Inactive",
     "draft": "Draft"
-  },
-
-  "alertStatusBadge": {
-    "active": "ACTIVE",
-    "inactive": "INACTIVE",
-    "draft": "DRAFT"
   },
 
   "alertPage": {
@@ -57,8 +51,8 @@
     "cancel": "Cancel",
     "delete": "Delete",
     "newAlert": "New Alert",
-    "backToList": "← Back to list",
-    "back": "← Back",
+    "backToList": "Back to list",
+    "back": "Back",
     "continue": "Continue →",
     "addBundles": "Add bundles →",
     "editAlert": "Edit Alert",
@@ -107,7 +101,8 @@
 
     "fieldLabels": {
       "inputSource": "Input Source",
-      "pollingConfiguration": "Polling configuration"
+      "pollingConfiguration": "Polling configuration",
+      "monitorConfiguration": "Monitoring configuration"
     },
 
     "communicationHint": "Communication: ",
@@ -142,10 +137,42 @@
     "errors": {
       "saving": "Error saving alert:",
       "deleting": "Error deleting alert:"
+    },
+
+    "triggerMode": {
+      "fieldLabel": "Trigger mode",
+      "labels": {
+        "every-time": "Every time",
+        "one-shot": "Once",
+        "with-recovery": "Once + on recovery"
+      },
+      "hints": {
+        "polling": {
+          "every-time": "Fire on every poll while the condition is met.",
+          "one-shot": "Fire only on the first poll where the condition becomes true.",
+          "with-recovery": "Fire once, then again when the condition no longer holds."
+        },
+        "monitoring": {
+          "every-time": "Fire on every poll where the status matches.",
+          "one-shot": "Fire only the first time the status matches (transition into matching).",
+          "with-recovery": "Fire once, then again when the status stops matching (recovery)."
+        }
+      }
+    },
+
+    "firingBehavior": {
+      "title": "Firing behavior",
+      "triggerModeLabel": "Trigger mode",
+      "datapointsLabel": "Datapoints",
+      "datapointsSentence": "Fire after {n} of the last {m} evaluations match.",
+      "datapointsHint": "Reduce false alarms by waiting for consecutive confirmations. Default 1 of 1 (fire immediately)."
     }
   },
 
   "editor": {
+    "header": {
+      "editAlert": "Edit Alert"
+    },
     "view": {
       "fields": {
         "source": "Source",
@@ -169,29 +196,49 @@
       "discussionsEmpty": "— none —"
     },
 
-    "interval": {
-      "everyDay": "every {n} day",
-      "everyDays": "every {n} days",
-      "everyHour": "every {n} hour",
-      "everyHours": "every {n} hours",
-      "everyMinute": "every {n} minute",
-      "everyMinutes": "every {n} minutes",
-      "everySeconds": "every {n} seconds",
-      "empty": "—"
+    "schedule":{
+      "interval": {
+        "everyDay": "every {n} day",
+        "everyDays": "every {n} days",
+        "everyHour": "every {n} hour",
+        "everyHours": "every {n} hours",
+        "everyMinute": "every {n} minute",
+        "everyMinutes": "every {n} minutes",
+        "everySeconds": "every {n} seconds",
+        "dailyAt": "daily at {time}",
+        "empty": "—"
+      },
+      "mode":{
+        "basic": "basic",
+        "advanced": "advanced"
+      }
     },
 
     "condition": {
       "summaryNone": "Fires every poll cycle (no condition).",
-      "summaryRuleAll": "Fires when all of these fields {phrase}.",
-      "summaryRuleAny": "Fires when any of these fields {phrase}.",
-      "summaryRuleAllMissingValue": "Fires when all of these fields {phrase} (value missing — edit to set).",
-      "summaryRuleAnyMissingValue": "Fires when any of these fields {phrase} (value missing — edit to set).",
+      "summaryRule": "Fires when {subject} {phrase}.",
+      "summaryRuleMissingValue": "Fires when {subject} {phrase} (value missing — edit to set).",
+      "subject": {
+        "all": "all of these fields",
+        "any": "any of these fields",
+        "sum": "the sum of these fields",
+        "average": "the average of these fields",
+        "minimum": "the minimum of these fields",
+        "maximum": "the maximum of these fields"
+      },
       "phrase": {
         "changed": "change between polls",
         "equals": "equal \"{value}\"",
         "greaterThan": "are greater than {value}",
         "lessThan": "are less than {value}",
         "contains": "contain \"{value}\""
+      },
+      "phraseSingular": {
+        "changed": "changes between polls",
+        "equals": "equals \"{value}\"",
+        "greaterThan": "is greater than {value}",
+        "lessThan": "is less than {value}",
+        "contains": "contains \"{value}\""
       }
     },
 
@@ -215,18 +262,15 @@
 
     "bundleModal": {
       "title": "Edit bundle {n}",
+      "newTitle": "New bundle",
       "closeTitle": "Close",
       "savingButton": "Saving…",
       "saveButton": "Save bundle",
       "cancelButton": "Cancel",
       "discardWarning": "⚠ Discard unsaved changes to this bundle?",
       "keepEditingButton": "Keep editing",
-      "discardButton": "Discard"
-    },
-
-    "footer": {
-      "delete": "Delete",
-      "editAlert": "Edit Alert"
+      "discardButton": "Discard",
+      "untitled":"Untitled"
     },
 
     "errors": {
@@ -260,7 +304,11 @@
     },
     "aggregation": {
       "all": "all of them",
-      "any": "at least one"
+      "any": "at least one",
+      "sum": "the sum",
+      "average": "the average",
+      "minimum": "the minimum",
+      "maximum": "the maximum"
     },
     "operator": {
       "changed": "has changed since last poll",
@@ -280,6 +328,8 @@
       "changedNeedsBaselinePlural": "Change is detected at poll time (needs a baseline). Watching {n} fields.",
       "operatorNeedsValue": "Operator \"{operator}\" needs a value.",
       "waitingForSource": "Waiting for source data…",
+      "wouldFireAgg": "Would fire — {detail}.",
+      "wouldNotFireAgg": "Would not fire — {detail}.",
       "wouldFireAll": "Would fire — all of {total} field verified ({passing}/{total}).",
       "wouldFireAllPlural": "Would fire — all of {total} fields verified ({passing}/{total}).",
       "wouldFireAny": "Would fire — more than one of {total} field verified ({passing}/{total}).",
@@ -317,6 +367,7 @@
     "title": "Custom Format Editor",
     "intro": {
       "polling": "Build the message that fires when this polling alert triggers. Click any value on the right to insert its path, or use the watched-path shortcuts below the script.",
+      "monitoring": "Build the message that fires when this monitor triggers. Press ⟳ to probe the URL; click any field on the right ({status}, {body}, {url}, {latencyMs}) to insert its path.",
       "webhook": "Configure the message that users will receive on Olvid."
     },
     "scriptTitle": "script.hbs (Handlebars)",
@@ -325,15 +376,20 @@
     "sourceTitlePollingFormat": "source.{format}",
     "sourceTitleWebhook": "payload.json (Test Data)",
     "sourceRefreshTitle": "Re-fetch the source",
+    "monitorProbeTitle": "Probe the monitor URL now",
     "sourceExampleButton": "Example",
     "sourceLastReceivedButton": "Last received",
     "sourceLoadingPolling": "Loading source…",
+    "sourceLoadingMonitor": "Probing endpoint…",
     "sourceEmptyPolling": "No data yet.",
+    "sourceEmptyMonitor": "Press ⟳ to probe the monitor URL.",
     "sourceLoadingWebhook": "Loading…",
     "sourceNoPayloads": "No payloads from this input source have been received yet.",
     "errors": {
       "noUrlPolling": "No URL configured for this alert — set one in the alert's polling configuration.",
+      "noUrlMonitoring": "No URL configured for this monitor — set one in the alert's monitoring configuration.",
       "failedToRetrieveSource": "Failed to retrieve source",
+      "failedToProbeMonitor": "Failed to probe the monitor URL",
       "jsonError": "Error in JSON: {message}",
       "handlebarsError": "Error in Handlebars: {message}"
     },
@@ -367,7 +423,7 @@
     "previewPlaceholder": "Default polling message — fills in the watched paths and their observed values when the alert fires.",
     "removeTitle": "Remove bundle",
     "editTitle": "Edit this bundle",
-    "editButton": "✎ Edit"
+    "editButton": "Edit"
   },
 
   "discussionSelector": {
@@ -387,10 +443,15 @@
     "lockedHint": "🔒 Can't be changed, bundles already depend on this source",
     "searchPlaceholder": "Search source (GitHub, Grafana, Sentry...)",
     "noResults": "No results",
-    "changeButton": "Change"
+    "changeButton": "Change",
+    "labels": {
+      "Polling Source": "Data Polling",
+      "Monitoring Source": "Monitoring",
+      "Webhook Source": "Webhook"
+    }
   },
 
-  "triggerParamsEditor": {
+  "alertParamsEditor": {
     "url": {
       "label": "URL",
       "placeholder": "https://example.com/feed.xml",
@@ -428,5 +489,41 @@
 
   "xmlTree": {
     "leafTitle": "Click to watch: {path}"
+  },
+
+  "monitorEditor": {
+    "url": {
+      "label": "Endpoint URL",
+      "placeholder": "https://example.com/health",
+      "hint": "The URL whose HTTP response status will be watched."
+    },
+    "interval": {
+      "label": "Check interval"
+    },
+    "match": {
+      "label": "Trigger when",
+      "kind": {
+        "codes": "Specific codes",
+        "range": "Range",
+        "notOk": "Any non-2xx"
+      },
+      "codesEmpty": "No codes yet — add at least one below.",
+      "codesPlaceholder": "e.g. 404",
+      "codesHint": "The alert fires whenever the response status is in this list.",
+      "addCode": "Add",
+      "notOkHint": "Fires on any response outside the 200-299 range (redirects, client errors, server errors).",
+      "rangeOptions": {
+        "2xx": "2xx — success",
+        "3xx": "3xx — redirect",
+        "4xx": "4xx — client error",
+        "5xx": "5xx — server error"
+      }
+    },
+    "view": {
+      "triggersOn": "Triggers on",
+      "codes": "Codes: {codes}",
+      "range": "Any {range} response",
+      "notOk": "Any non-2xx response"
+    }
   }
 }

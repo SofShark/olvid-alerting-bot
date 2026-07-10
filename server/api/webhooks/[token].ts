@@ -1,65 +1,129 @@
-export default defineEventHandler(async (event) => {
+import { AlertStatus } from "#shared/types/alert";
+import { getErrorMessage } from "~/utils/errors";
 
-  const method = event.node.req.method
+/**
+ * Webhook receiver. One log row per incoming request:
+ *   - success  : notifier accepted the payload and dispatched the alert
+ *   - warning  : the request arrived but the alert isn't Active — payload
+ *                is dropped without notifying
+ *   - error    : body parse failed OR the notifier threw
+ *
+ * The log-write is best-effort (wrapped in try/catch) so a repository
+ * outage never turns into a 500 that GitHub / GitLab would retry.
+ */
 
-  if (method != 'POST'){
-    throw createError({ statusCode: 400, statusMessage: 'Woops, you\'re not a webhook are you?' })
-
+async function safeLog(
+  alertId: number,
+  kind: "success" | "warning" | "error",
+  msg: string | null = null,
+) {
+  try {
+    if (kind === "success") await alertLogRepository.logSuccess(alertId);
+    else if (kind === "warning")
+      await alertLogRepository.logWarning(alertId, msg ?? "");
+    else await alertLogRepository.logError(alertId, msg ?? "");
+  } catch (e) {
+    console.warn(
+      `[webhook] alert #${alertId} failed to write log:`,
+      getErrorMessage(e),
+    );
   }
-  const token = getRouterParam(event, 'token')
+}
+
+export default defineEventHandler(async (event) => {
+  const method = event.node.req.method;
+
+  if (method != "POST") {
+    throw createError({
+      statusCode: 400,
+      statusMessage: "Woops, you're not a webhook are you?",
+    });
+  }
+  const token = getRouterParam(event, "token");
 
   if (!token) {
-    throw createError({ statusCode: 400, statusMessage: 'Missing webhook token' })
+    throw createError({
+      statusCode: 400,
+      statusMessage: "Missing webhook token",
+    });
   }
 
-  console.log("getting alert element from http request")
-  const alert = await bdManager.getAlertByToken(token) as any
-
+  console.log("getting alert element from http request");
+  const alert = (await alertRepository.getByToken(token)) as any;
 
   if (!alert) {
-    throw createError({ statusCode: 404, statusMessage: 'Webhook not found' })
+    throw createError({ statusCode: 404, statusMessage: "Webhook not found" });
   }
 
   // Read the body defensively. If the client posted non-JSON, readBody can
   // throw — capture the raw text so admins can see what came in even when we
   // can't parse it.
-  let payload: any = null
-  let rawBody:  string | null = null
+  let payload: any = null;
+  let rawBody: string | null = null;
   try {
-    payload = await readBody(event)
+    payload = await readBody(event);
   } catch (parseErr: any) {
-    try { rawBody = (await readRawBody(event, 'utf-8')) ?? null } catch { /* body already consumed */ }
-    await bdManager.upsertLastFailedPayload(alert.id, {
-      raw:    rawBody,
-      error:  parseErr?.message ?? 'Failed to read request body',
-      stage:  'parse',
-    })
-    throw createError({ statusCode: 400, statusMessage: 'Invalid body' })
+    try {
+      rawBody = (await readRawBody(event, "utf-8")) ?? null;
+    } catch {
+      /* body already consumed */
+    }
+    const msg = parseErr?.message ?? "Failed to read request body";
+    await alertRepository.upsertLastFailedPayload(alert.id, {
+      raw: rawBody,
+      error: msg,
+      stage: "parse",
+    });
+    await safeLog(alert.id, "error", `Invalid body: ${msg}`);
+    throw createError({ statusCode: 400, statusMessage: "Invalid body" });
   }
-  console.log(`📥 [Webhook] Token ${token} — alert #${alert.id} with ${alert.bundles.length} bundle(s)`)
+  console.log(
+    `📥 [Webhook] Token ${token} — alert #${alert.id} with ${alert.bundles.length} bundle(s)`,
+  );
+
+  // Inactive alerts still accept the webhook (so the sender doesn't retry
+  // in vain) but we log a warning so the operator sees the mismatch in
+  // the timeline.
+  if (alert.status !== AlertStatus.Active) {
+    await safeLog(
+      alert.id,
+      "warning",
+      `Alert is ${alert.status} — webhook received but not dispatched`,
+    );
+    return { status: "ignored", message: `Alert is ${alert.status}` };
+  }
 
   try {
-    await alertManager.processAlert(alert, payload)
+    await notifierService.processAlert(alert, payload);
     // Persist the body as this alert's last-received payload. Keyed by alert
     // id, so two webhook alerts with the same source no longer overwrite each
     // other's history.
-    await bdManager.upsertLastAlertPayload(alert.id, payload)
+    await alertRepository.upsertLastAlertPayload(alert.id, payload);
+    await safeLog(alert.id, "success");
   } catch (error: any) {
-    console.error('❌ [Webhook] Unexpected error:', error.message)
+    const msg = error?.message ?? "Unknown error during processAlert";
+    console.error("❌ [Webhook] Unexpected error:", msg);
     // Persist the failure for admin debugging. The body did parse, so we
     // have a structured `parsed` value; `raw` is left null since we'd have
     // to re-serialize (which would lose info for non-JSON bodies anyway).
     try {
-      await bdManager.upsertLastFailedPayload(alert.id, {
+      await alertRepository.upsertLastFailedPayload(alert.id, {
         parsed: payload ?? null,
-        error:  error?.message ?? 'Unknown error during processAlert',
-        stage:  'process',
-      })
+        error: msg,
+        stage: "process",
+      });
     } catch (persistErr: any) {
-      console.error('❌ [Webhook] failure-persist failed too:', persistErr?.message)
+      console.error(
+        "❌ [Webhook] failure-persist failed too:",
+        persistErr?.message,
+      );
     }
-    throw createError({ statusCode: 500, statusMessage: 'Internal Server Error' })
+    await safeLog(alert.id, "error", msg);
+    throw createError({
+      statusCode: 500,
+      statusMessage: "Internal Server Error",
+    });
   }
 
-  return { status: 'success', message: 'Webhook accepted and processed' }
-})
+  return { status: "success", message: "Webhook accepted and processed" };
+});

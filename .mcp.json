@@ -6,6 +6,13 @@
         "shadcn-vue@latest",
         "mcp"
       ]
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ]
     }
   }
 }

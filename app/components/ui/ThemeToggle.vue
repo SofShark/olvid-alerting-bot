@@ -1,22 +1,26 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted } from "vue";
 
 // Reads / writes the `data-theme` attribute on <html>. The theme.client.ts
 // plugin already applied the persisted theme on boot, so this component only
 // needs to flip it and persist the new choice.
 
-const current = ref<'dark' | 'light'>('dark')
+const current = ref<"dark" | "light">("dark");
 
 onMounted(() => {
-  const attr = document.documentElement.getAttribute('data-theme')
-  current.value = (attr === 'light' ? 'light' : 'dark')
-})
+  const attr = document.documentElement.getAttribute("data-theme");
+  current.value = attr === "light" ? "light" : "dark";
+});
 
 function toggle() {
-  const next = current.value === 'dark' ? 'light' : 'dark'
-  document.documentElement.setAttribute('data-theme', next)
-  try { localStorage.setItem('theme', next) } catch { /* private mode */ }
-  current.value = next
+  const next = current.value === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  try {
+    localStorage.setItem("theme", next);
+  } catch {
+    /* private mode */
+  }
+  current.value = next;
 }
 </script>
 
@@ -26,11 +30,10 @@ function toggle() {
       type="button"
       class="theme-toggle"
       :title="$t('topNav.themeToggle')"
-      
       @click="toggle"
     >
-    <!--:aria-label="`Switch to ${current === 'dark' ? 'light' : 'dark'} mode`"-->
-      {{ current === 'dark' ? '☀' : '☾' }}
+      <!--:aria-label="`Switch to ${current === 'dark' ? 'light' : 'dark'} mode`"-->
+      {{ current === "dark" ? "☀" : "☾" }}
     </button>
   </ClientOnly>
 </template>
@@ -49,7 +52,10 @@ function toggle() {
   justify-content: center;
   font-size: 16px;
   line-height: 1;
-  transition: background-color .15s, border-color .15s, color .15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
 }
 .theme-toggle:hover {
   background: var(--color-bg-panel);

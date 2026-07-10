@@ -11,7 +11,7 @@
 
 .field-label {
   margin: 0;
-  padding-top: 4px;        /* baseline-align with the first line of value */
+  padding-top: 4px; /* baseline-align with the first line of value */
   font-size: var(--text-md);
   font-weight: 600;
   letter-spacing: 0.6px;
@@ -26,7 +26,9 @@
   line-height: 1.5;
 }
 
-.field-required { color: var(--color-danger); }
+.field-required {
+  color: var(--color-danger);
+}
 
 .field-input {
   width: 100%;
@@ -40,8 +42,13 @@
   font-size: var(--text-base);
   resize: vertical;
 }
-.field-input:focus      { outline: none; border-color: var(--color-accent); }
-.field-input::placeholder { color: var(--color-border-default); }
+.field-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+.field-input::placeholder {
+  color: var(--color-border-default);
+}
 
 .field-input:disabled,
 .field-input[readonly] {
@@ -51,5 +58,10 @@
 }
 
 /* Native <select> uses the same shell */
-select.field-input { cursor: pointer; appearance: auto; }
-select.field-input:disabled { cursor: not-allowed; }
+select.field-input {
+  cursor: pointer;
+  appearance: auto;
+}
+select.field-input:disabled {
+  cursor: not-allowed;
+}

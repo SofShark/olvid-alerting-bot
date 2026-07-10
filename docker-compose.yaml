@@ -1,7 +1,7 @@
 services:
   # 1
   nuxt_app:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
     container_name: olvid-nuxt-web
@@ -48,8 +48,7 @@ services:
     stdin_open: true
     tty: true
     profiles: ["cli"]
-  # 
- 
+  #
 
 volumes:
   postgres_data:

@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "AlertTable" ADD COLUMN     "triggerParams" JSONB;
+ALTER TABLE "AlertTable" ADD COLUMN     "alertParams" JSONB;
