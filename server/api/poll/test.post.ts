@@ -42,9 +42,7 @@ export default defineEventHandler(async (event) => {
         index,
         bundleId: bundle.id ?? null,
         formating: bundle.formating,
-        discussionCount: Array.isArray(bundle.discussion_list)
-          ? bundle.discussion_list.length
-          : 0,
+        discussionCount: Array.isArray(bundle.outputs) ? bundle.outputs.length : 0,
         message,
         error: null,
       };
@@ -53,9 +51,7 @@ export default defineEventHandler(async (event) => {
         index,
         bundleId: bundle.id ?? null,
         formating: bundle.formating,
-        discussionCount: Array.isArray(bundle.discussion_list)
-          ? bundle.discussion_list.length
-          : 0,
+        discussionCount: Array.isArray(bundle.outputs) ? bundle.outputs.length : 0,
         message: "",
         error: e?.message ?? "Failed to format message",
       };

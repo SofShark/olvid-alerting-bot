@@ -10,6 +10,7 @@ import {
 } from "#shared/types/bundle";
 import type { DiscussionModel } from "#shared/types/discussion";
 import { buildPollingDefaultMessage } from "#shared/polling/message";
+import { olvidIdsOf, outputsFromOlvidIds } from "~/composables/useAlertForm";
 
 /*
   THE bundle editor — one modal for both flows:
@@ -53,7 +54,7 @@ const isPolling = computed(() => isPollingSource(props.inputSource));
 
 // Source-appropriate empty bundle for create mode.
 const blankBundle = (): BundleModel => ({
-  discussion_list: [],
+  outputs: [],
   formating: isPolling.value
     ? DEFAULT_FORMAT_FOR_POLLING
     : DEFAULT_FORMAT_FOR_WEBHOOK,
@@ -93,7 +94,7 @@ watch(
       return;
     }
     const seed = b
-      ? { ...b, discussion_list: [...b.discussion_list] }
+      ? { ...b, outputs: [...b.outputs] }
       : blankBundle();
     draft.value = normalizeFormat(seed);
     snapshot.value = JSON.stringify(draft.value);
@@ -125,9 +126,24 @@ const bundleName = computed<string>({
   set: (val) => patch({ name: val.trim() || undefined }),
 });
 
+// Bridge between the outputs shape (source of truth in draft) and the
+// DiscussionModel[] API that DiscussionSelector still speaks natively.
+// The selector doesn't need to know about outputs / types — it only
+// deals with Olvid discussions today. Title lookup is on-the-fly from
+// availableDiscussions; if a discussion hasn't been fetched yet, we
+// fall back to `#<id>` (same placeholder resolveDiscussions used).
 const discussions = computed<DiscussionModel[]>({
-  get: () => draft.value?.discussion_list ?? [],
-  set: (val) => patch({ discussion_list: val }),
+  get: () => {
+    if (!draft.value) return [];
+    const ids = olvidIdsOf(draft.value.outputs);
+    return ids.map((id) => {
+      const found = props.availableDiscussions.find((d) => d.id === id);
+      return found ?? { id, title: `#${id}` };
+    });
+  },
+  set: (val) => {
+    patch({ outputs: outputsFromOlvidIds(val.map((d) => d.id)) });
+  },
 });
 
 const formating = computed<Formatting>({

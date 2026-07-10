@@ -20,6 +20,7 @@
 // to be recovery-aware.
 
 import { AlertStatus } from "#shared/types/alert";
+import { BundleOutputType } from "#shared/types/bundleOutput";
 
 export type FireKind = "alert" | "recovery";
 
@@ -65,20 +66,43 @@ export const notifierService = {
     payload: any,
     kind: FireKind = "alert",
   ) {
-    // discussion_list arrives from Prisma as BigInt[]; normalise just in case.
-    const discussions = (bundle.discussion_list ?? []).map((id: any) =>
-      BigInt(id),
-    );
+    const outputs = (bundle.outputs ?? []) as Array<{ type: string; params: any }>;
 
-    if (discussions.length === 0) {
+    if (outputs.length === 0) {
       console.warn(
-        `⚠️ Bundle #${bundle.id} of alert #${alert.id} has no discussion targets`,
+        `⚠️ Bundle #${bundle.id} of alert #${alert.id} has no outputs`,
       );
       return;
     }
 
     const message = this.formatMessage(alert, bundle, payload, kind);
-    await olvidClient.sendMessage(discussions, message);
+
+    // Dispatch by output.type. One if/branch per channel today; future
+    // channels (email / slack / discord) slot in here without touching
+    // the caller. Group Olvid outputs into a single sendMessage call so
+    // we don't open one gRPC round-trip per discussion.
+    const olvidDiscussions: bigint[] = [];
+    for (const output of outputs) {
+      if (output.type === BundleOutputType.Olvid) {
+        const raw = output.params?.discussionId;
+        if (raw === null || raw === undefined || raw === "") continue;
+        try {
+          olvidDiscussions.push(BigInt(raw));
+        } catch {
+          console.warn(
+            `⚠️ Bundle #${bundle.id}: invalid Olvid discussionId ${JSON.stringify(raw)}`,
+          );
+        }
+      } else {
+        console.warn(
+          `⚠️ Bundle #${bundle.id}: unknown output type '${output.type}' — skipping`,
+        );
+      }
+    }
+
+    if (olvidDiscussions.length > 0) {
+      await olvidClient.sendMessage(olvidDiscussions, message);
+    }
   },
 
   formatMessage(

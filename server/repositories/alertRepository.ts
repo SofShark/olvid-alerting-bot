@@ -1,76 +1,87 @@
 // Alert + Bundle data access. PURE persistence — no business rules.
 //
 // What lives here:
-//   - CRUD against AlertTable and its children (Bundle, LastAlertPayload, LastFailedPayload).
-//   - BigInt ⇄ string serialization at the API boundary.
-//   - discussion_list shape coercion (object | id | string-csv → bigint[]).
+//   - CRUD against AlertTable and its children (Bundle, BundleOutput,
+//     LastAlertPayload, LastFailedPayload).
+//   - BigInt ⇄ string serialization at the API boundary (Olvid discussion
+//     IDs live as bigint inside BundleOutput.params, but the wire wants
+//     strings — JSON.stringify can't handle bigint).
+//   - BundleOutput shape coercion at write time.
 //
 // What does NOT live here:
-//   - "An alert can't be activated without bundles" → that's a domain rule
-//     (lives in alertService.ts).
-//   - "computeStatus" → domain rule, alertService.
-//
-// Two of the bdManager.ts methods crossed both concerns; we split them:
-//   - createAlert(data)              → alertService.createAlert    (rule)
-//                                     → alertRepository.create     (this file)
-//   - updateAlert(id, data)          → alertService.updateAlert    (rule)
-//                                     → alertRepository.update     (this file)
-//   - updateStatus(id, status)       → alertService.setStatus      (rule)
-//                                     → alertRepository.setStatusRaw (this file)
-//
-// Everything else (reads, delete, payload upserts) is pass-through —
-// callers can import the repo directly when they don't need the service.
+//   - "An alert can't be activated without bundles" → alertService.
+//   - dispatch-by-output.type → notifierService.
 
 import { AlertStatus } from "#shared/types/alert";
 import { Source } from "#shared/types/source";
 import { prisma } from "#server/db/prisma"
 import { BundleModel } from "~~/shared/types/bundle";
+import {
+  BundleOutputType,
+  type BundleFrontendOutput,
+} from "~~/shared/types/bundleOutput";
 
-// ── BigInt / shape helpers ────────────────────────────────────────────────
+// ── BundleOutput shape helpers ────────────────────────────────────────────
 
 /**
- * discussion_list arrives in many shapes:
- *   - array of objects ({ id }), or
- *   - array of bare ids (string | number | bigint), or
- *   - comma-separated string.
- * Returns a clean BigInt[] for Prisma.
+ * Turn what the frontend sends into rows ready for Prisma nested-write.
+ *
+ * The frontend today edits Olvid discussions as `{ type: "olvid",
+ * params: { discussionId: "12345" } }` — bare string. We normalise:
+ *   - dropping empty/null discussionIds,
+ *   - stringifying the id (defensive; must be safe for JSON storage),
+ *   - stamping the type verbatim (only "olvid" is honored today; future
+ *     variants can be added without touching this function).
+ *
+ * The DB stores params as JSON, with `discussionId` as a STRING (not
+ * bigint) so it JSON-serializes losslessly. The notifier does `BigInt(id)`
+ * at the point where it needs to call the Olvid client.
  */
-function parseDiscussionList(list: any): bigint[] {
-  if (!list) return [];
-
-  let ids: any[];
-  if (typeof list === "string") {
-    ids = list
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-  } else if (Array.isArray(list)) {
-    ids = list.map((item) =>
-      item && typeof item === "object" ? item.id : item,
-    );
-  } else {
-    return [];
-  }
-
-  return ids
-    .filter((id: any) => id !== null && id !== undefined && id !== "")
-    .map((id: any) => BigInt(id));
+function buildOutputsCreate(outputs: any): Array<{ type: string; params: any }> {
+  if (!Array.isArray(outputs)) return [];
+  return outputs
+    .filter((o) => o && typeof o === "object" && o.type)
+    .map((o) => {
+      if (o.type === BundleOutputType.Olvid) {
+        const raw = o.params?.discussionId;
+        if (raw === null || raw === undefined || raw === "") return null;
+        return { type: BundleOutputType.Olvid, params: { discussionId: String(raw) } };
+      }
+      // Unknown type — pass through opaquely; future channels can slot in
+      // without a code change here as long as their params are JSON-safe.
+      return { type: o.type, params: o.params ?? {} };
+    })
+    .filter((o): o is { type: string; params: any } => o !== null);
 }
 
 function toBundleCreate(bundle: any) {
   return {
     name: bundle.name ?? null,
-    discussion_list: parseDiscussionList(bundle.discussion_list),
     formating: bundle.formating ?? "Unformatted",
     custom_script: bundle.custom_script ?? null,
+    outputs: {
+      create: buildOutputsCreate(bundle.outputs),
+    },
   };
 }
 
-// BigInt -> string on the way out (JSON-safe for the frontend).
+// Prisma → wire. Each BundleOutput row becomes a BundleFrontendOutput with
+// JSON-safe params. Server-side bigints (if any) never cross this boundary.
+function serializeOutput(output: any): BundleFrontendOutput {
+  if (output.type === BundleOutputType.Olvid) {
+    // discussionId is already stored as a JSON string; passthrough.
+    const discussionId = String(output.params?.discussionId ?? "");
+    return { type: BundleOutputType.Olvid, params: { discussionId } };
+  }
+  // Unknown / future types — best-effort passthrough.
+  return { type: output.type, params: output.params ?? {} };
+}
+
 function serializeBundle(bundle: any) {
+  const { outputs, ...rest } = bundle;
   return {
-    ...bundle,
-    discussion_list: bundle.discussion_list.map((id: bigint) => id.toString()),
+    ...rest,
+    outputs: (outputs ?? []).map(serializeOutput),
   };
 }
 
@@ -81,6 +92,12 @@ function serializeAlert(alert: any) {
   };
 }
 
+// Every alert read must fetch bundles + their outputs — the outputs are the
+// destination list, so a bundle without them is unusable.
+const ALERT_INCLUDE = {
+  bundles: { include: { outputs: true } },
+} as const;
+
 // ── Repository ────────────────────────────────────────────────────────────
 
 export const alertRepository = {
@@ -89,7 +106,7 @@ export const alertRepository = {
   async getAll() {
     const rows = await prisma.alertTable.findMany({
       orderBy: { createdAt: "desc" },
-      include: { bundles: true },
+      include: ALERT_INCLUDE,
     });
     return rows.map(serializeAlert);
   },
@@ -98,37 +115,33 @@ export const alertRepository = {
    * All active alerts whose input drives a scheduled probe (Polling or
    * Monitoring). Webhook alerts are excluded — they're push-driven and
    * the heartbeat has no work to do for them.
-   *
-   * Renamed from `getActivePolling` when Monitoring joined the family;
-   * the shape of every row is still an AlertModel — callers branch by
-   * `alert.input` if they need source-specific behaviour.
    */
-  async getActiveScheduled(){
+  async getActiveScheduled() {
     const rows = await prisma.alertTable.findMany({
       where: {
         status: AlertStatus.Active,
         input: { in: [Source.Polling, Source.Monitoring] },
       },
-      include: {bundles: true}
-    })
-    return rows.map(serializeAlert)
+      include: ALERT_INCLUDE,
+    });
+    return rows.map(serializeAlert);
   },
 
   async getById(id: number) {
     const row = await prisma.alertTable.findUnique({
       where: { id },
-      include: { bundles: true },
+      include: ALERT_INCLUDE,
     });
     if (!row) return null;
     return serializeAlert(row);
   },
 
-  /** Used by the webhook endpoint. Keeps BigInt ids — the notifier
-   *  converts them itself when sending to Olvid. */
+  /** Used by the webhook endpoint. Serialized like every other read now
+   *  that BundleOutput.params.discussionId is already stored as a string. */
   async getByToken(token: string) {
     const row = await prisma.alertTable.findUnique({
       where: { token },
-      include: { bundles: true },
+      include: ALERT_INCLUDE,
     });
     return row ? serializeAlert(row) : null;
   },
@@ -143,9 +156,7 @@ export const alertRepository = {
     alertParams?: any;
     bundles?: BundleModel[];
   }) {
-    const incomingBundles: any[] = Array.isArray(data.bundles)
-      ? data.bundles
-      : [];
+    const incomingBundles: any[] = Array.isArray(data.bundles) ? data.bundles : [];
     const created = await prisma.alertTable.create({
       data: {
         title: data.title,
@@ -155,12 +166,13 @@ export const alertRepository = {
         status: data.status,
         bundles: { create: incomingBundles.map(toBundleCreate) },
       },
-      include: { bundles: true },
+      include: ALERT_INCLUDE,
     });
     return serializeAlert(created);
   },
 
-  /** Full overwrite — deletes existing bundles, recreates from `data.bundles`. */
+  /** Full overwrite — deletes existing bundles (and their outputs via
+   *  cascade), recreates from `data.bundles`. */
   async update(
     id: number,
     data: {
@@ -172,10 +184,9 @@ export const alertRepository = {
       bundles?: any[];
     },
   ) {
-    const incomingBundles: any[] = Array.isArray(data.bundles)
-      ? data.bundles
-      : [];
+    const incomingBundles: any[] = Array.isArray(data.bundles) ? data.bundles : [];
 
+    // Cascade FK on BundleOutput.bundleId cleans up outputs automatically.
     await prisma.bundle.deleteMany({ where: { alertId: id } });
 
     const updated = await prisma.alertTable.update({
@@ -188,7 +199,7 @@ export const alertRepository = {
         status: data.status,
         bundles: { create: incomingBundles.map(toBundleCreate) },
       },
-      include: { bundles: true },
+      include: ALERT_INCLUDE,
     });
     return serializeAlert(updated);
   },
@@ -198,7 +209,7 @@ export const alertRepository = {
     const updated = await prisma.alertTable.update({
       where: { id },
       data: { status },
-      include: { bundles: true },
+      include: ALERT_INCLUDE,
     });
     return serializeAlert(updated);
   },

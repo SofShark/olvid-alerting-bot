@@ -2,9 +2,9 @@ generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider = "postgresql "
   //  sqlite
+datasource db {
+  provider = "postgresql"
 }
 
 model AlertTable {
@@ -36,14 +36,26 @@ model Bundle {
   id              Int        @id @default(autoincrement())
   name            String?
   alertId         Int
-  discussion_list BigInt[]
+  
   formating       String     @default("Unformatted")
   custom_script   String?
   createdAt       DateTime   @default(now())
-  alert           AlertTable @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  alert           AlertTable     @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  outputs         BundleOutput[]
 }
 
+model BundleOutput{
+  id        Int      @id @default(autoincrement())
+  bundleId  Int
+  type      String   // "olvid" (único tipo por ahora). Futuro: "email", "slack", "discord".
+  params    Json     // Shape depende de `type`. Ver §Contrato de `params` por tipo.
+  createdAt DateTime @default(now())
 
+  bundle    Bundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+
+  @@index([bundleId])
+}
 
 model LastAlertPayload {
   alertId    Int        @id

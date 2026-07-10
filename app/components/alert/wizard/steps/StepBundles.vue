@@ -69,7 +69,7 @@ const removeBundle = (index: number) => {
 };
 
 const hasEmptyBundle = computed(() =>
-  form.value.bundles.some((b) => b.discussion_list.length === 0),
+  form.value.bundles.some((b) => b.outputs.length === 0),
 );
 </script>
 

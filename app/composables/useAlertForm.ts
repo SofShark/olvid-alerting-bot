@@ -11,21 +11,22 @@ import {
   type AlertParams,
 } from "#shared/types/alert";
 import { Formatting, type BundleModel } from "#shared/types/bundle";
-import type { DiscussionModel } from "#shared/types/discussion";
+import {
+  BundleOutputType,
+  type BundleFrontendOutput,
+} from "#shared/types/bundleOutput";
 
 /**
  * Owns the AlertModel form shared by AlertView (read) and AlertWizard (write).
  *
- * Deduplicates blankForm / fillFrom / resolveDiscussions which used to live
- * copy-pasted in both monoliths. Also re-resolves discussion titles once the
- * discussion list finishes loading (lazy hydration of `#id` placeholders).
- *
- * The caller passes a Ref<AlertModel | null> — typically `toRef(props, 'alertaInicial')`
- * — and gets back a `form` ref kept in sync with that source.
+ * The form matches the WIRE shape 1:1 (bundles carry `outputs: BundleFrontendOutput[]`,
+ * not pre-resolved discussion titles). Components that need a title
+ * (AlertBundleRow, DiscussionSelector, …) look it up on the fly against
+ * `useAlerts().availableDiscussions`. This keeps the form dumb and the
+ * enrichment lazy, so re-fetches / late-arriving discussion lists don't
+ * require re-resolving stored copies.
  */
 export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
-  const { availableDiscussions } = useAlerts();
-
   const blankForm = (): AlertModel => ({
     id: null,
     title: "",
@@ -39,13 +40,6 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
   });
 
   const form = ref<AlertModel>(blankForm());
-
-  const resolveDiscussions = (ids: any[]): DiscussionModel[] =>
-    (ids ?? []).map((entry: any) => {
-      const id = String(typeof entry === "object" ? entry.id : entry);
-      const list = availableDiscussions?.value ?? [];
-      return list.find((d) => d.id === id) ?? { id, title: `#${id}` };
-    });
 
   const fillFrom = (a: AlertModel | null | undefined) => {
     if (a && a.id) {
@@ -71,7 +65,7 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
           name: b.name,
           formating: (b.formating as Formatting) || Formatting.Unformatted,
           custom_script: b.custom_script || "",
-          discussion_list: resolveDiscussions(b.discussion_list as any),
+          outputs: (b.outputs ?? []) as BundleFrontendOutput[],
         })),
       };
     } else {
@@ -81,19 +75,9 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
 
   watch(source, fillFrom, { immediate: true });
 
-  // Re-resolve discussion titles once the discussion list finishes loading.
-  // Inline #N placeholders get replaced by real titles without losing user edits.
-  watch(availableDiscussions, (available) => {
-    if (available.length === 0) return;
-    form.value.bundles = form.value.bundles.map((b) => ({
-      ...b,
-      discussion_list: resolveDiscussions(b.discussion_list as any),
-    }));
-  });
-
   // ── Bundle helpers ────────────────────────────────────────────────────────
   const blankBundle = (): BundleModel => ({
-    discussion_list: [],
+    outputs: [],
     formating: Formatting.Unformatted,
     custom_script: "",
   });
@@ -109,7 +93,7 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
   };
 
   const hasEmptyBundle = computed(() =>
-    form.value.bundles.some((b) => b.discussion_list.length === 0),
+    form.value.bundles.some((b) => b.outputs.length === 0),
   );
 
   // ── Derived shape flags ───────────────────────────────────────────────────
@@ -121,7 +105,6 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
   return {
     form,
     fillFrom,
-    resolveDiscussions,
     blankForm,
     blankBundle,
     addBundle,
@@ -134,3 +117,20 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
     isWebhook,
   };
 };
+
+// ── Output <-> Olvid-id helpers ──────────────────────────────────────────────
+// Bridge between the wire shape (typed outputs) and the flat string[] of
+// discussion ids that DiscussionSelector still speaks natively.
+
+export function olvidIdsOf(outputs: BundleFrontendOutput[]): string[] {
+  return outputs
+    .filter((o) => o.type === BundleOutputType.Olvid)
+    .map((o) => o.params.discussionId);
+}
+
+export function outputsFromOlvidIds(ids: string[]): BundleFrontendOutput[] {
+  return ids.map((discussionId) => ({
+    type: BundleOutputType.Olvid,
+    params: { discussionId },
+  }));
+}
