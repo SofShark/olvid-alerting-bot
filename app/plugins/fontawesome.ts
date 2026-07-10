@@ -26,7 +26,7 @@ import {
   faCopy,
   faEllipsisVertical,
   faUserGear,
-  faLeftRight,
+  faLeftRight
 } from "@fortawesome/free-solid-svg-icons";
 
 import { 
