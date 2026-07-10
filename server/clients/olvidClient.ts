@@ -15,8 +15,6 @@ type MessageId = datatypes.MessageId;
 const client = new OlvidClient()
 
 
-
-
 export const olvidClient = {
   async sendMessage(discussions: bigint[], message: string) {
     try {
