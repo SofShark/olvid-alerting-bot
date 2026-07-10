@@ -142,20 +142,20 @@ const formatOptions = computed(() =>
     ? [
         {
           value: Formatting.PollingDefault,
-          label: t("bundleCard.format.pollingDefault"),
+          label: t("bundleRow.format.pollingDefault"),
         },
         {
           value: Formatting.PollingCustom,
-          label: t("bundleCard.format.pollingCustom"),
+          label: t("bundleRow.format.pollingCustom"),
         },
       ]
     : [
         {
           value: Formatting.Unformatted,
-          label: t("bundleCard.format.unformatted"),
+          label: t("bundleRow.format.unformatted"),
         },
-        { value: Formatting.Simple, label: t("bundleCard.format.simple") },
-        { value: Formatting.Custom, label: t("bundleCard.format.custom") },
+        { value: Formatting.Simple, label: t("bundleRow.format.simple") },
+        { value: Formatting.Custom, label: t("bundleRow.format.custom") },
       ],
 );
 
@@ -245,7 +245,7 @@ const onSave = () => {
         <!-- Destinations — WhatsApp-style picker with avatars + toggles. -->
         <div class="field">
           <label class="field-label">{{
-            $t("bundleCard.fields.discussions")
+            $t("bundleRow.fields.discussions")
           }}</label>
           <DiscussionSelector
             v-model="discussions"
@@ -257,7 +257,7 @@ const onSave = () => {
         <!-- Format + optional custom-script editor + preview. -->
         <div class="field">
           <label class="field-label">{{
-            $t("bundleCard.fields.format")
+            $t("bundleRow.fields.format")
           }}</label>
           <div class="format-row">
             <Select
@@ -273,14 +273,14 @@ const onSave = () => {
               @click="isEditorOpen = true"
             >
               <FontAwesomeIcon :icon="['fas', 'pencil']" />
-              {{ $t("bundleCard.scriptButton") }}
+              {{ $t("bundleRow.scriptButton") }}
             </button>
           </div>
 
           <pre
             v-if="formating === Formatting.PollingDefault"
             class="poll-preview"
-            >{{ pollingPreview || $t("bundleCard.previewPlaceholder") }}</pre
+            >{{ pollingPreview || $t("bundleRow.previewPlaceholder") }}</pre
           >
         </div>
       </div>

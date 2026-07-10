@@ -14,8 +14,10 @@ import { OlvidClient, datatypes } from "@olvid/bot-node";
 type MessageId = datatypes.MessageId;
 const client = new OlvidClient()
 
-export const olvidClient = {
 
+
+
+export const olvidClient = {
   async sendMessage(discussions: bigint[], message: string) {
     try {
       for (const discussionId of discussions) {

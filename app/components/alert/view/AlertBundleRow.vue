@@ -15,6 +15,7 @@ import type { BundleModel } from "#shared/types/bundle";
       Chips were competing visually with the section eyebrow and the
       alert's main title.
 */
+const t = useI18n().t;
 
 const props = withDefaults(
   defineProps<{
@@ -57,8 +58,10 @@ const destSummary = computed(() => {
 
   // Si hay más de 2, calculamos los restantes y el plural
   const remaining = count - 2;
-  const plural = remaining === 1 ? '' : 's';
-  return `${firstTwoNames}, and ${remaining} more discussion${plural}`;
+  if (remaining === 1) {
+    return t(`bundleRow.destSummary.PlusOne`, { firstTwoNames });
+  } 
+  return t(`bundleRow.destSummary.Plural`, { firstTwoNames, remaining });
 });
 </script>
 

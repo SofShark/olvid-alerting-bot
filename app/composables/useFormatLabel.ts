@@ -15,15 +15,15 @@ export const useFormatLabel = () => {
   const formatLabel = (f: Formatting | string): string => {
     switch (f) {
       case Formatting.Unformatted:
-        return t("bundleCard.format.unformatted");
+        return t("bundleRow.format.unformatted");
       case Formatting.Simple:
-        return t("bundleCard.format.simple");
+        return t("bundleRow.format.simple");
       case Formatting.Custom:
-        return t("bundleCard.format.custom");
+        return t("bundleRow.format.custom");
       case Formatting.PollingDefault:
-        return t("bundleCard.format.pollingDefault");
+        return t("bundleRow.format.pollingDefault");
       case Formatting.PollingCustom:
-        return t("bundleCard.format.pollingCustom");
+        return t("bundleRow.format.pollingCustom");
       default:
         return String(f);
     }
