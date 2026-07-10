@@ -126,10 +126,11 @@ export const alertRepository = {
   /** Used by the webhook endpoint. Keeps BigInt ids — the notifier
    *  converts them itself when sending to Olvid. */
   async getByToken(token: string) {
-    return await prisma.alertTable.findUnique({
+    const row = await prisma.alertTable.findUnique({
       where: { token },
       include: { bundles: true },
     });
+    return row ? serializeAlert(row) : null;
   },
 
   // ── Mutations (bare — no domain rules) ──────────────────────────────────
@@ -217,6 +218,8 @@ export const alertRepository = {
 
   // ── Last-payload sidecar tables ─────────────────────────────────────────
   // Keyed by alertId. FK has onDelete: Cascade so deleting the alert cleans up.
+
+  //TODO:  MOVE TO SPECIALISED REPOSITORY : alertPayloadRepository.ts
 
   async upsertLastAlertPayload(alertId: number, payload: any) {
     await prisma.lastAlertPayload.upsert({

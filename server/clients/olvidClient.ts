@@ -10,15 +10,14 @@
 // of the server speaks our own domain (discussion ids, message strings).
 // If we ever swap providers (Slack, Discord, …), only this file changes.
 
-import { OlvidClient } from "@olvid/bot-node";
-
+import { OlvidClient, datatypes } from "@olvid/bot-node";
+type MessageId = datatypes.MessageId;
 const client = new OlvidClient()
 
 export const olvidClient = {
 
   async sendMessage(discussions: bigint[], message: string) {
     try {
-      
       for (const discussionId of discussions) {
         await client.messageSend({
           discussionId: discussionId,
@@ -27,11 +26,25 @@ export const olvidClient = {
         console.log(`✅ [Olvid] Message sent to discussion: ${discussionId}`);
       }
       return true;
+      // TODO : Consider returning an array of message IDs for tracking and
+      // potential future edits representing recent updates to the alert.
     } catch (error: any) {
       console.error(
         "❌ [Olvid] An error occurred while sending a message:",
         error,
       );
+      return false;
+    }
+  },
+
+  // Olvid's MessageId is a composite { type: INBOUND|OUTBOUND, id: bigint }.
+  async editMessage(messageId: MessageId, newBody: string) {
+    try {
+      await client.messageUpdateBody({ messageId, updatedBody: newBody });
+      console.log(`✅ [Olvid] Message edited:`, messageId.id);
+      return true;
+    } catch (error: any) {
+      console.error("❌ [Olvid] An error occurred while editing a message:", error);
       return false;
     }
   },

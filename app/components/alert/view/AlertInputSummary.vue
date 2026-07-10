@@ -32,6 +32,7 @@ const props = defineProps<{
 
 const { scheduleLabel } = useScheduleLabel();
 const { statusMatchLabel } = useStatusMatchLabel();
+const { labelFor: triggerModeLabelFor } = useTriggerModeOptions();
 
 const isPolling = computed(() => props.source === Source.Polling);
 const isMonitoring = computed(() => props.source === Source.Monitoring);
@@ -71,14 +72,9 @@ const triggerModeMeaningful = computed(() => {
   return false;
 });
 
-const triggerModeLabel = computed(() => {
-  const mode = props.alertParams?.triggerMode ?? TriggerMode.EveryTime;
-  switch (mode) { // todo i18n
-    case TriggerMode.OneShot:      return "Once";
-    case TriggerMode.WithRecovery: return "Once + on recovery";
-    default:                       return "Every time";
-  }
-});
+const triggerModeLabel = computed(() =>
+  triggerModeLabelFor(props.alertParams?.triggerMode ?? TriggerMode.EveryTime),
+);
 
 onMounted(() => {
   // Sanity check: the view should never be rendered with a source that

@@ -15,7 +15,8 @@ import { orderedAggregations } from "#shared/condition/aggregators/aggregatorFac
 
     - Aggregation options come from the aggregator factory (All / Any /
       Sum / Average / Minimum / Maximum).
-    - Operator options are the fixed enum values.
+    - Operator options come from the useConditionOperators composable
+      (single source of truth for the enum ↔ i18n mapping).
     - Value input is shown only when the operator needs one; its input
       type (number / text) also depends on the operator.
 
@@ -40,36 +41,8 @@ const emit = defineEmits<{
   ): void;
 }>();
 
-const { t } = useI18n();
-
 const needsValue = computed(() => OPERATORS_NEEDING_VALUE.has(props.operator));
-
-/** Operator dropdown options — labels resolve at render so they
- *  re-translate on locale change. */
-const OPERATORS = computed<Array<{ value: ConditionOperator; label: string }>>(
-  () => [
-    {
-      value: ConditionOperator.Changed,
-      label: t("conditionEditor.operator.changed"),
-    },
-    {
-      value: ConditionOperator.Equals,
-      label: t("conditionEditor.operator.equals"),
-    },
-    {
-      value: ConditionOperator.GreaterThan,
-      label: t("conditionEditor.operator.greaterThan"),
-    },
-    {
-      value: ConditionOperator.LessThan,
-      label: t("conditionEditor.operator.lessThan"),
-    },
-    {
-      value: ConditionOperator.Contains,
-      label: t("conditionEditor.operator.contains"),
-    },
-  ],
-);
+const { options: OPERATORS } = useConditionOperators();
 </script>
 
 <template>
@@ -129,15 +102,16 @@ const OPERATORS = computed<Array<{ value: ConditionOperator; label: string }>>(
 </template>
 
 <style scoped>
-.rule-row {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
+/* Reads left-to-right like a query editor sentence:
+ *   TRIGGER WHEN  [agg]  [operator]  [value]
+ * All three controls share the same 32px height + border so they
+ * compose visually as one continuous control, not three loose widgets. */
 .rule-row.inline {
+  display: flex;
   flex-direction: row;
   align-items: center;
   flex-wrap: wrap;
+  gap: var(--space-3);
 }
 .rule-label {
   font-size: var(--text-xs);
@@ -145,37 +119,55 @@ const OPERATORS = computed<Array<{ value: ConditionOperator; label: string }>>(
   letter-spacing: 0.6px;
   text-transform: uppercase;
   color: var(--color-text-dim);
-  margin-right: var(--space-1);
+  flex-shrink: 0;
 }
 
 .rule-select,
 .rule-input {
-  padding: 6px var(--space-3);
+  height: 32px;
+  padding: 0 var(--space-3);
   background: var(--color-bg-input);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-sm);
   font-family: inherit;
-  font-size: var(--text-md);
+  font-size: var(--text-sm);
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 .rule-select {
   cursor: pointer;
+  /* Chevron indicator instead of the browser-native arrow — matches
+   * the app's other tech-tool selects (Grafana / Linear style). */
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: calc(var(--space-3) + 16px);
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-text-dim) 50%),
+    linear-gradient(135deg, var(--color-text-dim) 50%, transparent 50%);
+  background-position:
+    calc(100% - 12px) 50%,
+    calc(100% - 7px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+.rule-select:hover,
+.rule-input:hover {
+  border-color: var(--color-border-strong);
 }
 .rule-select:focus,
 .rule-input:focus {
   border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
 }
 .rule-select.agg {
-  min-width: 110px;
+  min-width: 120px;
 }
 .rule-select.op {
   min-width: 200px;
-  flex: 1 1 auto;
 }
 .rule-input {
   min-width: 120px;
   flex: 1 1 120px;
+  font-family: var(--font-mono);
 }
 </style>

@@ -21,6 +21,8 @@ import {
   faChevronRight,
   faChevronLeft,
   faCircleCheck,
+  faCircleInfo,
+  faDiagramProject,
   faCopy
 } from "@fortawesome/free-solid-svg-icons";
 
@@ -61,6 +63,8 @@ const icons: IconDefinition[] = [
   faChevronRight,
   faChevronLeft,
   faCircleCheck,
+  faCircleInfo,
+  faDiagramProject,
   faCircle as unknown as IconDefinition,
   faCopy
 ];

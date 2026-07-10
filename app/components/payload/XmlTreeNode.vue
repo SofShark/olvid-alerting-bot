@@ -4,9 +4,10 @@ import { computed } from "vue";
 /*
   Renders parsed XML as it would look in the original document:
 
-    <sens_termica>
-      <maxima>41</maxima>
-      <dato hora="06">23</dato>
+    <sens_termica>  => tag name
+      Sensacion térimica  => text node
+      <maxima>41</maxima>  => child element with primitive value
+      <dato hora="06">23</dato> => child element with attr + primitive value
       <dato hora="12">39</dato>
     </sens_termica>
 
@@ -113,7 +114,6 @@ function onLineClick() {
   </template>
 
   <!-- Primitive value inline: `<name>value</name>`. -->
-  
 
   <template v-else-if="!isBranch">
 

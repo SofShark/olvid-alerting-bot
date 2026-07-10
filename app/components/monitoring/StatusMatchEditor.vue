@@ -6,20 +6,20 @@ import type {
   StatusMatch,
   HttpRange,
 } from "#shared/types/monitor";
-import { TriggerMode } from "#shared/types/polling";
 import { isStatusMatchValid } from "#shared/polling/matcher";
 
 /*
   Step 2 for Monitoring alerts — the analogue of ConditionEditor for
-  Polling. Three mutually-exclusive match modes (kind) plus the shared
-  TriggerMode selector. Each mode gates its own extra input:
+  Polling. Three mutually-exclusive match modes (kind); each gates its
+  own extra input. The firing behavior (trigger mode + datapoints) is
+  rendered separately by the wizard step via FiringBehaviorPanel, so
+  this component is only concerned with the STATUS MATCH shape.
 
     codes  → chips + numeric input for HTTP codes (200, 404, 503, …).
     range  → dropdown 2xx | 3xx | 4xx | 5xx.
     not-ok → nothing (any non-2xx will fire).
 
-  Emits a fully-formed MonitorParams patch back to the wizard's form so
-  the setter mirrors the ConditionEditor contract.
+  Emits a fully-formed MonitorParams patch back to the wizard's form.
 */
 
 const form = defineModel<AlertModel>({ required: true });
@@ -108,43 +108,9 @@ function setRange(r: HttpRange) {
   patchParams({ match: { kind: "range", range: r } });
 }
 
-// ── Trigger mode (reused from polling) ────────────────────────────────────
-
-const TRIGGER_MODE_OPTIONS: Array<{
-  value: TriggerMode;
-  label: string;
-  hint: string;
-}> = [
-  {
-    value: TriggerMode.EveryTime,
-    label: "Every time",
-    hint: "Fire on every poll where the status matches.",
-  },
-  {
-    value: TriggerMode.OneShot,
-    label: "Once",
-    hint: "Fire only the first time the status matches (transition into matching).",
-  },
-  {
-    value: TriggerMode.WithRecovery,
-    label: "Once + on recovery",
-    hint: "Fire once, then again when the status stops matching (recovery).",
-  },
-];
-
-const selectedTriggerMode = computed<TriggerMode>(
-  () => params.value.triggerMode ?? TriggerMode.EveryTime,
-);
-
-function setTriggerMode(v: string) {
-  patchParams({ triggerMode: v as TriggerMode });
-}
-
-const triggerModeHint = computed(
-  () =>
-    TRIGGER_MODE_OPTIONS.find((o) => o.value === selectedTriggerMode.value)
-      ?.hint,
-);
+// Trigger mode + firing behavior now live one level up (StepTrigger),
+// via the shared <FiringBehaviorPanel>. This editor is now just the
+// STATUS MATCH shape — nothing about "when does the match notify".
 
 // ── Emit helper ───────────────────────────────────────────────────────────
 
@@ -265,24 +231,6 @@ const summaryLabel = computed(() => {
       </div>
     </div>
 
-    <!-- ── Trigger mode ─────────────────────────────────────────────── -->
-    <div class="field trigger-mode-field">
-      <label class="field-label">Trigger mode</label>
-      <select
-        :value="selectedTriggerMode"
-        class="field-input"
-        @change="setTriggerMode(($event.target as HTMLSelectElement).value)"
-      >
-        <option
-          v-for="opt in TRIGGER_MODE_OPTIONS"
-          :key="opt.value"
-          :value="opt.value"
-        >
-          {{ opt.label }}
-        </option>
-      </select>
-      <span class="field-hint">{{ triggerModeHint }}</span>
-    </div>
   </div>
 </template>
 
@@ -426,9 +374,6 @@ const summaryLabel = computed(() => {
 }
 
 /* Verdict strip now delegated to ui/VerdictStrip (shared with the
- * polling ConditionEditor). Local styles removed to avoid divergence. */
-
-.trigger-mode-field {
-  max-width: 420px;
-}
+ * polling ConditionEditor). Trigger mode field delegated to
+ * ui/TriggerModePicker. Local styles removed to avoid divergence. */
 </style>

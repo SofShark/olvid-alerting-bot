@@ -10,7 +10,7 @@ import type { AlertModel } from "#shared/types/alert";
 import { getPollingParams } from "#shared/types/alert";
 import { ConditionOperator } from "#shared/types/condition";
 import { conditionEvaluator } from "#shared/condition/conditionEvaluator";
-import { firePolicy } from "#shared/condition/firePolicy";
+import { FireDecision, firePolicy } from "#shared/condition/firePolicy";
 
 export const pollingStrategy: DispatchStrategy = {
   async execute(alert: AlertModel): Promise<DispatchResult> {
@@ -40,7 +40,7 @@ export const pollingStrategy: DispatchStrategy = {
     );
 
     // 3) Apply the trigger-mode policy (EveryTime / OneShot / WithRecovery).
-    const decision = firePolicy.decide(
+    const decision: FireDecision = firePolicy.decide(
       params.condition,
       params.triggerMode,
       evaluation.fired,

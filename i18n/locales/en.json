@@ -137,6 +137,35 @@
     "errors": {
       "saving": "Error saving alert:",
       "deleting": "Error deleting alert:"
+    },
+
+    "triggerMode": {
+      "fieldLabel": "Trigger mode",
+      "labels": {
+        "every-time": "Every time",
+        "one-shot": "Once",
+        "with-recovery": "Once + on recovery"
+      },
+      "hints": {
+        "polling": {
+          "every-time": "Fire on every poll while the condition is met.",
+          "one-shot": "Fire only on the first poll where the condition becomes true.",
+          "with-recovery": "Fire once, then again when the condition no longer holds."
+        },
+        "monitoring": {
+          "every-time": "Fire on every poll where the status matches.",
+          "one-shot": "Fire only the first time the status matches (transition into matching).",
+          "with-recovery": "Fire once, then again when the status stops matching (recovery)."
+        }
+      }
+    },
+
+    "firingBehavior": {
+      "title": "Firing behavior",
+      "triggerModeLabel": "Trigger mode",
+      "datapointsLabel": "Datapoints",
+      "datapointsSentence": "Fire after {n} of the last {m} evaluations match.",
+      "datapointsHint": "Reduce false alarms by waiting for consecutive confirmations. Default 1 of 1 (fire immediately)."
     }
   },
 

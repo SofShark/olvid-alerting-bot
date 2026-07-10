@@ -47,3 +47,26 @@ export type MonitorParams = {
   /** Epoch ms of the last completed probe attempt (success or failure). */
   _lastPolledAt?: number;
 };
+
+
+
+/** Shape handed to the notifier and returned by /api/monitor/probe.
+ *  Kept flat so Handlebars templates can reference `{{status}}`,
+ *  `{{body}}`, `{{url}}`, `{{latencyMs}}` without ceremony. */
+
+export type MonitorProbePayload = {
+  status: number;
+  statusText: string;
+  ok: boolean;
+
+  url: string;
+  body?: string;
+
+  latencyMs: number;
+  redirected: boolean;
+  type: ResponseType;
+
+  contentType?: string | null;
+  contentLength?: number | null;
+  headers?: Record<string, string>;
+};

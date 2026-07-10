@@ -65,7 +65,7 @@ const statusModel = computed({
 
     <p v-if="description" class="view-subtitle">{{ description }}</p>
   </div>
-</template>
+</template> 
 
 <style scoped>
 .view-head {

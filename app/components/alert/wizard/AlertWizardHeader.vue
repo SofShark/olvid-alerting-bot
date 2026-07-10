@@ -16,7 +16,7 @@ defineEmits<{
   (e: "back"): void;
 }>();
 </script>
-
+ 
 <template>
   <div class="panel-head">
     <div class="head-left">
@@ -85,7 +85,7 @@ defineEmits<{
   outline: none;
   border-bottom: 1px dashed transparent;
   color: var(--color-text-primary);
-  font-size: var(--text-xl);
+  font-size: var(--text-l);
   font-weight: 600;
   line-height: 1.2;
   padding: 2px var(--space-2);
@@ -109,22 +109,42 @@ defineEmits<{
 
 .description-input {
   margin: 0;
+  font-size: var(--text-md);
+  font-size: var(--text-md);
+  font-weight: 400;
+  font-style: italic;
+  color: var(--color-text-faint);
+  
   width: 100%;
+  line-height: 1.2;
+
   background: transparent;
   border: none;
   outline: none;
   border-bottom: 1px dashed transparent;
-  color: var(--color-text-muted);
-  font-size: var(--text-base);
-  font-weight: 400;
-  line-height: 1.4;
+  /*color: var(--color-text-muted)*/;
+  
+  
   padding: 2px var(--space-2);
-  font-family: inherit;
+  /*font-family: inherit;*/
+
   transition:
     background-color 0.15s ease,
     border-bottom-color 0.15s ease,
     color 0.15s ease;
 }
+
+
+.view-subtitle {
+ 
+  
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: var(--space-1);
+}
+
 .description-input::placeholder {
   color: var(--color-text-faint);
   font-style: italic;

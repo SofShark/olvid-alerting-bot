@@ -8,8 +8,8 @@
 
 import {
   MONITOR_BODY_PREVIEW_MAX,
-  type MonitorProbePayload,
 } from "~~/server/services/dispatchers/monitoringStrategy";
+import type { MonitorProbePayload } from "#shared/types/monitor";
 import { getErrorMessage } from "~/utils/errors";
 
 type ProbeResponse =
@@ -33,18 +33,10 @@ export default defineEventHandler(async (event): Promise<ProbeResponse> => {
     } catch {
       bodyPreview = "";
     }
-    
+
     return {
       ok: true,
-      /*probe: {
-        status: res.status,
-        url,
-        body: bodyPreview,
-        latencyMs: Date.now() - t0,
-        redirected: res.redirected,
-        type: res.type,
-      },*/
-
+      
       probe:{
 
         status: res.status,

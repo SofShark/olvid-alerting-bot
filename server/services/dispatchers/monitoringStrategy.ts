@@ -29,7 +29,7 @@ import {
 import { firePolicy } from "#shared/condition/firePolicy";
 import { statusMatches } from "#shared/polling/matcher";
 import { getErrorMessage } from "~/utils/errors";
-
+import { MonitorProbePayload } from "#shared/types/monitor";
 // firePolicy special-cases kind=None and operator=Changed (edge-native
 // conditions). Monitoring wants the STANDARD path, where trigger modes
 // apply — this synthetic rule keeps it there. Only `kind` and `operator`
@@ -47,27 +47,6 @@ const SYNTHETIC_RULE: PollingCondition = {
  *  receive at fire time. */
 export const MONITOR_BODY_PREVIEW_MAX = 100;
 
-/** Shape handed to the notifier and returned by /api/monitor/probe.
- *  Kept flat so Handlebars templates can reference `{{status}}`,
- *  `{{body}}`, `{{url}}`, `{{latencyMs}}` without ceremony. */
-
-export type MonitorProbePayload = {
-  status: number;
-  statusText: string;
-  ok: boolean;
-
-  url: string;
-  body?: string;
-
-  latencyMs: number;
-
-  redirected: boolean;
-  type: ResponseType;
-
-  contentType?: string | null;
-  contentLength?: number | null;
-  headers?: Record<string, string>;
-};
 
 export const monitoringStrategy: DispatchStrategy = {
   async execute(alert: AlertModel): Promise<DispatchResult> {
@@ -79,7 +58,7 @@ export const monitoringStrategy: DispatchStrategy = {
       };
     }
 
-    // 1) Probe. Capture status + body preview + latency; do NOT throw on
+    // 1) Capture status + body preview + latency; do NOT throw on
     //    4xx/5xx — those are legitimate outcomes. Only network / abort
     //    errors bail out through the catch.
     const t0 = Date.now();

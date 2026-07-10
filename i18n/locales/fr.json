@@ -137,6 +137,35 @@
     "errors": {
       "saving": "Erreur lors de l'enregistrement de l'alerte :",
       "deleting": "Erreur lors de la suppression de l'alerte :"
+    },
+
+    "triggerMode": {
+      "fieldLabel": "Mode de déclenchement",
+      "labels": {
+        "every-time": "À chaque fois",
+        "one-shot": "Une fois",
+        "with-recovery": "Une fois + à la récupération"
+      },
+      "hints": {
+        "polling": {
+          "every-time": "Déclenche à chaque scrutation tant que la condition est vraie.",
+          "one-shot": "Déclenche uniquement à la première scrutation où la condition devient vraie.",
+          "with-recovery": "Déclenche une fois, puis à nouveau quand la condition n'est plus vraie."
+        },
+        "monitoring": {
+          "every-time": "Déclenche à chaque scrutation où le statut correspond.",
+          "one-shot": "Déclenche uniquement la première fois que le statut correspond (transition vers l'état correspondant).",
+          "with-recovery": "Déclenche une fois, puis à nouveau quand le statut ne correspond plus (récupération)."
+        }
+      }
+    },
+
+    "firingBehavior": {
+      "title": "Comportement au déclenchement",
+      "triggerModeLabel": "Mode de déclenchement",
+      "datapointsLabel": "Points de données",
+      "datapointsSentence": "Déclencher après que {n} des {m} dernières évaluations correspondent.",
+      "datapointsHint": "Réduit les fausses alertes en attendant des confirmations consécutives. Par défaut 1 sur 1 (déclenche immédiatement)."
     }
   },
 

@@ -70,20 +70,18 @@ const {
       <div class="watched-actions">
         <button
           type="button"
-          class="btn btn-primary"
-          small
+          class="btn btn-ghost btn-sm"
           @click="startAdding"
         >
-          <span class="add-icon">✎</span>
+          <FontAwesomeIcon :icon="['fas', 'pencil']" class="btn-icon" />
           {{ $t("conditionEditor.watchedFields.typePath") }}
         </button>
         <button
           type="button"
-          class="btn btn-primary"
-          small
+          class="btn btn-ghost btn-sm"
           @click="emit('open-picker')"
         >
-          <span class="add-icon">⊞</span>
+          <FontAwesomeIcon :icon="['fas', 'diagram-project']" class="btn-icon" />
           {{ $t("conditionEditor.watchedFields.pickFromSource") }}
         </button>
       </div>
@@ -159,18 +157,18 @@ const {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 .watched-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  gap: var(--space-2);
   align-items: center;
   flex-shrink: 0;
 }
-.add-icon {
-  font-size: var(--text-base);
-  line-height: 1;
+.btn-icon {
+  font-size: var(--text-sm);
+  opacity: 0.85;
 }
 
 .rule-label {
@@ -188,17 +186,17 @@ const {
 
 .rule-hint {
   margin: 0;
-  color: var(--color-text-muted);
-  font-size: var(--text-md);
+  color: var(--color-text-dim);
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 .rule-hint code {
-  color: var(--color-accent-text);
+  color: var(--color-text-secondary);
   background: var(--color-border-subtle);
-  padding: 1px 5px;
+  padding: 0 4px;
   border-radius: 3px;
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-size: 0.9em;
 }
 
 .add-error {
@@ -213,9 +211,29 @@ const {
   flex-wrap: wrap;
   gap: var(--space-2);
   align-items: center;
+  padding: var(--space-1) 0;
 }
+
+/* Compact monospace chips — reads like a code token, not a fluffy tag.
+ * `×` hides until hover to reduce visual noise (git-style). */
 .chip {
-  padding: 3px var(--space-1) 3px var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 3px var(--space-2) 3px var(--space-3);
+  background: var(--color-border-subtle);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.chip:hover {
+  border-color: var(--color-border-strong);
+}
+.chip:hover .chip-x {
+  opacity: 1;
 }
 .chip-path {
   white-space: nowrap;
@@ -223,20 +241,23 @@ const {
 .chip-x {
   background: transparent;
   border: none;
-  color: var(--color-accent-text);
-  font-size: var(--text-lg);
+  color: var(--color-text-dim);
+  font-size: var(--text-md);
   line-height: 1;
-  padding: 0 var(--space-1);
+  padding: 0 2px;
   cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s, color 0.15s;
 }
 .chip-x:hover {
-  color: var(--color-text-on-accent);
+  color: var(--color-danger);
+  opacity: 1;
 }
 
 .chips-empty {
   margin: 0;
   color: var(--color-text-faint);
-  font-size: var(--text-md);
+  font-size: var(--text-sm);
   font-style: italic;
 }
 

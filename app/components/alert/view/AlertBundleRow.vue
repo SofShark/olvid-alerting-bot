@@ -41,8 +41,24 @@ const displayName = computed(() => props.bundle.name || "Untitled bundle");
 
 const destCount = computed(() => props.bundle.discussion_list.length);
 const destSummary = computed(() => {
-  if (destCount.value === 0) return "No destinations";
-  return `${destCount.value} destination${destCount.value === 1 ? "" : "s"}`;
+  const count = destCount.value;
+
+  if (count === 0) return "No destinations";
+
+  // Extraemos de forma segura los títulos de los 2 primeros elementos
+  const firstTwoNames = props.bundle.discussion_list
+    .slice(0, 2)
+    .map(dest => dest.title)
+    .join(', '); // Si solo hay 1, ignora la coma y devuelve solo ese nombre
+
+  if (count <= 2) {
+    return firstTwoNames;
+  }
+
+  // Si hay más de 2, calculamos los restantes y el plural
+  const remaining = count - 2;
+  const plural = remaining === 1 ? '' : 's';
+  return `${firstTwoNames}, and ${remaining} more discussion${plural}`;
 });
 </script>
 
