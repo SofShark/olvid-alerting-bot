@@ -31,9 +31,8 @@ const copyWebhook = () => {
       "
       @click="copyWebhook"
     >
-    <span v-if="copied"> ✓ </span>
-    <span v-else > <FontAwesomeIcon class="clipboard-icon" :icon="['fas', 'copy']"/>  </span>
-      <!--span class="copy-icon"> {{ copied ? "✓" : "📋" }}</span-->
+      <span v-if="copied"> ✓ </span>
+      <span v-else > <FontAwesomeIcon class="clipboard-icon" :icon="['fas', 'copy']"/>  </span>
     </button>
   </div>
 </template>

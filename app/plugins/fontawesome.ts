@@ -23,7 +23,10 @@ import {
   faCircleCheck,
   faCircleInfo,
   faDiagramProject,
-  faCopy
+  faCopy,
+  faEllipsisVertical,
+  faUserGear,
+  faLeftRight,
 } from "@fortawesome/free-solid-svg-icons";
 
 import { 
@@ -66,7 +69,10 @@ const icons: IconDefinition[] = [
   faCircleInfo,
   faDiagramProject,
   faCircle as unknown as IconDefinition,
-  faCopy
+  faCopy,
+  faEllipsisVertical,
+  faUserGear,
+  faLeftRight
 ];
 
 library.add(...icons);

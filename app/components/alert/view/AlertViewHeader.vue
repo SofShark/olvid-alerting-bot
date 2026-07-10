@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { computed } from "vue";
 import type { AlertStatus } from "#shared/types/alert";
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+
+
+
 
 /*
   View-mode page header. Two rows in one block:
@@ -19,6 +22,37 @@ const props = defineProps<{
   canActivate: boolean;
 }>();
 
+const options = ref(false)
+const optionsRef = ref<HTMLElement | null>(null);
+
+function toggleOptions() {
+  options.value = !options.value;
+}
+
+function closeOptions() {
+  options.value = false;
+}
+
+function onClickOutside(e: MouseEvent) {
+  if (
+    optionsRef.value &&
+    !optionsRef.value.contains(e.target as Node)
+  ) {
+    options.value = false;
+  }
+}
+
+onMounted(() =>
+  document.addEventListener("click", onClickOutside),
+);
+
+onBeforeUnmount(() =>
+  document.removeEventListener("click", onClickOutside),
+);
+
+
+
+
 defineEmits<{
   (e: "edit"): void;
   (e: "delete"): void;
@@ -29,6 +63,7 @@ const statusModel = computed({
   get: () => props.status,
   set: () => {},
 });
+
 </script>
 
 <template>
@@ -52,14 +87,67 @@ const statusModel = computed({
         >
           {{ $t("editor.header.editAlert") }}
         </button>
-        <button
-          type="button"
-          class="btn btn-danger-ghost btn-sm"
-          :title="$t('button.delete')"
-          @click="$emit('delete')"
-        >
-          <FontAwesomeIcon :icon="['fas', 'trash-can']" />
-        </button>
+        
+
+        <div ref="optionsRef" class="options-wrap">
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            :class="{ open: options }"
+            @click="toggleOptions"
+          >
+            <FontAwesomeIcon
+              :icon="['fas', 'ellipsis-vertical']"
+              class="optionMenuIcon"
+            />
+          </button>
+
+          <div
+            v-if="options"
+            class="options-dropdown"
+          >
+            <button
+              class="options-item"
+              @click="closeOptions"
+            >
+              Duplicate
+              
+              <FontAwesomeIcon :icon="['fas', 'copy']" />
+              
+            </button>
+
+            <button
+              class="options-item"
+              @click="closeOptions"
+            > 
+              Manage Access
+              <FontAwesomeIcon :icon="['fas', 'user-gear']" />
+            </button>
+
+            <button
+              class="options-item"
+              @click="closeOptions"
+            >
+              Move to project
+              <FontAwesomeIcon :icon="['fas', 'left-right']" />
+              
+            </button>
+
+            <div class="options-separator" />
+
+            <button
+              class="options-item danger"
+              @click="
+                closeOptions();
+                $emit('delete');
+              "
+            >
+               {{ $t("button.delete") }}
+              <FontAwesomeIcon :icon="['fas', 'trash-can']" />
+            </button>
+          </div>
+        </div>
+    
       </div>
     </div>
 
@@ -72,7 +160,7 @@ const statusModel = computed({
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: var(--space-2);
+  gap: var(--space-);
   padding: var(--space-4) var(--space-6);
 }
 .head-main {
@@ -90,6 +178,8 @@ const statusModel = computed({
   flex-shrink: 0;
   gap: var(--space-4);
 }
+
+
 .view-title {
   display: flex;
   align-items: center;  
@@ -123,6 +213,7 @@ const statusModel = computed({
   text-overflow: ellipsis;
   padding-left: var(--space-1);
 }
+
 .head-meta {
   display: flex;
   align-items: center;
@@ -146,5 +237,79 @@ const statusModel = computed({
 .meta-dim {
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
+}
+
+/*TODO : Reuse */
+
+.optionMenuIcon {
+  font-size: 14px;
+}
+
+.options-wrap {
+  position: relative;
+}
+
+.options-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+
+  min-width: 180px;
+
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+
+  padding: var(--space-1);
+
+  display: flex;
+  flex-direction: column;
+
+  z-index: 200;
+}
+
+.options-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+
+  width: 100%;
+  padding: 8px var(--space-3);
+
+  text-align: left;
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  font-weight: 500;
+
+  color: var(--color-text-secondary);
+  cursor: pointer;
+
+  transition:
+    background-color .15s,
+    color .15s;
+}
+
+.options-item:hover {
+  background: var(--color-bg-card-soft);
+  color: var(--color-text-primary);
+}
+
+.options-item.danger {
+  color: var(--color-danger);
+}
+
+.options-item.danger:hover {
+  background: var(--color-danger-soft);
+}
+
+.options-separator {
+  height: 1px;
+  margin: var(--space-1) 0;
+  background: var(--color-border-subtle);
 }
 </style>
