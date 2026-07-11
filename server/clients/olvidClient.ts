@@ -49,7 +49,7 @@ export const olvidClient = {
     }
   },
 
-  async getDiscussions() {
+  async getDiscussions() : Promise<datatypes.Discussion[]> {
     try {
       const discussions = client.discussionList();
       const arrayDiscussions: any[] = [];
@@ -86,4 +86,5 @@ export const olvidClient = {
       return null;
     }
   },
+  
 };
