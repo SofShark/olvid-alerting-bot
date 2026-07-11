@@ -17,7 +17,7 @@ export type BundleStatus = { kind: BundleStatusKind; label: string };
 
 export const useBundleStatus = () => {
   const bundleStatus = (b: BundleModel): BundleStatus => {
-    if (b.discussion_list.length === 0) {
+    if (b.outputs.length === 0) {
       return { kind: "no-dest", label: "No destinations" };
     }
     const needsScript =

@@ -1,78 +1,40 @@
-// Alert + Bundle data access. PURE persistence — no business rules.
+// Alert data access — the aggregate-root repository. PURE persistence,
+// no business rules.
 //
-// What lives here:
-//   - CRUD against AlertTable and its children (Bundle, LastAlertPayload, LastFailedPayload).
-//   - BigInt ⇄ string serialization at the API boundary.
-//   - discussion_list shape coercion (object | id | string-csv → bigint[]).
+// The alert aggregate spans three tables:
+//   AlertTable ──1:N── Bundle ──1:N── BundleOutput
+//
+// Each level has its own repo file:
+//   · alertRepository        (this file)        → AlertTable
+//   · alertBundleRepository  (sibling)          → Bundle
+//   . alertPayloadRepository  (sibling)         
+//   · alertOutputRepository  (grand-sibling)    → BundleOutput
+//
+// This file OWNS AlertTable writes and orchestrates the child writes via
+// `prisma.$transaction` so the whole graph commits atomically. Reads use
+// nested `include`s and compose the wire response by delegating
+// serialization down (`serializeBundle` from alertBundleRepository).
 //
 // What does NOT live here:
-//   - "An alert can't be activated without bundles" → that's a domain rule
-//     (lives in alertService.ts).
-//   - "computeStatus" → domain rule, alertService.
-//
-// Two of the bdManager.ts methods crossed both concerns; we split them:
-//   - createAlert(data)              → alertService.createAlert    (rule)
-//                                     → alertRepository.create     (this file)
-//   - updateAlert(id, data)          → alertService.updateAlert    (rule)
-//                                     → alertRepository.update     (this file)
-//   - updateStatus(id, status)       → alertService.setStatus      (rule)
-//                                     → alertRepository.setStatusRaw (this file)
-//
-// Everything else (reads, delete, payload upserts) is pass-through —
-// callers can import the repo directly when they don't need the service.
+//   - "An alert can't be activated without bundles" → alertService (rule).
+//   - "computeStatus" → alertService (rule).
+//   - Bundle row shape / creation → alertBundleRepository.
+//   - BundleOutput row shape / creation → alertOutputRepository.
 
 import { AlertStatus } from "#shared/types/alert";
 import { Source } from "#shared/types/source";
-import { prisma } from "#server/db/prisma"
+import { prisma } from "#server/db/prisma";
 import { BundleModel } from "~~/shared/types/bundle";
+import {
+  alertBundleRepository,
+  serializeBundle,
+} from "./alertBundleRepository";
 
-// ── BigInt / shape helpers ────────────────────────────────────────────────
-
-/**
- * discussion_list arrives in many shapes:
- *   - array of objects ({ id }), or
- *   - array of bare ids (string | number | bigint), or
- *   - comma-separated string.
- * Returns a clean BigInt[] for Prisma.
- */
-function parseDiscussionList(list: any): bigint[] {
-  if (!list) return [];
-
-  let ids: any[];
-  if (typeof list === "string") {
-    ids = list
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-  } else if (Array.isArray(list)) {
-    ids = list.map((item) =>
-      item && typeof item === "object" ? item.id : item,
-    );
-  } else {
-    return [];
-  }
-
-  return ids
-    .filter((id: any) => id !== null && id !== undefined && id !== "")
-    .map((id: any) => BigInt(id));
-}
-
-function toBundleCreate(bundle: any) {
-  return {
-    name: bundle.name ?? null,
-    discussion_list: parseDiscussionList(bundle.discussion_list),
-    formating: bundle.formating ?? "Unformatted",
-    custom_script: bundle.custom_script ?? null,
-  };
-}
-
-// BigInt -> string on the way out (JSON-safe for the frontend).
-function serializeBundle(bundle: any) {
-  return {
-    ...bundle,
-    discussion_list: bundle.discussion_list.map((id: bigint) => id.toString()),
-  };
-}
+// ── Serializer ──────────────────────────────────────────────────────────
+// The aggregate's read-side transformation. Delegates each bundle to
+// alertBundleRepository.serializeBundle (which in turn delegates outputs
+// to alertOutputRepository.serializeOutput) so no layer knows about the
+// deeper shapes.
 
 function serializeAlert(alert: any) {
   return {
@@ -80,6 +42,11 @@ function serializeAlert(alert: any) {
     bundles: (alert.bundles ?? []).map(serializeBundle),
   };
 }
+
+/** Nested include shape used by every read so the full aggregate is hydrated in one query. */
+const ALERT_INCLUDE = {
+  bundles: { include: { outputs: true } },
+} as const;
 
 // ── Repository ────────────────────────────────────────────────────────────
 
@@ -89,7 +56,7 @@ export const alertRepository = {
   async getAll() {
     const rows = await prisma.alertTable.findMany({
       orderBy: { createdAt: "desc" },
-      include: { bundles: true },
+      include: ALERT_INCLUDE,
     });
     return rows.map(serializeAlert);
   },
@@ -98,43 +65,45 @@ export const alertRepository = {
    * All active alerts whose input drives a scheduled probe (Polling or
    * Monitoring). Webhook alerts are excluded — they're push-driven and
    * the heartbeat has no work to do for them.
-   *
-   * Renamed from `getActivePolling` when Monitoring joined the family;
-   * the shape of every row is still an AlertModel — callers branch by
-   * `alert.input` if they need source-specific behaviour.
    */
-  async getActiveScheduled(){
+  async getActiveScheduled() {
     const rows = await prisma.alertTable.findMany({
       where: {
         status: AlertStatus.Active,
         input: { in: [Source.Polling, Source.Monitoring] },
       },
-      include: {bundles: true}
-    })
-    return rows.map(serializeAlert)
+      include: ALERT_INCLUDE,
+    });
+    return rows.map(serializeAlert);
   },
 
+  /** Returns the corresponding alert row with alert_id = id in database */
   async getById(id: number) {
     const row = await prisma.alertTable.findUnique({
       where: { id },
-      include: { bundles: true },
+      include: ALERT_INCLUDE,
     });
     if (!row) return null;
     return serializeAlert(row);
   },
 
-  /** Used by the webhook endpoint. Keeps BigInt ids — the notifier
-   *  converts them itself when sending to Olvid. */
+  /** Used by the webhook endpoint. Same include chain as every other read. */
   async getByToken(token: string) {
     const row = await prisma.alertTable.findUnique({
       where: { token },
-      include: { bundles: true },
+      include: ALERT_INCLUDE,
     });
     return row ? serializeAlert(row) : null;
   },
 
   // ── Mutations (bare — no domain rules) ──────────────────────────────────
 
+  /**
+   * Atomically create an alert + its bundles + each bundle's outputs.
+   * The three layers of the aggregate all commit or all abort. Child
+   * writes go through alertBundleRepository (which in turn hands off
+   * outputs to alertOutputRepository); this file only touches AlertTable.
+   */
   async create(data: {
     title: string;
     description?: string | null;
@@ -143,24 +112,33 @@ export const alertRepository = {
     alertParams?: any;
     bundles?: BundleModel[];
   }) {
-    const incomingBundles: any[] = Array.isArray(data.bundles)
-      ? data.bundles
-      : [];
-    const created = await prisma.alertTable.create({
-      data: {
-        title: data.title,
-        description: data.description ?? null,
-        input: data.input,
-        alertParams: data.alertParams ?? null,
-        status: data.status,
-        bundles: { create: incomingBundles.map(toBundleCreate) },
-      },
-      include: { bundles: true },
+    return await prisma.$transaction(async (tx) => {
+      const row = await tx.alertTable.create({
+        data: {
+          title: data.title,
+          description: data.description ?? null,
+          input: data.input,
+          alertParams: data.alertParams ?? null,
+          status: data.status,
+        },
+      });
+      await alertBundleRepository.createForAlert(tx, row.id, data.bundles);
+
+      // Re-fetch with the full include so the returned aggregate matches
+      // getById's shape. Costs one extra round-trip inside the transaction
+      // but keeps callers oblivious to Prisma's write-response semantics.
+      const full = await tx.alertTable.findUnique({
+        where: { id: row.id },
+        include: ALERT_INCLUDE,
+      });
+      return serializeAlert(full);
     });
-    return serializeAlert(created);
   },
 
-  /** Full overwrite — deletes existing bundles, recreates from `data.bundles`. */
+  /**
+   * Full overwrite — replaces every bundle (and their outputs, via
+   * cascade) with the incoming list. Same atomicity contract as create.
+   */
   async update(
     id: number,
     data: {
@@ -172,25 +150,27 @@ export const alertRepository = {
       bundles?: any[];
     },
   ) {
-    const incomingBundles: any[] = Array.isArray(data.bundles)
-      ? data.bundles
-      : [];
+    return await prisma.$transaction(async (tx) => {
+      await alertBundleRepository.deleteAllForAlert(tx, id);
 
-    await prisma.bundle.deleteMany({ where: { alertId: id } });
+      await tx.alertTable.update({
+        where: { id },
+        data: {
+          title: data.title,
+          description: data.description ?? null,
+          input: data.input,
+          alertParams: data.alertParams ?? null,
+          status: data.status,
+        },
+      });
+      await alertBundleRepository.createForAlert(tx, id, data.bundles);
 
-    const updated = await prisma.alertTable.update({
-      where: { id },
-      data: {
-        title: data.title,
-        description: data.description ?? null,
-        input: data.input,
-        alertParams: data.alertParams ?? null,
-        status: data.status,
-        bundles: { create: incomingBundles.map(toBundleCreate) },
-      },
-      include: { bundles: true },
+      const full = await tx.alertTable.findUnique({
+        where: { id },
+        include: ALERT_INCLUDE,
+      });
+      return serializeAlert(full);
     });
-    return serializeAlert(updated);
   },
 
   /** Status-only update. No activation rules — caller has already decided. */
@@ -198,7 +178,7 @@ export const alertRepository = {
     const updated = await prisma.alertTable.update({
       where: { id },
       data: { status },
-      include: { bundles: true },
+      include: ALERT_INCLUDE,
     });
     return serializeAlert(updated);
   },

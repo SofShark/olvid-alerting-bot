@@ -69,7 +69,7 @@ export default defineEventHandler(async (event) => {
       /* body already consumed */
     }
     const msg = parseErr?.message ?? "Failed to read request body";
-    await alertRepository.upsertLastFailedPayload(alert.id, {
+    await alertPayloadRepository.upsertLastFailedPayload(alert.id, {
       raw: rawBody,
       error: msg,
       stage: "parse",
@@ -98,7 +98,7 @@ export default defineEventHandler(async (event) => {
     // Persist the body as this alert's last-received payload. Keyed by alert
     // id, so two webhook alerts with the same source no longer overwrite each
     // other's history.
-    await alertRepository.upsertLastAlertPayload(alert.id, payload);
+    await alertPayloadRepository.upsertLastAlertPayload(alert.id, payload);
     await safeLog(alert.id, "success");
   } catch (error: any) {
     const msg = error?.message ?? "Unknown error during processAlert";
@@ -107,7 +107,7 @@ export default defineEventHandler(async (event) => {
     // have a structured `parsed` value; `raw` is left null since we'd have
     // to re-serialize (which would lose info for non-JSON bodies anyway).
     try {
-      await alertRepository.upsertLastFailedPayload(alert.id, {
+      await alertPayloadRepository.upsertLastFailedPayload(alert.id, {
         parsed: payload ?? null,
         error: msg,
         stage: "process",

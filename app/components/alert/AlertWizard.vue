@@ -112,7 +112,7 @@ const buildPayload = (status: AlertStatus) => {
       name: b.name,
       formating: b.formating,
       custom_script: b.custom_script,
-      discussion_list: b.discussion_list.map((d) => d.id),
+      outputs: b.outputs,
     })),
   };
 };
