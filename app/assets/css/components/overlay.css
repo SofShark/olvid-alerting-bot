@@ -18,7 +18,37 @@
   border-radius: var(--radius-xl);
   padding: var(--space-8);
   box-shadow: var(--shadow-overlay);
+  /* Width fallback for consumers that don't pass a `size` prop.
+   * Individual size modifiers below narrow this cap. */
+  width: min(92vw, 560px);
+  box-sizing: border-box;
 }
+
+/* Size modifiers — one class per Modal `size` prop value. Every size
+ * caps at 92vw so no mobile overflow, then adds its own max.
+ *
+ * The compact cap was tuned to fit a 3-button prompt in a wordy
+ * locale (French: "Enregistrer en brouillon" + "Continuer l'édition"
+ * + "Abandonner" ≈ 420px of button content alone, before padding).
+ * Two-button prompts still look centred at this width. */
+.overlay-box--compact {
+  width: min(92vw, 500px);
+}
+.overlay-box--default {
+  width: min(92vw, 560px);
+}
+.overlay-box--wide {
+  width: min(92vw, 700px);
+}
+.overlay-box--full {
+  width: 92vw;
+  max-width: 700px;
+  height: 80vh;
+  /* Padding removed so the modal owns its own scrolling shell — the
+   * caller (e.g. BundleEditDialog) handles head/body/foot layout. */
+  padding: 0;
+}
+
 .overlay-box h4 {
   margin: 0 0 var(--space-3);
   color: var(--color-text-primary);
@@ -32,6 +62,15 @@
 
 .overlay-actions {
   display: flex;
-  justify-content: flex-end;
   gap: var(--space-4);
+  /* Distribute across the row so an optional "extra" button (e.g. wizard's
+   * "Save as draft") lands on the left while cancel/confirm sit on the
+   * right — same visual convention as GitHub / Linear delete prompts.
+   * `flex-wrap` is a safety net: if a caller with very long labels
+   * (French, German…) or a narrow viewport can't fit everything on one
+   * row, the primary-actions group breaks to a new line instead of
+   * overflowing the modal. */
+  justify-content: space-between;
+  flex-wrap: wrap;
+  row-gap: var(--space-3);
 }

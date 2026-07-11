@@ -179,7 +179,7 @@ const onSaveDraftAndLeave = async () => {
 
 <template>
   <div class="wizard-root">
-    <DiscardChangesDialog
+    <DiscardChangesDialog 
       :open="showDiscardPrompt"
       :can-save-draft="canSaveDraft"
       :saving="saving"

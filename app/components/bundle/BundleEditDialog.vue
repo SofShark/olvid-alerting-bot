@@ -206,7 +206,7 @@ const onSave = () => {
 </script>
 
 <template>
-  <Modal :open="open" :close-on-backdrop="false" @close="requestClose">
+  <Modal :open="open" size="full" :close-on-backdrop="false" @close="requestClose">
     <div class="bundle-edit-modal">
       <FormatEditor
         v-if="isEditorOpen && draft"
@@ -322,10 +322,12 @@ const onSave = () => {
 </template>
 
 <style scoped>
+/* Sizing (92vw × 80vh, capped at 700px) is provided by
+ * <Modal size="full"> — see overlay-box--full in overlay.css. This
+ * wrapper only owns the flex layout of head/body/foot. */
 .bundle-edit-modal {
-  width: 92vw;
-  max-width: 700px;
-  height: 80vh;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
 }
