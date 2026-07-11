@@ -2,6 +2,8 @@
 // utils/ so Nuxt's auto-import picks it up — sub-directory scanning is
 // inconsistent across Nuxt versions.
 
+// TODO fix implicitly has return type 'any' because it does not have a return type annotation
+
 export const alertService = {
   // 1. Get every saved alert (with its bundles).
   async getAll() {
@@ -46,3 +48,4 @@ export const alertService = {
     return await $fetch("/api/discussions");
   },
 };
+ 

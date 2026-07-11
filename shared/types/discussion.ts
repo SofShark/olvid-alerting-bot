@@ -9,4 +9,5 @@
 export type DiscussionModel = {
   id: string;
   title: string;
+  //photo: any
 };

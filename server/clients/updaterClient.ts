@@ -4,26 +4,54 @@
 // reason about the two roles independently and lets the streaming
 // listener run alongside RPC calls without contention on the same client.
 //
-// Previously this file ran `main()` at import time. That was a bug: any
+// This file has two jobs:
+//   · init()          — one-time seed of olvidDiscussionRepository from
+//                       whatever the daemon knows right now (discussions
+//                       + photos).
+//   · startUpdater()  — long-lived listener that keeps the repo in sync
+//                       with subsequent daemon events.
+//
+// Previously the file ran `main()` at import time. That was a bug: any
 // server module that imported anything from `server/clients/` also
 // triggered Nitro to auto-import THIS file, and `runForever()` fired
 // once per HMR reload — leaking gRPC subscriptions on the daemon.
-//
 // Fixed by exporting `startUpdater()` and having a Nitro plugin call it
 // exactly once at server boot (`server/plugins/olvid-updater.ts`).
 
 import { OlvidClient, datatypes } from "@olvid/bot-node";
-import {olvidClient} from "./olvidClient"
+import { olvidClient } from "./olvidClient";
+
 /** Guard against a second start in dev-HMR reloads (Nitro plugins can
  *  re-run on server hot-reload; the underlying subscription would
  *  otherwise leak on the daemon side). */
 let started = false;
 
-const discussionRepo : datatypes.Discussion[] = []
-
+/**
+ * Seed the cache: fetch every discussion the daemon knows plus its
+ * profile photo, hand each pair to olvidDiscussionRepository.
+ *
+ * Sequential on purpose — the daemon's gRPC channel is happier with a
+ * steady drip than a parallel burst of photo fetches, and for the
+ * typical desktop-scale contact list (<200 discussions) the wall-clock
+ * is trivial.
+ */
 export async function init(): Promise<void> {
   const discussions = await olvidClient.getDiscussions();
-  discussionRepo.push(...discussions);
+  for (const discussion of discussions) {
+    if (!discussion || !discussion.id) continue;
+    try {
+      const photo = await olvidClient.getDiscussionPhoto(discussion.id);
+      olvidDiscussionRepository.add(discussion, photo);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `⚠️ [Olvid updater] init failed for discussion ${discussion.id}: ${msg}`,
+      );
+    }
+  }
+  console.log(
+    `[Olvid updater] cache seeded: ${olvidDiscussionRepository.size().discussions} discussions, ${olvidDiscussionRepository.size().photos} photos`,
+  );
 }
 
 export async function startUpdater(): Promise<void> {
@@ -33,48 +61,66 @@ export async function startUpdater(): Promise<void> {
   }
   started = true;
 
-  // Initialisation of initial discussions on daemon
-  await(init())
+  // Seed the cache before wiring listeners. If we did it the other way
+  // around, events arriving during init() would race against a partial
+  // snapshot — updateTitle() would silently no-op on unknown ids.
+  await init();
 
   const updater = new OlvidClient();
   console.log("[Olvid updater] client created — subscribing to events");
-  console.log(discussionRepo.length)
 
   updater.onDiscussionNew({
-    callback: (discussion: datatypes.Discussion) => {
-      console.log(`✅ [Olvid] New discussion created: ${discussion.id}`);
+    callback: async (discussion: datatypes.Discussion) => {
+      console.log(`✅ [Olvid] New discussion: ${discussion.id}`);
+      olvidDiscussionRepository.addDiscussion(discussion);
+      // Fetch its photo separately — onDiscussionNew doesn't carry one.
+      // Skip on failure; a subsequent photo event will fill it in.
+      try {
+        const photo = await olvidClient.getDiscussionPhoto(discussion.id);
+        if (photo) olvidDiscussionRepository.updatePhoto(discussion.id, photo);
+      } catch {
+        /* silent — the photo will resurface via onXxxPhotoUpdated */
+      }
     },
   });
 
   updater.onDiscussionTitleUpdated({
     callback: (discussion: datatypes.Discussion, previousTitle: string) => {
       console.log(
-        `✅ [Olvid] Discussion ${discussion.id} title changed:\n  ${previousTitle}\n→ ${discussion.title}`,
+        `✅ [Olvid] Title ${discussion.id}: "${previousTitle}" → "${discussion.title}"`,
       );
+      olvidDiscussionRepository.updateTitle(discussion.id, discussion.title);
     },
   });
 
   updater.onGroupDeleted({
     callback: (group: datatypes.Group) => {
-      console.log(
-        `✅ [Olvid] Group`,
-      );
+      console.log(`✅ [Olvid] Group deleted: ${group.id}`);
+      olvidDiscussionRepository.remove(group.id);
     },
   });
 
   updater.onContactPhotoUpdated({
-    callback: (contact: datatypes.Contact) => {
-      console.log(
-        `✅ [Olvid] Group`,
-      );
+    callback: async (contact: datatypes.Contact) => {
+      console.log(`✅ [Olvid] Contact photo updated: ${contact.id}`);
+      try {
+        const photo = await olvidClient.getDiscussionPhoto(contact.id);
+        if (photo) olvidDiscussionRepository.updatePhoto(contact.id, photo);
+      } catch {
+        /* silent — cache keeps the previous photo, still better than nothing */
+      }
     },
   });
 
   updater.onGroupPhotoUpdated({
-    callback: (group: datatypes.Group) => {
-      console.log(
-        `✅ [Olvid] Group`,
-      );
+    callback: async (group: datatypes.Group) => {
+      console.log(`✅ [Olvid] Group photo updated: ${group.id}`);
+      try {
+        const photo = await olvidClient.getDiscussionPhoto(group.id);
+        if (photo) olvidDiscussionRepository.updatePhoto(group.id, photo);
+      } catch {
+        /* silent — cache keeps the previous photo */
+      }
     },
   });
 
