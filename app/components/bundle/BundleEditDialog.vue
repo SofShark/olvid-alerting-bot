@@ -218,17 +218,11 @@ const onSave = () => {
         @close="isEditorOpen = false"
       />
 
-      <div class="modal-head">
-        <h4>{{ modalTitle }}</h4>
-        <button
-          type="button"
-          class="modal-close"
-          :title="t('editor.bundleModal.closeTitle')"
-          @click="requestClose"
-        >
-          ✕
-        </button>
-      </div>
+      <ModalHead
+        :title="modalTitle"
+        :close-label="t('editor.bundleModal.closeTitle')"
+        @close="requestClose"
+      />
 
       <div v-if="draft" class="modal-body">
         <!-- Title — optional; rows fall back to "Untitled bundle". -->
@@ -331,33 +325,6 @@ const onSave = () => {
   display: flex;
   flex-direction: column;
 }
-.modal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-5) var(--space-6) var(--space-3);
-}
-.modal-head h4 {
-  margin: 0;
-  flex: 1;
-  font-size: var(--text-lg);
-  color: var(--color-text-primary);
-}
-.modal-close {
-  background: transparent;
-  border: none;
-  color: var(--color-text-dim);
-  font-size: var(--text-lg);
-  cursor: pointer;
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-sm);
-}
-.modal-close:hover {
-  color: var(--color-text-primary);
-  background: var(--color-border-subtle);
-}
-
 .modal-body {
   flex: 1;
   min-height: 0;

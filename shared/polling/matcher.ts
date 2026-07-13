@@ -30,6 +30,24 @@ export function statusMatches(match: StatusMatch, status: number): boolean {
   }
 }
 
+/** Machine-friendly one-liner used in server-side test verdicts
+ *  ("HTTP 404 matches codes [404, 500]"). English-only — the polling
+ *  evaluator's `reason` strings follow the same convention, so this
+ *  keeps the AlertTestResult envelope consistent across sources.
+ *
+ *  For a localized, user-facing label use `useStatusMatchLabel` on the
+ *  client instead. */
+export function describeStatusMatch(match: StatusMatch): string {
+  switch (match.kind) {
+    case "codes":
+      return `codes [${match.codes.join(", ")}]`;
+    case "range":
+      return `range ${match.range}`;
+    case "not-ok":
+      return "any non-2xx";
+  }
+}
+
 /** True when the match rule is well-formed enough to evaluate. Editors
  *  use this to gate the "next" button on the wizard trigger step. */
 export function isStatusMatchValid(match: StatusMatch | undefined): boolean {

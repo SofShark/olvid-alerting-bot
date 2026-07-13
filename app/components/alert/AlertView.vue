@@ -58,12 +58,117 @@ const webhookUrl = computed(() => {
   return `${origin}/api/webhooks/${form.value.token}`;
 });
 
-// ── Edit / delete / status ─────────────────────────────────────────────────
+// ── Edit / delete / status / duplicate ────────────────────────────────────
 const confirmingDelete = ref(false);
+const confirmingDuplicate = ref(false);
+
+// ── Test now (overflow menu → server-side dry-run) ────────────────────────
+// First run shows an explainer dialog; user can tick "don't show again"
+// which stores a bare flag in localStorage. Subsequent runs skip straight
+// to the result modal owned by AlertTestRunner.
+//
+// This container knows nothing about polling vs monitoring — that
+// decision lives in `alertTester` on the server. Locally we only ask
+// "is this a source we can test at all?" via `canTest`.
+const TEST_INTRO_SKIP_KEY = "alerting.dontShowAgain.alertTestIntro";
+const showingTestIntro = ref(false);
+const testRunnerRef = ref<{ run: () => Promise<void> } | null>(null);
+
+const canTest = computed(
+  () => !!form.value.id && (isPolling.value || isMonitoring.value),
+);
+
+const testIntroSuppressed = () => {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(TEST_INTRO_SKIP_KEY) === "1";
+  } catch {
+    // Private mode / storage disabled — always show the intro.
+    return false;
+  }
+};
+
+const onTest = () => {
+  if (!canTest.value) return;
+  if (testIntroSuppressed()) {
+    testRunnerRef.value?.run();
+  } else {
+    showingTestIntro.value = true;
+  }
+};
+
+const onTestIntroConfirm = (dontShowAgain: boolean) => {
+  showingTestIntro.value = false;
+  if (dontShowAgain && typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem(TEST_INTRO_SKIP_KEY, "1");
+    } catch {
+      // Best effort — if storage is unavailable the user just sees the
+      // intro again next time. Not worth surfacing an error.
+    }
+  }
+  testRunnerRef.value?.run();
+};
 
 const openEditAlert = () => {
   if (!form.value.id) return;
   navigateTo(`/alerts/${form.value.id}?edit=1`);
+};
+
+/**
+ * POST /api/backend with a fresh copy of the current alert. We strip any
+ * per-row identity (`id`, `token`, bundle ids) so Prisma generates fresh
+ * ones, force the copy to `Inactive` regardless of the source status,
+ * and drop the runtime-state keys from alertParams (`_lastFired`,
+ * `_lastPolledAt`, `_lastHash`, `_baseline`, `_lastStatus`) so the copy
+ * starts with a clean engine state instead of inheriting the original's
+ * poll history.
+ */
+const cleanAlertParamsForCopy = (params: any): any => {
+  if (!params || typeof params !== "object") return params ?? {};
+  const RUNTIME_KEYS = new Set([
+    "_lastFired",
+    "_lastPolledAt",
+    "_lastHash",
+    "_baseline",
+    "_lastStatus",
+  ]);
+  const cleaned: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(params)) {
+    if (!RUNTIME_KEYS.has(k)) cleaned[k] = v;
+  }
+  return cleaned;
+};
+
+const onDuplicate = async (newTitle: string) => {
+  if (!form.value.id) return;
+  const payload = {
+    id: null,
+    token: null,
+    title: newTitle,
+    description: form.value.description ?? "",
+    input: form.value.input,
+    status: AlertStatus.Inactive,
+    alertParams: cleanAlertParamsForCopy(form.value.alertParams),
+    bundles: form.value.bundles.map((b) => ({
+      // No `id` — the DB assigns a fresh one for each cloned bundle.
+      name: b.name,
+      formating: b.formating,
+      custom_script: b.custom_script,
+      discussion_list: b.discussion_list.map((d) => d.id),
+    })),
+  };
+  try {
+    const saved = await saveAlert(payload, { isExisting: false });
+    confirmingDuplicate.value = false;
+    await fetchAlerts();
+    if (saved?.id) navigateTo(`/alerts/${saved.id}`);
+  } catch (error: any) {
+    console.error("Error duplicating alert:", error);
+    alert(
+      `${t("editor.errors.duplicating")}\n\n${getErrorMessage(error, t("common.unknownError"))}`,
+    );
+  }
 };
 
 const onToggleStatus = async () => {
@@ -166,6 +271,14 @@ const onSaveBundle = async ({
           @cancel="confirmingDelete = false"
         />
 
+        <DuplicateAlertDialog
+          :open="confirmingDuplicate"
+          :original-title="form.title"
+          :saving="saving"
+          @confirm="onDuplicate"
+          @cancel="confirmingDuplicate = false"
+        />
+
         <BundleEditDialog
           :open="editingBundleIndex !== null"
           :bundle="editingBundle"
@@ -189,9 +302,27 @@ const onSaveBundle = async ({
           :status="form.status"
           :is-existing="isExisting"
           :can-activate="canActivate"
+          :can-test="canTest"
           @edit="openEditAlert"
+          @test="onTest"
+          @duplicate="confirmingDuplicate = true"
           @delete="confirmingDelete = true"
           @update:status="onToggleStatus"
+        />
+
+        <!-- One-time explainer + headless test runner driven imperatively
+             by the overflow menu. The runner owns the result modal; we
+             only call its `run()`. Source-agnostic — the server picks
+             polling vs monitoring behind the unified endpoint. -->
+        <AlertTestIntroDialog
+          :open="showingTestIntro"
+          @confirm="onTestIntroConfirm"
+          @cancel="showingTestIntro = false"
+        />
+        <AlertTestRunner
+          v-if="canTest"
+          ref="testRunnerRef"
+          :alert-id="form.id"
         />
         
           <div class="panel-body">
@@ -209,11 +340,9 @@ const onSaveBundle = async ({
                 @edit-bundle="openBundleEditor"
               />
 
-              <TestPoll
-                v-if="isPolling && form.status === AlertStatus.Inactive"
-                :alert-id="form.id"
-              /> 
-              <!--TODO Test also monitoring-->
+              <!-- "Test now" is driven by AlertActionsMenu; the headless
+                   AlertTestRunner is mounted at the top of this component
+                   and dispatches polling vs monitoring server-side. -->
             </div>
             <div class="split-right">
               <AlertLogs :alert-id="form.id" />

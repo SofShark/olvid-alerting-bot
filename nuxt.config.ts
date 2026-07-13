@@ -23,13 +23,14 @@ export default defineNuxtConfig({
   // Global stylesheet — design tokens + shared component classes. Loaded
   // before any component-scoped <style>, so scoped rules can still override.
   css: ["~/assets/css/main.css"],
-
+  
   // Components live in domain subfolders for organization but keep flat,
   // unprefixed names in templates (<Stepper />, <BundleCard />, <AlertEditor />…).
   // `pathPrefix: false` makes Nuxt skip the directory name when synthesizing
   // the component name. TODO is this breaking the convention and nuxt good practives?
   components: [
     { path: "~/components/ui", pathPrefix: false },
+    { path: "~/components/ui/overlay", pathPrefix: false },
     { path: "~/components/alert", pathPrefix: false },
     { path: "~/components/alert/view", pathPrefix: false },
     { path: "~/components/alert/wizard", pathPrefix: false },
@@ -63,6 +64,7 @@ export default defineNuxtConfig({
         // value. Registered here so the factories resolve without imports.
         "server/services/dispatchers",
         "server/services/formatters",
+        "server/services/testers",
       ],
     },
     
@@ -73,7 +75,7 @@ export default defineNuxtConfig({
 
   },
 
-  modules: ["@nuxtjs/i18n", "@nuxt/eslint"],
+  modules: ['@nuxt/ui', "@nuxtjs/i18n", "@nuxt/eslint"],
   i18n: {
     bundle: {
       optimizeTranslationDirective: false,

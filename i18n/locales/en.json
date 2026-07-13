@@ -275,8 +275,33 @@
 
     "errors": {
       "savingBundle": "Error saving bundle:",
-      "testFailed": "Test failed"
+      "testFailed": "Test failed",
+      "duplicating": "Error duplicating alert:"
     }
+  },
+
+  "alertActions": {
+    "moreActions": "More actions",
+    "testNow": "Test now",
+    "duplicate": "Duplicate",
+    "manageAccess": "Manage access",
+    "moveToProject": "Move to project"
+  },
+
+  "testIntroDialog": {
+    "title": "About running a test",
+    "body": "A test runs your alert once, right now. It does not activate the alert, does not persist any state (last-fired, baseline, hash…) and does not notify any of the alert's bundles — the result opens in a panel so you can inspect what the alert observed and the message each bundle would have sent.",
+    "dontShowAgain": "Don't show this message again",
+    "confirm": "Run test"
+  },
+
+  "duplicateModal": {
+    "title": "Duplicate alert",
+    "message": "A new inactive alert will be created with the same configuration.",
+    "titleLabel": "New alert title",
+    "titlePlaceholder": "Copy of…",
+    "copySuffix": "-copy",
+    "confirm": "Duplicate"
   },
 
   "conditionEditor": {

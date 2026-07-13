@@ -26,7 +26,8 @@ import {
   faCopy,
   faEllipsisVertical,
   faUserGear,
-  faLeftRight
+  faLeftRight,
+  faPlay
 } from "@fortawesome/free-solid-svg-icons";
 
 import { 
@@ -45,7 +46,7 @@ import "@fortawesome/fontawesome-svg-core/styles.css";
 
 // We imported the CSS manually above, so tell the core not to inject it
 // again at runtime (would otherwise duplicate styles).
-config.autoAddCss = false;
+//config.autoAddCss = false;
 
 // Two copies of `@fortawesome/fontawesome-common-types` end up in
 // node_modules when `free-regular-svg-icons` and the other packs sit on
@@ -72,7 +73,8 @@ const icons: IconDefinition[] = [
   faCopy,
   faEllipsisVertical,
   faUserGear,
-  faLeftRight
+  faLeftRight,
+  faPlay
 ];
 
 library.add(...icons);

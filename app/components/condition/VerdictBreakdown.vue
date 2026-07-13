@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import type { Verdict } from "#shared/types/condition";
-
 /*
-  Per-path verdict breakdown — one line per Verdict, laid out as a
+  Per-path verdict breakdown — one line per row, laid out as a
   three-column grid (status dot + path + comparison) so the eye can
   scan down the "fired?" column without hunting through variable-width
   text. Style follows `kubectl get` / `git log --oneline`: monospace,
@@ -11,16 +9,18 @@ import type { Verdict } from "#shared/types/condition";
   Previously lived inline in ConditionEditor.vue's #detail slot on the
   shared VerdictStrip; extracted so:
     · VerdictStrip stays a compact "one-liner + status" primitive.
-    · This list can be reused from TestPoll's result modal without
-      dragging along the strip.
+    · This list can be reused from AlertTestRunner's result modal
+      without dragging along the strip.
 
-  Pure presentational — no state, no i18n outside the caller-supplied
-  `title` label (kept a prop because the caller decides the context:
-  "per-field breakdown" in the editor, "test results" in TestPoll, etc).
+  Structural row type — reads only `path / fired / detail`, so
+  polling's `Verdict` and the shared `ConditionFieldBreakdown` from
+  the test-result envelope both fit without a cast.
 */
 
+type VerdictRow = { path: string; fired: boolean; detail: string };
+
 defineProps<{
-  verdicts: Verdict[];
+  verdicts: VerdictRow[];
   /** Header shown on the collapsed <summary> line. */
   title: string;
 }>();

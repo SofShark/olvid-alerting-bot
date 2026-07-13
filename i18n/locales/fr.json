@@ -277,8 +277,33 @@
 
     "errors": {
       "savingBundle": "Erreur lors de l'enregistrement du lot :",
-      "testFailed": "Échec du test"
+      "testFailed": "Échec du test",
+      "duplicating": "Erreur lors de la duplication de l'alerte :"
     }
+  },
+
+  "alertActions": {
+    "moreActions": "Plus d'actions",
+    "testNow": "Tester maintenant",
+    "duplicate": "Dupliquer",
+    "manageAccess": "Gérer l'accès",
+    "moveToProject": "Déplacer vers le projet"
+  },
+
+  "testIntroDialog": {
+    "title": "À propos du test",
+    "body": "Un test exécute l'alerte une fois, immédiatement. Cela n'active pas l'alerte, ne persiste aucun état (dernier déclenchement, baseline, hash…) et n'envoie aucun message aux lots — le résultat s'ouvrira dans un panneau pour inspecter ce que l'alerte a observé et le message que chaque lot aurait envoyé.",
+    "dontShowAgain": "Ne plus afficher ce message",
+    "confirm": "Lancer le test"
+  },
+
+  "duplicateModal": {
+    "title": "Dupliquer l'alerte",
+    "message": "Une nouvelle alerte inactive sera créée avec la même configuration.",
+    "titleLabel": "Titre de la nouvelle alerte",
+    "titlePlaceholder": "Copie de…",
+    "copySuffix": "-copie",
+    "confirm": "Dupliquer"
   },
 
   "conditionEditor": {

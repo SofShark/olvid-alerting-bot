@@ -63,8 +63,6 @@ export const pollingEngine = {
     }
   },
 
-  // TODO Add test to monitor as well
-
   async test(alert: any): Promise<RunResult> {
     // alertParams is the new name (post-refactor); fall back to alertParams
     // for any in-flight legacy alert that hasn't been re-saved yet.
