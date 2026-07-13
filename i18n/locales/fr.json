@@ -55,7 +55,7 @@
     "back": "Retour",
     "continue": "Continuer →",
     "addBundles": "Ajouter des lots →",
-    "editAlert": "Modifier l'alerte",
+    "editAlert": "Modifier",
     "close": "Fermer",
     "done": "Terminé",
     "discard": "Abandonner",
@@ -171,7 +171,7 @@
 
   "editor": {
     "header": {
-      "editAlert": "Modifier l'alerte"
+      "editAlert": "Modifier"
     },
     "view": {
       "fields": {
@@ -190,7 +190,7 @@
         "messagesPerBundle": "Messages par lot"
       },
       "noBundles": "Aucun lot configuré. Cliquez sur {editAlert} pour en ajouter un.",
-      "noBundlesEditAlert": "Modifier l'alerte",
+      "noBundlesEditAlert": "Modifier",
       "bundleTag": "LOT {n}",
       "bundleEdit": "Modifier",
       "discussionsEmpty": "— aucune —"

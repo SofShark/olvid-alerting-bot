@@ -115,11 +115,12 @@ const verdictHeadline = computed(() => {
   padding: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .modal-body {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   padding: var(--space-5) var(--space-6);
   display: flex;
   flex-direction: column;

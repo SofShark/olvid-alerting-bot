@@ -55,7 +55,7 @@
     "back": "Back",
     "continue": "Continue →",
     "addBundles": "Add bundles →",
-    "editAlert": "Edit Alert",
+    "editAlert": "Edit",
     "close": "Close",
     "done": "Done",
     "discard": "Discard",
@@ -171,7 +171,7 @@
 
   "editor": {
     "header": {
-      "editAlert": "Edit Alert"
+      "editAlert": "Edit"
     },
     "view": {
       "fields": {
@@ -190,7 +190,7 @@
         "messagesPerBundle": "Messages per bundle"
       },
       "noBundles": "No bundles configured. Click {editAlert} to add one.",
-      "noBundlesEditAlert": "Edit Alert",
+      "noBundlesEditAlert": "Edit",
       "bundleTag": "BUNDLE {n}",
       "bundleEdit": "Edit",
       "discussionsEmpty": "— none —"
