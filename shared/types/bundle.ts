@@ -1,8 +1,13 @@
-// One output of an alert: a list of destination discussions + a formatting
+// One output of an alert: a list of delivery outputs + a formatting
 // strategy. An alert fires every one of its bundles in parallel; each
 // produces its own message based on `formating`.
+//
+// `outputs` replaced the previous `discussion_list: DiscussionModel[]` shape:
+// each row is now a type-tagged BundleFrontendOutput ({type, params}), which
+// generalises beyond Olvid discussions to future channels (email, Slack, …).
+// The server persists this as rows in the `BundleOutput` Prisma model.
 
-import type { DiscussionModel } from "./discussion";
+import type { BundleFrontendOutput } from "./bundleOutput";
 
 export const Formatting = {
   // Webhook-oriented options — work on the raw posted payload.
@@ -24,7 +29,7 @@ export const DEFAULT_FORMAT_FOR_WEBHOOK: Formatting = Formatting.Unformatted;
 export type BundleModel = {
   id?: number;
   name?: string;
-  discussion_list: DiscussionModel[];
+  outputs: BundleFrontendOutput[];
   formating: Formatting;
   custom_script?: string;
 };

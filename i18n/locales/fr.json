@@ -433,8 +433,13 @@
     }
   },
 
-  "bundleCard": {
+  "bundleRow": {
     "tag": "LOT {n}",
+    "destSummary": {
+      "None": "— no discussions —",
+      "Plural": "{firstTwoNames} + {remaining} autres discussions",
+      "PlusOne": "{firstTwoNames} + 1 autre discussion"
+    },
     "fields": {
       "discussions": "Discussions",
       "format": "Format du message"
@@ -442,9 +447,9 @@
     "format": {
       "unformatted": "Brut (JSON brut)",
       "simple": "Simple (titre + description)",
-      "custom": "Script personnalisé (Handlebars)",
+      "custom": "Script personnalisé",
       "pollingDefault": "Par défaut (champs surveillés)",
-      "pollingCustom": "Script personnalisé (Handlebars)"
+      "pollingCustom": "Script personnalisé"
     },
     "scriptButton": "Script",
     "previewPlaceholder": "Message de polling par défaut — remplit les chemins surveillés et leurs valeurs observées lorsque l'alerte se déclenche.",

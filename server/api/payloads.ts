@@ -30,14 +30,14 @@ export default defineEventHandler(async (event) => {
   }
 
   if (type === "success") {
-    const row = await alertRepository.getLastAlertPayload(alertId);
+    const row = await alertPayloadRepository.getLastAlertPayload(alertId);
     return {
       payload: row?.payload ?? null,
       receivedAt: row?.receivedAt ?? null,
     };
   }
 
-  const row = await alertRepository.getLastFailedPayload(alertId);
+  const row = await alertPayloadRepository.getLastFailedPayload(alertId);
   return {
     raw: row?.raw ?? null,
     parsed: row?.parsed ?? null,

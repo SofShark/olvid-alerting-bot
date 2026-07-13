@@ -178,7 +178,7 @@ Cada hallazgo se etiqueta con al menos uno de:
 
 ### B-5 · Comentario "side-effect-free" que miente · 🟠
 - **File**: [`server/utils/engine.ts`](server/utils/engine.ts) L1–2 vs L81–107.
-- **Evidencia**: la cabecera dice *"side-effect-free with respect to alert state (no bundle firing, no baseline persistence)"* pero `test()` llama `alertRepository.upsertLastAlertPayload(...)` y `upsertLastFailedPayload(...)`.
+- **Evidencia**: la cabecera dice *"side-effect-free with respect to alert state (no bundle firing, no baseline persistence)"* pero `test()` llama `alertPayloadRepository.upsertLastAlertPayload(...)` y `upsertLastFailedPayload(...)`.
 - **Principio**: stale comment (Fowler).
 - **Remedio**: actualizar el comment para reflejar que `test()` sí persiste last-payload (para audit trail).
 
@@ -333,7 +333,7 @@ Tabla completa:
 | `"Status logs"` | AlertLogs.vue:45 | `editor.view.dividers.statusLogs` |
 | `"No polls recorded yet."` | AlertLogs.vue:48 | `editor.logs.empty` |
 | `"Configuration"` | AlertInputSummary.vue:98 | `editor.view.blocks.configuration` |
-| `"Edit bundle"` | AlertBundleRow.vue:71 | `bundleCard.editTitle` (ya existe en i18n, no se usa) |
+| `"Edit bundle"` | AlertBundleRow.vue:71 | `bundleRow.editTitle` (ya existe en i18n, no se usa) |
 | `"No destinations" / "Custom format set but no script" / "Ready"` | useBundleStatus.ts:19-29 | `bundleStatus.*` (composable marca `// Pure — no i18n yet`) |
 
 ### F-10 · Click-outside repetido en 4 componentes · 🟠

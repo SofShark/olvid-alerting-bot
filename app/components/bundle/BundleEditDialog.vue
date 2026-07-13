@@ -10,6 +10,7 @@ import {
 } from "#shared/types/bundle";
 import type { DiscussionModel } from "#shared/types/discussion";
 import { buildPollingDefaultMessage } from "#shared/polling/message";
+import { olvidIdsOf, outputsFromOlvidIds } from "~/composables/useAlertForm";
 
 /*
   THE bundle editor — one modal for both flows:
@@ -53,7 +54,7 @@ const isPolling = computed(() => isPollingSource(props.inputSource));
 
 // Source-appropriate empty bundle for create mode.
 const blankBundle = (): BundleModel => ({
-  discussion_list: [],
+  outputs: [],
   formating: isPolling.value
     ? DEFAULT_FORMAT_FOR_POLLING
     : DEFAULT_FORMAT_FOR_WEBHOOK,
@@ -93,7 +94,7 @@ watch(
       return;
     }
     const seed = b
-      ? { ...b, discussion_list: [...b.discussion_list] }
+      ? { ...b, outputs: [...b.outputs] }
       : blankBundle();
     draft.value = normalizeFormat(seed);
     snapshot.value = JSON.stringify(draft.value);
@@ -125,9 +126,24 @@ const bundleName = computed<string>({
   set: (val) => patch({ name: val.trim() || undefined }),
 });
 
+// Bridge between the outputs shape (source of truth in draft) and the
+// DiscussionModel[] API that DiscussionSelector still speaks natively.
+// The selector doesn't need to know about outputs / types — it only
+// deals with Olvid discussions today. Title lookup is on-the-fly from
+// availableDiscussions; if a discussion hasn't been fetched yet, we
+// fall back to `#<id>` (same placeholder resolveDiscussions used).
 const discussions = computed<DiscussionModel[]>({
-  get: () => draft.value?.discussion_list ?? [],
-  set: (val) => patch({ discussion_list: val }),
+  get: () => {
+    if (!draft.value) return [];
+    const ids = olvidIdsOf(draft.value.outputs);
+    return ids.map((id) => {
+      const found = props.availableDiscussions.find((d) => d.id === id);
+      return found ?? { id, title: `#${id}` };
+    });
+  },
+  set: (val) => {
+    patch({ outputs: outputsFromOlvidIds(val.map((d) => d.id)) });
+  },
 });
 
 const formating = computed<Formatting>({
@@ -142,20 +158,20 @@ const formatOptions = computed(() =>
     ? [
         {
           value: Formatting.PollingDefault,
-          label: t("bundleCard.format.pollingDefault"),
+          label: t("bundleRow.format.pollingDefault"),
         },
         {
           value: Formatting.PollingCustom,
-          label: t("bundleCard.format.pollingCustom"),
+          label: t("bundleRow.format.pollingCustom"),
         },
       ]
     : [
         {
           value: Formatting.Unformatted,
-          label: t("bundleCard.format.unformatted"),
+          label: t("bundleRow.format.unformatted"),
         },
-        { value: Formatting.Simple, label: t("bundleCard.format.simple") },
-        { value: Formatting.Custom, label: t("bundleCard.format.custom") },
+        { value: Formatting.Simple, label: t("bundleRow.format.simple") },
+        { value: Formatting.Custom, label: t("bundleRow.format.custom") },
       ],
 );
 
@@ -239,7 +255,7 @@ const onSave = () => {
         <!-- Destinations — WhatsApp-style picker with avatars + toggles. -->
         <div class="field">
           <label class="field-label">{{
-            $t("bundleCard.fields.discussions")
+            $t("bundleRow.fields.discussions")
           }}</label>
           <DiscussionSelector
             v-model="discussions"
@@ -251,7 +267,7 @@ const onSave = () => {
         <!-- Format + optional custom-script editor + preview. -->
         <div class="field">
           <label class="field-label">{{
-            $t("bundleCard.fields.format")
+            $t("bundleRow.fields.format")
           }}</label>
           <div class="format-row">
             <Select
@@ -267,14 +283,14 @@ const onSave = () => {
               @click="isEditorOpen = true"
             >
               <FontAwesomeIcon :icon="['fas', 'pencil']" />
-              {{ $t("bundleCard.scriptButton") }}
+              {{ $t("bundleRow.scriptButton") }}
             </button>
           </div>
 
           <pre
             v-if="formating === Formatting.PollingDefault"
             class="poll-preview"
-            >{{ pollingPreview || $t("bundleCard.previewPlaceholder") }}</pre
+            >{{ pollingPreview || $t("bundleRow.previewPlaceholder") }}</pre
           >
         </div>
       </div>

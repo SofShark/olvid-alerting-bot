@@ -81,7 +81,7 @@ export const pollingEngine = {
     if (alert?.id != null) {
       if (!r.ok) {
         try {
-          await alertRepository.upsertLastFailedPayload(alert.id, {
+          await alertPayloadRepository.upsertLastFailedPayload(alert.id, {
             raw: r.raw ?? null,
             parsed: r.parsed ?? null,
             error: r.error ?? "Unknown error",
@@ -99,7 +99,7 @@ export const pollingEngine = {
       // TODO Last alert payload isn't currently being handled for non-webhook
       if (r.parsed !== undefined) {
         try {
-          await alertRepository.upsertLastAlertPayload(alert.id, r.parsed);
+          await alertPayloadRepository.upsertLastAlertPayload(alert.id, r.parsed);
         } catch (e: any) {
           console.error(
             "[pollingEngine] failed to persist last payload:",

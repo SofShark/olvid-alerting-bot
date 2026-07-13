@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { BundleModel } from "#shared/types/bundle";
+import { olvidIdsOf } from "~/composables/useAlertForm";
 
 /*
   One row in the view-mode bundle table.
@@ -15,6 +16,7 @@ import type { BundleModel } from "#shared/types/bundle";
       Chips were competing visually with the section eyebrow and the
       alert's main title.
 */
+const t = useI18n().t;
 
 const props = withDefaults(
   defineProps<{
@@ -39,26 +41,33 @@ const status = computed(() => bundleStatus(props.bundle));
 const hasWarning = computed(() => status.value.kind !== "ready");
 const displayName = computed(() => props.bundle.name || "Untitled bundle");
 
-const destCount = computed(() => props.bundle.discussion_list.length);
+// The row summary is Olvid-only for now — bundles ONLY carry olvid outputs
+// today. When other channels land (email/slack/…), this becomes a per-type
+// grouped summary; for now we look up titles from the shared discussion list.
+const { availableDiscussions } = useAlerts();
+
+const destIds = computed(() => olvidIdsOf(props.bundle.outputs));
+const destCount = computed(() => destIds.value.length);
+
 const destSummary = computed(() => {
   const count = destCount.value;
-
   if (count === 0) return "No destinations";
 
-  // Extraemos de forma segura los títulos de los 2 primeros elementos
-  const firstTwoNames = props.bundle.discussion_list
+  const titleFor = (id: string) =>
+    availableDiscussions.value?.find((d) => d.id === id)?.title ?? `#${id}`;
+
+  const firstTwoNames = destIds.value
     .slice(0, 2)
-    .map(dest => dest.title)
-    .join(', '); // Si solo hay 1, ignora la coma y devuelve solo ese nombre
+    .map(titleFor)
+    .join(", ");
 
-  if (count <= 2) {
-    return firstTwoNames;
-  }
+  if (count <= 2) return firstTwoNames;
 
-  // Si hay más de 2, calculamos los restantes y el plural
   const remaining = count - 2;
-  const plural = remaining === 1 ? '' : 's';
-  return `${firstTwoNames}, and ${remaining} more discussion${plural}`;
+  if (remaining === 1) {
+    return t(`bundleRow.destSummary.PlusOne`, { firstTwoNames });
+  }
+  return t(`bundleRow.destSummary.Plural`, { firstTwoNames, remaining });
 });
 </script>
 

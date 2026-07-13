@@ -14,11 +14,9 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
 
-  runtimeConfig: {
-    databaseUrl:
-      process.env.DATABASE_URL ||
-      "postgresql://postgres:@localhost:5432/mi_base_datos?schema=public",
-  },
+  // DATABASE_URL is read directly by server/db/prisma.ts at boot — no
+  // runtimeConfig hop needed. See that module for the SQLite-default /
+  // Postgres-opt-in switch.
 
   // Global stylesheet — design tokens + shared component classes. Loaded
   // before any component-scoped <style>, so scoped rules can still override.

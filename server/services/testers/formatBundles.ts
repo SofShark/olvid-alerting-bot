@@ -16,8 +16,12 @@ export function formatBundleMessages(
 ): BundleMessageResult[] {
   const bundles = (alert.bundles ?? []) as any[];
   return bundles.map((bundle, index) => {
-    const discussionCount = Array.isArray(bundle.discussion_list)
-      ? bundle.discussion_list.length
+    // Post-schema-refactor: bundles carry polymorphic `outputs` rows
+    // (Olvid discussions today, other channels tomorrow). The "count"
+    // in the result modal is really "number of delivery targets" —
+    // keep the field name stable for the UI, source it from outputs.
+    const discussionCount = Array.isArray(bundle.outputs)
+      ? bundle.outputs.length
       : 0;
     try {
       const message = notifierService.formatMessage(alert, bundle, payload);

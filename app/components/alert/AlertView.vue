@@ -155,7 +155,7 @@ const onDuplicate = async (newTitle: string) => {
       name: b.name,
       formating: b.formating,
       custom_script: b.custom_script,
-      discussion_list: b.discussion_list.map((d) => d.id),
+      outputs: b.outputs,
     })),
   };
   try {
@@ -241,7 +241,7 @@ const onSaveBundle = async ({
       name: b.name,
       formating: b.formating,
       custom_script: b.custom_script,
-      discussion_list: b.discussion_list.map((d) => d.id),
+      outputs: b.outputs,
     })),
   };
   try {

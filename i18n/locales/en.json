@@ -431,8 +431,13 @@
     }
   },
 
-  "bundleCard": {
+  "bundleRow": {
     "tag": "BUNDLE {n}",
+    "destSummary": {
+      "None": "— no discussions —",
+      "Plural": "{firstTwoNames} + {remaining} more discussions",
+      "PlusOne": "{firstTwoNames} + 1 more discussion"
+    },
     "fields": {
       "discussions": "Discussions",
       "format": "Message Format"
@@ -440,9 +445,9 @@
     "format": {
       "unformatted": "Brute (raw JSON)",
       "simple": "Simple (title + description)",
-      "custom": "Custom script (Handlebars)",
+      "custom": "Custom script",
       "pollingDefault": "Default (watched fields)",
-      "pollingCustom": "Custom script (Handlebars)"
+      "pollingCustom": "Custom script"
     },
     "scriptButton": "Script",
     "previewPlaceholder": "Default polling message — fills in the watched paths and their observed values when the alert fires.",
