@@ -423,15 +423,32 @@
     },
     "preview": {
       "title": "📱 Preview on device",
+      "mailTitle": "✉️ Preview in inbox",
       "placeholder": "Formatted message will appear here...",
       "sender": "Alerting Bot",
       "time": "now"
+    },
+    "mailPreview": {
+      "from": "From",
+      "to": "To",
+      "subject": "Subject",
+      "fromPlaceholder": "Alerting Bot",
+      "toPlaceholder": "recipient",
+      "subjectPlaceholder": "Alert title"
     },
     "buttons": {
       "cancel": "Cancel",
       "save": "Save Script",
       "closeTitle": "Close"
     }
+  },
+
+  "bundleKind": {
+    "groupLabel": "Bundle channel",
+    "fieldLabel": "Channel",
+    "olvid": "Olvid",
+    "mail": "Email",
+    "pickPrompt": "Pick a channel above to add recipients."
   },
 
   "bundleRow": {

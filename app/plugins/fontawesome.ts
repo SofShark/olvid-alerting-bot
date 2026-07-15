@@ -27,7 +27,8 @@ import {
   faEllipsisVertical,
   faUserGear,
   faLeftRight,
-  faPlay
+  faPlay,
+  faEnvelope
 } from "@fortawesome/free-solid-svg-icons";
 
 import { 
@@ -74,7 +75,8 @@ const icons: IconDefinition[] = [
   faEllipsisVertical,
   faUserGear,
   faLeftRight,
-  faPlay
+  faPlay,
+  faEnvelope
 ];
 
 library.add(...icons);

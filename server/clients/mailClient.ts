@@ -1,44 +1,53 @@
-// SMTP client — mirror of olvidClient's shape for the "mail" channel.
+// Mail client — MailPace HTTP API wrapper (via @mailpace/mailpace.js).
 //
-// Reads SMTP settings from environment variables (`SMTP_HOST`,
-// `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`). No secrets
-// live in the repo — the developer's `.env` (untracked) holds the
-// provider token; the Docker container gets them via `env_file`.
+// Env vars (all read at module load, only PASSWORD + FROM are strictly
+// required — the SMTP_HOST / SMTP_PORT / SMTP_USER trio remains in
+// `.env` for historical reasons but is unused now that we're on the
+// JSON API):
 //
-// External SDK boundary — nodemailer stays inside this file. If we
-// swap providers (Postmark, SES, …), only this file changes.
+//   SMTP_PASSWORD   — MailPace Domain Server Token (the API secret)
+//   SMTP_FROM       — verified From address on the MailPace domain
 //
-// Delivery semantics: one `sendMail` per recipient. Recipients don't see
-// each other, and a single bad address doesn't fail the batch. Errors
-// are logged and turned into a boolean return — we never throw, so a
+// External SDK boundary — the MailPace SDK stays inside this file. If we
+// swap providers, only this file changes.
+//
+// Delivery semantics: one send per recipient (no BCC — recipients don't
+// see each other, and a single bad address doesn't fail the batch).
+// Errors are logged and returned as a boolean — we never throw, so a
 // mail failure can't take down the notifier or block olvid delivery in
 // the same bundle. The polling recovery state machine keys on the
-// condition verdict, not delivery success, so a mail send failure has
-// no effect on whether the alert stays armed.
+// condition verdict, not delivery success, so a mail failure has no
+// effect on whether the alert stays armed.
 
-import nodemailer from "nodemailer";
-import type { Transporter } from "nodemailer";
+import MailPace from "@mailpace/mailpace.js";
+import {
+  olvidMarkupToHtml,
+  olvidMarkupToPlainText,
+} from "#shared/olvidMarkup";
 
-// The formatter output is rendered with Olvid's chat conventions in mind
-// (`**bold**` is bold in Olvid). In a plain-text email those markers
-// leak through as literal asterisks, so we strip them here — one place
-// in the mail boundary rather than a per-channel branch in the formatter.
-// Only `**bold**` for now; extend if / when the script editor grows more
-// Olvid-specific markup (`_italic_`, `~strike~`, …).
-function stripOlvidMarkup(body: string): string {
-  return body.replace(/\*\*(.+?)\*\*/g, "$1");
+const PASSWORD = process.env.SMTP_PASSWORD;
+const FROM = process.env.SMTP_FROM;
+
+let client: MailPace.DomainClient | null = null;
+let warnedMissing = false;
+
+function getClient(): MailPace.DomainClient | null {
+  if (client) return client;
+  if (!PASSWORD || !FROM) {
+    if (!warnedMissing) {
+      console.warn(
+        "⚠️ [Mail] SMTP_PASSWORD or SMTP_FROM missing. Mail outputs will be skipped.",
+      );
+      warnedMissing = true;
+    }
+    return null;
+  }
+  client = new MailPace.DomainClient(PASSWORD);
+  return client;
 }
 
-const HOST = process.env.SMTP_HOST;
-const PORT = Number.parseInt(process.env.SMTP_PORT ?? "587", 10);
-const USER = process.env.SMTP_USER;
-const PASSWORD = process.env.SMTP_PASSWORD!;
-const FROM = process.env.SMTP_FROM!;
-
-
-import MailPace from '@mailpace/mailpace.js'
-const client = new MailPace.DomainClient(PASSWORD);
-
+// Olvid-markup ↔ HTML/plain conversions live in #shared/olvidMarkup so
+// the mail preview (client) and this sender (server) stay in lockstep.
 
 export const mailClient = {
   async send(
@@ -47,19 +56,22 @@ export const mailClient = {
     body: string,
   ): Promise<boolean> {
     if (addresses.length === 0) return true;
+    const c = getClient();
+    if (!c) return false;
 
-    const mailBody = stripOlvidMarkup(body);
+    const htmlbody = olvidMarkupToHtml(body);
+    const textbody = olvidMarkupToPlainText(body);
 
     let allOk = true;
     for (const address of addresses) {
       try {
-        client.sendEmail({
-          from: FROM,
+        await c.sendEmail({
+          from: FROM!,
           to: address,
-          subject: subject,
-          htmlbody: mailBody,
-        }).
-        then((r) => console.log());
+          subject,
+          htmlbody,
+          textbody,
+        });
         console.log(`✅ [Mail] Message sent to: ${address}`);
       } catch (error: any) {
         allOk = false;
@@ -71,6 +83,4 @@ export const mailClient = {
     }
     return allOk;
   },
-
-
 };

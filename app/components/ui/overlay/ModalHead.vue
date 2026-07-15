@@ -13,7 +13,7 @@
 
 withDefaults(
   defineProps<{
-    title: string;
+    title?: string;
     variant?: "plain" | "filled";
     /** aria-label + title attr for the close button. */
     closeLabel?: string;

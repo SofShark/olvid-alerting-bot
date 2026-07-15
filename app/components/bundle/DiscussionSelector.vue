@@ -226,13 +226,17 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   border: 1px solid var(--color-border-subtle);
 }
 .strip-avatar-fallback {
+  /* Typography kept in sync with EmailRecipientSelector's fallback so
+   * the two strips look like siblings. Background is the accent-soft
+   * token — a single shared color is fine here because most discussions
+   * do have real photos; the fallback is the exception. */
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--color-accent-soft);
   color: var(--color-accent-text);
-  font-size: var(--text-sm);
-  font-weight: 700;
+  font-size: var(--text-lg);
+  font-weight: 600;
   letter-spacing: 0.5px;
 }
 .strip-remove {

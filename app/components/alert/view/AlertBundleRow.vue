@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { BundleModel } from "#shared/types/bundle";
-import { olvidIdsOf, mailAddressesOf } from "~/composables/useAlertForm";
+import {
+  olvidIdsOf,
+  mailAddressesOf,
+  bundleKind,
+} from "~/composables/useAlertForm";
+import { BundleOutputType } from "#shared/types/bundleOutput";
 
 /*
   One row in the view-mode bundle table.
@@ -41,33 +46,31 @@ const status = computed(() => bundleStatus(props.bundle));
 const hasWarning = computed(() => status.value.kind !== "ready");
 const displayName = computed(() => props.bundle.name || "Untitled bundle");
 
-// The row summary is flat across channels — a mixed list of discussion
-// titles and email addresses. The count is the raw destination total
-// regardless of type; that's what "where does this go?" is really asking.
+// Row summary reads only the active kind's items — bundles are now
+// homogeneous (one channel per bundle). `bundleKind()` picks the right
+// list; the count and the "first two names" follow.
 const { availableDiscussions } = useAlerts();
 
-const olvidIds = computed(() => olvidIdsOf(props.bundle.outputs));
-const mailDests = computed(() => mailAddressesOf(props.bundle.outputs));
-const destCount = computed(() => olvidIds.value.length + mailDests.value.length);
+const kind = computed(() => bundleKind(props.bundle.outputs));
+
+const destNames = computed<string[]>(() => {
+  if (kind.value === BundleOutputType.Olvid) {
+    const titleFor = (id: string) =>
+      availableDiscussions.value?.find((d) => d.id === id)?.title ?? `#${id}`;
+    return olvidIdsOf(props.bundle.outputs).map(titleFor);
+  }
+  if (kind.value === BundleOutputType.Mail) {
+    return mailAddressesOf(props.bundle.outputs);
+  }
+  return [];
+});
+const destCount = computed(() => destNames.value.length);
 
 const destSummary = computed(() => {
   const count = destCount.value;
   if (count === 0) return "No destinations";
-
-  const titleFor = (id: string) =>
-    availableDiscussions.value?.find((d) => d.id === id)?.title ?? `#${id}`;
-
-  // Olvid names first (they carry a lookup and read as identifiers),
-  // then mail addresses. The first two land in the summary line; the
-  // rest fold into the "+N more" suffix.
-  const allNames = [
-    ...olvidIds.value.map(titleFor),
-    ...mailDests.value,
-  ];
-  const firstTwoNames = allNames.slice(0, 2).join(", ");
-
+  const firstTwoNames = destNames.value.slice(0, 2).join(", ");
   if (count <= 2) return firstTwoNames;
-
   const remaining = count - 2;
   if (remaining === 1) {
     return t(`bundleRow.destSummary.PlusOne`, { firstTwoNames });

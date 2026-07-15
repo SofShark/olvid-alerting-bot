@@ -25,7 +25,7 @@ import {
 export const useFormatEditorPayload = (
   getAlertId: () => number | null,
 ) => {
-  const jsonPayload = ref("");
+  const jsonPayload = ref("{}");
   const lastPayloadLoading = ref(false);
   const lastPayloadMissing = ref(false);
 
@@ -56,7 +56,7 @@ export const useFormatEditorPayload = (
   };
 
   const clearPayloadPanel = () => {
-    jsonPayload.value = "";
+    jsonPayload.value = "{}";
     lastPayloadMissing.value = false;
   };
 

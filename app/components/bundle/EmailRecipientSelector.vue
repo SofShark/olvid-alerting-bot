@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { paletteFor } from "~/utils/mailAvatarPalette";
 
 /*
   Free-form chip input for email recipients. Shares the visual grammar of
@@ -35,7 +36,7 @@ const emit = defineEmits<{
 // Loose email regex — same shape as the repo's server-side check so what
 // the UI accepts is what the DB will keep.
 // TODO keep shared
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/; // /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const input = ref("");
 const error = ref<string | null>(null);
@@ -97,7 +98,13 @@ const initial = (address: string): string => {
     <div v-if="selected.length > 0" class="selected-strip">
       <div v-for="address in selected" :key="address" class="strip-item">
         <div class="strip-avatar-wrap">
-          <div class="strip-avatar strip-avatar-fallback">
+          <div
+            class="strip-avatar strip-avatar-fallback"
+            :style="{
+              background: paletteFor(address).bg,
+              color: paletteFor(address).fg,
+            }"
+          >
             {{ initial(address) }}
           </div>
           <button
@@ -155,11 +162,14 @@ const initial = (address: string): string => {
   gap: var(--space-3);
 }
 .strip-item {
+  /* Width kept parity with DiscussionSelector's 56px so both strips look
+   * uniform inside the modal. The full address is on the chip's :title
+   * for the truncated case. */
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  width: 96px;
+  width: 56px;
 }
 .strip-avatar-wrap {
   position: relative;
@@ -173,11 +183,12 @@ const initial = (address: string): string => {
   border: 1px solid var(--color-border-subtle);
 }
 .strip-avatar-fallback {
+  /* Background / color are set inline per-address via `paletteFor` so
+   * different recipients get distinguishable pastels. Font matches the
+   * DiscussionSelector fallback so the two strips read as siblings. */
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-accent-soft);
-  color: var(--color-accent-text);
   font-size: var(--text-lg);
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -206,7 +217,7 @@ const initial = (address: string): string => {
   color: #fff;
 }
 .strip-name {
-  max-width: 96px;
+  max-width: 56px;
   font-size: var(--text-xs);
   color: var(--color-text-muted);
   text-align: center;

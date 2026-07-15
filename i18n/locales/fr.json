@@ -425,15 +425,32 @@
     },
     "preview": {
       "title": "📱 Aperçu sur l'appareil",
+      "mailTitle": "✉️ Aperçu dans la boîte mail",
       "placeholder": "Le message formaté apparaîtra ici...",
       "sender": "Bot d'alerte",
       "time": "maintenant"
+    },
+    "mailPreview": {
+      "from": "De",
+      "to": "À",
+      "subject": "Sujet",
+      "fromPlaceholder": "Bot d'alerte",
+      "toPlaceholder": "destinataire",
+      "subjectPlaceholder": "Titre de l'alerte"
     },
     "buttons": {
       "cancel": "Annuler",
       "save": "Enregistrer le script",
       "closeTitle": "Fermer"
     }
+  },
+
+  "bundleKind": {
+    "groupLabel": "Canal du lot",
+    "fieldLabel": "Canal",
+    "olvid": "Olvid",
+    "mail": "Email",
+    "pickPrompt": "Choisis un canal ci-dessus pour ajouter des destinataires."
   },
 
   "bundleRow": {

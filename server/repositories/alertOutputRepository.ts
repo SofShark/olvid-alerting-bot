@@ -38,7 +38,7 @@ export type PrismaTx = Prisma.TransactionClient | typeof prisma;
 // Loose RFC-ish email regex — good enough to reject obviously-malformed
 // input at persistence time. Real deliverability is the SMTP provider's
 // job; over-strict validation blocks valid corner cases (IDN, +tags, …).
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/; // /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function buildOutputsCreate(
   outputs: unknown,

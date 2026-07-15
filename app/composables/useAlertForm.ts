@@ -155,7 +155,12 @@ export function outputsFromMailAddresses(
 
 /** Single place that enforces the "olvid rows first, then mail rows"
  *  ordering on `bundle.outputs`. Any editor that updates one subset
- *  goes through here so the other subset is preserved verbatim. */
+ *  goes through here so the other subset is preserved verbatim.
+ *
+ *  Note: bundles are now single-kind at the UI layer (see `bundleKind`),
+ *  so in practice only one of the two arrays is non-empty per call. The
+ *  merge signature is kept so older mixed persistence still round-trips
+ *  cleanly through the editor. */
 export function mergeOutputs(
   olvidIds: string[],
   mailAddresses: string[],
@@ -164,4 +169,16 @@ export function mergeOutputs(
     ...outputsFromOlvidIds(olvidIds),
     ...outputsFromMailAddresses(mailAddresses),
   ];
+}
+
+/** Bundle "kind" is the single output type across a bundle's outputs.
+ *  Bundles are now homogeneous by policy (one channel per bundle).
+ *  Returns null for empty bundles — the editor prompts the user to
+ *  pick one before adding recipients. If a legacy mixed bundle survives
+ *  from an older version, we go by the first output's type so the row
+ *  keeps rendering (the editor will then normalize on save). */
+export function bundleKind(
+  outputs: BundleFrontendOutput[],
+): BundleOutputType | null {
+  return outputs[0]?.type ?? null;
 }
