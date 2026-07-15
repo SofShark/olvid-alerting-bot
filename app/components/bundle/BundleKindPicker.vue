@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import { BundleOutputType } from "#shared/types/bundleOutput";
-//import olvidSmall from "~/assets/olvid_small.png";
-//import olvidSmallInverted from "~/assets/olvid_small_inverted.png";
-import olvidSmall from "~/assets/olvid-small-no-bg.svg";
 
 defineProps<{
   modelValue: BundleOutputType | null;
@@ -29,9 +26,7 @@ const { t } = useI18n();
       @click="$emit('update:modelValue', BundleOutputType.Olvid)"
     >
       <span class="tile-media" aria-hidden="true">
-      
         <OlvidLogo/>
-        
       </span>
 
       <span class="tile-label">
@@ -117,7 +112,6 @@ const { t } = useI18n();
     color:var(--color-accent)
   }
 }
-
 
 /* ---------- Label ---------- */
 
