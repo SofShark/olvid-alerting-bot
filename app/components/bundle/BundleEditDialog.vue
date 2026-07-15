@@ -10,7 +10,11 @@ import {
 } from "#shared/types/bundle";
 import type { DiscussionModel } from "#shared/types/discussion";
 import { buildPollingDefaultMessage } from "#shared/polling/message";
-import { olvidIdsOf, outputsFromOlvidIds } from "~/composables/useAlertForm";
+import {
+  olvidIdsOf,
+  mailAddressesOf,
+  mergeOutputs,
+} from "~/composables/useAlertForm";
 
 /*
   THE bundle editor — one modal for both flows:
@@ -142,7 +146,22 @@ const discussions = computed<DiscussionModel[]>({
     });
   },
   set: (val) => {
-    patch({ outputs: outputsFromOlvidIds(val.map((d) => d.id)) });
+    if (!draft.value) return;
+    const olvidIds = val.map((d) => d.id);
+    const currentMail = mailAddressesOf(draft.value.outputs);
+    patch({ outputs: mergeOutputs(olvidIds, currentMail) });
+  },
+});
+
+// Mirror of `discussions` for the mail subset. Reading pulls the mail
+// addresses out of `outputs`; writing preserves the current olvid
+// selection and rebuilds the full array through mergeOutputs.
+const mailAddresses = computed<string[]>({
+  get: () => (draft.value ? mailAddressesOf(draft.value.outputs) : []),
+  set: (val) => {
+    if (!draft.value) return;
+    const currentOlvid = olvidIdsOf(draft.value.outputs);
+    patch({ outputs: mergeOutputs(currentOlvid, val) });
   },
 });
 
@@ -262,6 +281,14 @@ const onSave = () => {
             :available="availableDiscussions"
             :is-loading="discussionsLoading"
           />
+        </div>
+
+        <!-- Email recipients — free-form chip input, no directory. -->
+        <div class="field">
+          <label class="field-label">{{
+            $t("bundleRow.fields.emailRecipients")
+          }}</label>
+          <EmailRecipientSelector v-model="mailAddresses" />
         </div>
 
         <!-- Format + optional custom-script editor + preview. -->

@@ -38,6 +38,8 @@ function lineFor(
       return `${path} = ${asText(observed)}  (< ${asText(threshold)})`;
     case ConditionOperator.Contains:
       return `${path} = "${asText(observed)}"  (contains "${asText(threshold)}")`;
+    case ConditionOperator.RegExp:
+      return `${path} = "${asText(observed)}"  (matches /${asText(threshold)}/)`;
     default:
       return `${path}: ${asText(observed)}`;
   }
@@ -61,24 +63,28 @@ export function buildPollingDefaultMessage(
   const cond = alert?.alertParams?.condition;
   const result = conditionEvaluator.evaluate(cond, payload, baseline);
 
+  // `**title**` is Olvid's bold marker; mailClient strips it before send
+  // so mail readers see plain title. 
+  const header = `📡 **${title}**`;
+
   if (result.kind === ConditionKind.None) {
-    return `📡 ${title}\nPolled successfully (no condition — fires every cycle).`;
+    return `${header}\nPolled successfully (no condition — fires every cycle).`;
   }
   if (result.verdicts.length === 0) {
     // Empty paths / missing value / etc. — evaluator already encoded the why.
-    return `📡 ${title}\n${result.reason}`;
+    return `${header}\n${result.reason}`;
   }
 
   const fired = result.verdicts.filter((v) => v.fired);
   if (fired.length === 0) {
     // Useful in previews: tells the user "your rule would not fire on the
     // current snapshot".
-    return `📡 ${title}\nNo watched fields currently verify the condition on this snapshot.`;
+    return `${header}\nNo watched fields currently verify the condition on this snapshot.`;
   }
 
   const lines = fired.map(
     (v) =>
       `• ${lineFor(result.condition.operator, v.path, result.condition.value, v.observed)}`,
   );
-  return `📡 ${title}\n${lines.join("\n")}`;
+  return `${header}\n${lines.join("\n")}`;
 }

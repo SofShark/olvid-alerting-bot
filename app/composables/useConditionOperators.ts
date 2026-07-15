@@ -21,6 +21,7 @@ export const useConditionOperators = () => {
     { value: ConditionOperator.GreaterThan, label: t("conditionEditor.operator.greaterThan") },
     { value: ConditionOperator.LessThan, label: t("conditionEditor.operator.lessThan") },
     { value: ConditionOperator.Contains, label: t("conditionEditor.operator.contains") },
+    { value: ConditionOperator.RegExp, label: t("conditionEditor.operator.regExp") },
   ]);
 
   return { options };

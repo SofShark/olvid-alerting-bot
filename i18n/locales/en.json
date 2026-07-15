@@ -231,14 +231,16 @@
         "equals": "equal \"{value}\"",
         "greaterThan": "are greater than {value}",
         "lessThan": "are less than {value}",
-        "contains": "contain \"{value}\""
+        "contains": "contain \"{value}\"",
+        "regExp": "match /{value}/"
       },
       "phraseSingular": {
         "changed": "changes between polls",
         "equals": "equals \"{value}\"",
         "greaterThan": "is greater than {value}",
         "lessThan": "is less than {value}",
-        "contains": "contains \"{value}\""
+        "contains": "contains \"{value}\"",
+        "regExp": "matches /{value}/"
       }
     },
 
@@ -340,7 +342,8 @@
       "equals": "equals",
       "greaterThan": "is greater than",
       "lessThan": "is less than",
-      "contains": "contains"
+      "contains": "contains",
+      "regExp": "matches regex"
     },
     "value": {
       "placeholder": "value"
@@ -440,6 +443,7 @@
     },
     "fields": {
       "discussions": "Discussions",
+      "emailRecipients": "Email recipients",
       "format": "Message Format"
     },
     "format": {
@@ -467,6 +471,12 @@
       "allAdded": "All discussions already added"
     },
     "empty": "— no discussions —"
+  },
+
+  "emailRecipientSelector": {
+    "addPlaceholder": "Add an email address...",
+    "empty": "— no recipients —",
+    "invalidAddress": "Not a valid email address"
   },
 
   "inputSourceSelector": {

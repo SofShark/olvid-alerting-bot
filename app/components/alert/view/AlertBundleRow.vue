@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { BundleModel } from "#shared/types/bundle";
-import { olvidIdsOf } from "~/composables/useAlertForm";
+import { olvidIdsOf, mailAddressesOf } from "~/composables/useAlertForm";
 
 /*
   One row in the view-mode bundle table.
@@ -41,13 +41,14 @@ const status = computed(() => bundleStatus(props.bundle));
 const hasWarning = computed(() => status.value.kind !== "ready");
 const displayName = computed(() => props.bundle.name || "Untitled bundle");
 
-// The row summary is Olvid-only for now — bundles ONLY carry olvid outputs
-// today. When other channels land (email/slack/…), this becomes a per-type
-// grouped summary; for now we look up titles from the shared discussion list.
+// The row summary is flat across channels — a mixed list of discussion
+// titles and email addresses. The count is the raw destination total
+// regardless of type; that's what "where does this go?" is really asking.
 const { availableDiscussions } = useAlerts();
 
-const destIds = computed(() => olvidIdsOf(props.bundle.outputs));
-const destCount = computed(() => destIds.value.length);
+const olvidIds = computed(() => olvidIdsOf(props.bundle.outputs));
+const mailDests = computed(() => mailAddressesOf(props.bundle.outputs));
+const destCount = computed(() => olvidIds.value.length + mailDests.value.length);
 
 const destSummary = computed(() => {
   const count = destCount.value;
@@ -56,10 +57,14 @@ const destSummary = computed(() => {
   const titleFor = (id: string) =>
     availableDiscussions.value?.find((d) => d.id === id)?.title ?? `#${id}`;
 
-  const firstTwoNames = destIds.value
-    .slice(0, 2)
-    .map(titleFor)
-    .join(", ");
+  // Olvid names first (they carry a lookup and read as identifiers),
+  // then mail addresses. The first two land in the summary line; the
+  // rest fold into the "+N more" suffix.
+  const allNames = [
+    ...olvidIds.value.map(titleFor),
+    ...mailDests.value,
+  ];
+  const firstTwoNames = allNames.slice(0, 2).join(", ");
 
   if (count <= 2) return firstTwoNames;
 

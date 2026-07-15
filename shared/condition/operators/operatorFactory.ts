@@ -18,6 +18,7 @@ import { equalsStrategy } from "./equalsStrategy";
 import { greaterThanStrategy } from "./greaterThanStrategy";
 import { lessThanStrategy } from "./lessThanStrategy";
 import { containsStrategy } from "./containsStrategy";
+import { regExpStrategy } from "./regExpStrategy";
 
 const strategies: Record<ConditionOperator, OperatorStrategy> = {
   [ConditionOperator.Changed]: changedStrategy,
@@ -25,6 +26,7 @@ const strategies: Record<ConditionOperator, OperatorStrategy> = {
   [ConditionOperator.GreaterThan]: greaterThanStrategy,
   [ConditionOperator.LessThan]: lessThanStrategy,
   [ConditionOperator.Contains]: containsStrategy,
+  [ConditionOperator.RegExp]: regExpStrategy,
 };
 
 export const operatorFactory = {

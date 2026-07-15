@@ -48,6 +48,8 @@ export const useConditionSummary = () => {
         return t(`editor.condition.${ns}.lessThan`, { value });
       case ConditionOperator.Contains:
         return t(`editor.condition.${ns}.contains`, { value });
+      case ConditionOperator.RegExp:
+        return t(`editor.condition.${ns}.regExp`, { value });
       default:
         return String(op);
     }

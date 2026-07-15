@@ -233,14 +233,16 @@
         "equals": "valent \"{value}\"",
         "greaterThan": "sont supérieurs à {value}",
         "lessThan": "sont inférieurs à {value}",
-        "contains": "contiennent \"{value}\""
+        "contains": "contiennent \"{value}\"",
+        "regExp": "correspondent à /{value}/"
       },
       "phraseSingular": {
         "changed": "change entre deux pollings",
         "equals": "vaut \"{value}\"",
         "greaterThan": "est supérieure à {value}",
         "lessThan": "est inférieure à {value}",
-        "contains": "contient \"{value}\""
+        "contains": "contient \"{value}\"",
+        "regExp": "correspond à /{value}/"
       }
     },
 
@@ -342,7 +344,8 @@
       "equals": "égale",
       "greaterThan": "est supérieur à",
       "lessThan": "est inférieur à",
-      "contains": "contient"
+      "contains": "contient",
+      "regExp": "correspond à la regex"
     },
     "value": {
       "placeholder": "valeur"
@@ -442,6 +445,7 @@
     },
     "fields": {
       "discussions": "Discussions",
+      "emailRecipients": "Destinataires email",
       "format": "Format du message"
     },
     "format": {
@@ -469,6 +473,12 @@
       "allAdded": "Toutes les discussions sont déjà ajoutées"
     },
     "empty": "— aucune discussion —"
+  },
+
+  "emailRecipientSelector": {
+    "addPlaceholder": "Ajouter une adresse email...",
+    "empty": "— aucun destinataire —",
+    "invalidAddress": "Adresse email invalide"
   },
 
   "inputSourceSelector": {

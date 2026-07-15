@@ -23,6 +23,7 @@ export const ConditionOperator = {
   GreaterThan: "greater_than", // numeric comparison
   LessThan: "less_than",
   Contains: "contains", // substring match on string value
+  RegExp: "regexp", // regular-expression match against value's string form
 } as const;
 export type ConditionOperator =
   (typeof ConditionOperator)[keyof typeof ConditionOperator];
@@ -60,6 +61,7 @@ export const OPERATORS_NEEDING_VALUE: ReadonlySet<ConditionOperator> = new Set([
   ConditionOperator.GreaterThan,
   ConditionOperator.LessThan,
   ConditionOperator.Contains,
+  ConditionOperator.RegExp,
 ]);
 
 // HTML <input type=...> appropriate for the operator's value field. Used by
