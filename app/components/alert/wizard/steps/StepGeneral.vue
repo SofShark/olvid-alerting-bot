@@ -25,6 +25,9 @@ const isWebhook = computed(() => form.value.input === Source.Webhook);
 
 // Localised label for the source hint line (matches what the selector shows).
 const { t } = useI18n();
+const inputSourceHint = computed(()=>{
+  return t("wizard.communicationHint") + t("wizard.communicationHintSuffix")
+})
 const sourceLabel = computed(() => {
   if (!form.value.input) return "";
   const key = `inputSourceSelector.labels.${form.value.input}`;
@@ -36,10 +39,12 @@ const sourceLabel = computed(() => {
 <template>
   <div>
     <!-- Title / description are the "what is this alert?" fields -->
-    <div class="field">
-      <label class="field-label">
+    <div class="wcard-body">
+    <div class="wcard-row">
+      <label class="wcard-label">
         {{ $t("wizard.fieldLabels.title") }}
         <span class="field-required">*</span>
+        <HelpTooltip message="Help Message"/>
       </label>
       <input
         v-model="form.title"
@@ -49,8 +54,8 @@ const sourceLabel = computed(() => {
       >
     </div>
 
-    <div class="field">
-      <label class="field-label">
+    <div class="wcard-row">
+      <label class="wcard-label">
         {{ $t("wizard.fieldLabels.description") }}
       </label>
       <input
@@ -61,16 +66,15 @@ const sourceLabel = computed(() => {
       >
     </div>
 
-    <div class="field">
-      <label class="field-label">
+    <div class="wcard-row">
+      <label class="wcard-label">
         {{ $t("wizard.fieldLabels.inputSource") }}
         <span class="field-required">*</span>
+        <HelpTooltip :message="inputSourceHint"/>
       </label>
       <InputSourceSelector v-model="selectedSource" />
-      <p v-if="form.input" class="field-hint">
-        {{ $t("wizard.communicationHint") }}<strong>{{ sourceLabel }}</strong
-        >{{ $t("wizard.communicationHintSuffix") }}
-      </p>
+      
+      
     </div>
 
     <!-- Polling sources expose URL / format / timing inline. -->
@@ -104,6 +108,7 @@ const sourceLabel = computed(() => {
         </div>
       </div>
     </template>
+  </div>
   </div>
 </template>
 

@@ -41,13 +41,12 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
   <div v-if="isPolling" class="wcard">
     <div class="wcard-head">
       {{ $t("wizard.fieldLabels.pollingConfiguration") }}
-      <span class="field-required">*</span>
     </div>
     <!-- URL -->
 
     <div class="wcard-body">
-    <div class="field">
-      <label class="field-label"
+    <div class="wcard-row">
+      <label class="wcard-label"
         >{{ $t("alertParamsEditor.url.label") }}
         <span class="field-required">*</span></label
       >
@@ -62,8 +61,8 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
     </div>
 
     <!-- Format -->
-    <div class="field">
-      <label class="field-label"
+    <div class="wcard-row">
+      <label class="wcard-label"
         >{{ $t("alertParamsEditor.format.label") }}
         <span class="field-required">*</span></label
       >
@@ -79,9 +78,9 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
     <!-- Schedule. Field-head puts the label on the left and the
          Basic/Advanced pill on the right — visually anchored to the same
          row so the toggle reads as "controls how this field is edited". -->
-    <div class="field">
+    <div class="wcard-row">
       <div class="field-head">
-        <label class="field-label">
+        <label class="wcard-label">
           {{ $t("alertParamsEditor.interval.label") }}
           <span class="field-required">*</span>
         </label>
@@ -117,7 +116,7 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
   gap: var(--space-3);
   margin-bottom: var(--space-2);
 }
-.field-head .field-label {
+.field-head .wcard-label {
   margin: 0;
 }
 
