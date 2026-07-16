@@ -182,7 +182,7 @@ const initials = (title: string): string => {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  background: var(--color-bg-card);
+  background: var(--color-bg-panel);
   min-height: 0;
 
   .sidebar-collapsed & {

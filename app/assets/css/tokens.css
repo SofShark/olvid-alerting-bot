@@ -93,12 +93,14 @@
   --color-bg-menu: var(--neutral-80);
 
   /* Text */
+
+  --color-text-on-accent: var(--white);
   --color-text-primary: var(--neutral-10);
   --color-text-secondary: var(--neutral-30);
   --color-text-muted: var(--neutral-50);
   --color-text-dim: var(--neutral-60);
   --color-text-faint: var(--neutral-70);
-  --color-text-on-accent: var(--white);
+  
   --color-text-webhook: #80e0e4;         /* informational sky blue */
 
   /* Borders */
