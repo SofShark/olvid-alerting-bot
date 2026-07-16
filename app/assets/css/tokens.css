@@ -87,9 +87,9 @@
   --color-bg-nav: var(--neutral-90);
   --color-bg-panel: var(--neutral-90);
   --color-bg-sidebar-head: var(--neutral-90);
-  --color-bg-card: var(--neutral-90);
-  --color-bundle-card: var(--neutral-90);
-  --color-bg-card-soft: var(--neutral-85);
+  --color-bg-card: var(--neutral-85);
+  --color-bundle-card: var(--neutral-80);
+  --color-bg-card-soft: var(--neutral-80);
   --color-bg-menu: var(--neutral-80);
 
   /* Text */
