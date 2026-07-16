@@ -69,7 +69,7 @@ const props = defineProps<{
 
     /* Estilos visuales de la burbuja */
     background-color: var(--color-accent-soft); 
-    color: var(--color-accent);
+    color: var(--text-primary);
     padding: 6px 10px;
     border-radius: 6px;
     font-size: 11px;

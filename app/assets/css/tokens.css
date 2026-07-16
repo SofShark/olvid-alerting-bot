@@ -42,7 +42,7 @@
   --blue-50: #4375f6;
   --blue-60: #2f65f5;
   --blue-70: #2651c4;
-  --blue-80: #1c3d93;
+  --blue-80: #1c3d90;
   --blue-90: #132862;
 
   /* ──────────────────────────────────────────────────────────────
@@ -57,19 +57,19 @@
    *
    *  10 is the softest off-white; 95 is the deepest near-black.
    * ────────────────────────────────────────────────────────────── */
-  --neutral-10: #fafafa;
-  --neutral-20: #f5f5f5;
-  --neutral-25: #e5e5e5;
+  --neutral-10: #f8fafc;
+  --neutral-20: #f1f5f9;
+  --neutral-25: #e2e8f0;
   --neutral-30: #d4d4d4;
-  --neutral-40: #a3a3a3;
-  --neutral-50: #737373;
-  --neutral-60: #525252;
-  --neutral-70: #404040;
-  --neutral-80: #272b34;   /* menus, strong borders */
+  --neutral-40: #94a3b8;
+  --neutral-50: #64748b;
+  --neutral-60: #475569;
+  --neutral-70: #334155;
+  --neutral-80: #272c36;   /* menus, strong borders */
   --neutral-83: #262a31;   /* alt: hover / bundle-card variant */
   --neutral-85: #1f2229;   /* inputs, card-soft (wcard-head) */
   --neutral-90: #15181e;   /* nav, cards, sidebar-head */
-  --neutral-93: #15181e;   /* panels — same tone as nav on purpose */
+   /* panels — same tone as nav on purpose */
   --neutral-95: #0f1115;   /* app / page — deepest */
 
   --white: #ffffff;
@@ -85,7 +85,7 @@
   --color-bg-input: var(--black);     /* slightly lifted so slots read
                                               both on app bg AND inside cards */
   --color-bg-nav: var(--neutral-90);
-  --color-bg-panel: var(--neutral-93);
+  --color-bg-panel: var(--neutral-90);
   --color-bg-sidebar-head: var(--neutral-90);
   --color-bg-card: var(--neutral-90);
   --color-bundle-card: var(--neutral-90);
@@ -216,20 +216,10 @@
    * blue, hue ~215°) so the page reads a touch colder than the
    * pure-grey dark. The rest of the aliases below just map onto
    * these local overrides. */
-  --neutral-10: #f8fafc;
-  --neutral-20: #f1f5f9;
-  --neutral-25: #e2e8f0;
-  --neutral-30: #cbd5e1;
-  --neutral-40: #94a3b8;
-  --neutral-50: #64748b;
-  --neutral-60: #475569;
-  --neutral-70: #334155;
-  --neutral-80: #1e293b;
-  --neutral-85: #17223a;
-  --neutral-90: #0f172a;
-  --neutral-93: #0a1122;
-  --neutral-95: #020617;
 
+  
+
+  
 
   /* Surfaces — app is a soft slate, cards are white. Inputs stay
    * white and rely on their border to define the slot (works whether
@@ -303,9 +293,9 @@
  *  --neutral-50: #64748b;
  *  --neutral-60: #475569;
  *  --neutral-70: #334155;
- *  --neutral-80: #1e293b;
+ *  --neutral-80: #1e290b;
  *  --neutral-85: #17223a;
  *  --neutral-90: #0f172a;
- *  --neutral-93: #0a1122;
+ *  --neutral-90: #0a1122;
  *  --neutral-95: #020617;
  * ────────────────────────────────────────────────────────────────── */
