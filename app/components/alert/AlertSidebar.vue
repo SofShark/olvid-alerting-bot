@@ -173,13 +173,16 @@ const initials = (title: string): string => {
 
 /* ── Body / rows ────────────────────────────────────────────────── */
 .sidebar-body {
+  /* Transparent so the body inherits the sidebar container's `bg-app` —
+   * one continuous chrome tone from the top of the head through the row
+   * list. Rows pop on hover/selected via their own backgrounds. */
   flex: 1;
   overflow-y: auto;
   padding: var(--space-1);
   display: flex;
   flex-direction: column;
   gap: 2px;
-  background: var(--color-bg-panel);
+  background: var(--color-bg-card);
   min-height: 0;
 
   .sidebar-collapsed & {

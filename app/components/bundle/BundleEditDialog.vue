@@ -410,6 +410,7 @@ const onSave = () => {
   width: 100%;
   height: 100%;
   display: flex;
+  padding: 0 var(--space-4);
   flex-direction: column;
 }
 .modal-body {

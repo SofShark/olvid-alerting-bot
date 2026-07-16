@@ -75,10 +75,6 @@ const sourceLabel = computed(() => {
 
     <!-- Polling sources expose URL / format / timing inline. -->
     <div v-if="isPolling" class="field">
-      <label class="field-label">
-        {{ $t("wizard.fieldLabels.pollingConfiguration") }}
-        <span class="field-required">*</span>
-      </label>
       <TriggerParamsEditor
         :trigger-type="form.input"
         :model-value="form.alertParams ?? {}"
@@ -88,10 +84,7 @@ const sourceLabel = computed(() => {
 
     <!-- Monitoring sources expose URL + timing only (no body parsing). -->
     <div v-if="isMonitoring" class="field">
-      <label class="field-label">
-        {{ $t("wizard.fieldLabels.monitorConfiguration") }}
-        <span class="field-required">*</span>
-      </label>
+      
       <MonitorParamsEditor
         :model-value="(form.alertParams ?? {}) as Partial<MonitorParams>"
         @update:model-value="form.alertParams = $event as MonitorParams"

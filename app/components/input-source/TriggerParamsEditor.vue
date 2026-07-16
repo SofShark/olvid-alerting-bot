@@ -24,6 +24,9 @@ function set(key: string, value: any) {
 const isPolling = computed(() => props.triggerType === Source.Polling);
 
 const FORMATS = Object.values(PollingFormat);
+const formatOptions = computed(() =>
+  FORMATS.map((f) => ({ value: f, label: f.toUpperCase() })),
+);
 const selectedFormat = computed(
   () => (p.value.format as PollingFormat) ?? PollingFormat.XML,
 );
@@ -35,8 +38,14 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
 </script>
 
 <template>
-  <div v-if="isPolling" class="params-editor">
+  <div v-if="isPolling" class="wcard">
+    <div class="wcard-head">
+      {{ $t("wizard.fieldLabels.pollingConfiguration") }}
+      <span class="field-required">*</span>
+    </div>
     <!-- URL -->
+
+    <div class="wcard-body">
     <div class="field">
       <label class="field-label"
         >{{ $t("alertParamsEditor.url.label") }}
@@ -58,13 +67,12 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
         >{{ $t("alertParamsEditor.format.label") }}
         <span class="field-required">*</span></label
       >
-      <select
-        :value="selectedFormat"
-        class="field-input"
-        @change="set('format', ($event.target as HTMLSelectElement).value)"
-      >
-        <option v-for="f in FORMATS" :key="f" :value="f">{{ f }}</option>
-      </select>
+      <Select
+        :model-value="selectedFormat"
+        :options="formatOptions"
+        size="md"
+        @update:model-value="set('format', $event)"
+      />
       <span class="field-hint">{{ $t("alertParamsEditor.format.hint") }}</span>
     </div>
 
@@ -86,18 +94,18 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
         @update:mode="scheduleMode = $event"
       />
     </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
+/* Card chrome from the shared .wcard class; local rules just handle
+ * the inner layout since this card has no wcard-head. */
 .params-editor {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
   padding: var(--space-6);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
 }
 
 /* Label + mode-toggle on the same row. The label keeps its normal block

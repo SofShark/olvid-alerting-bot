@@ -147,12 +147,13 @@ const selectedId = computed(() => {
   overflow-y: auto;
 }
 
-/* Sidebar reads as nav-chrome (same background as the top nav). Drop
- * the rounded corners + outer borders inherited from the old padded-card
- * version. The right border is the visual divider between rail and
- * content; the top is already covered by the nav's bottom border. */
+/* Sidebar recedes to the app background so it doesn't collide with the
+ * top nav's `bg-nav` (which is pure white in light mode). The sidebar
+ * reads as chrome extending the page, not a floating card next to the
+ * nav. Right border divides rail from content; the nav's bottom border
+ * already caps the top. */
 .split-left :deep(.sidebar) {
-  background: var(--color-bg-nav);
+  background: var(--color-bg-app);
   border: none;
   border-right: 1px solid var(--color-border-subtle);
   border-radius: 0;

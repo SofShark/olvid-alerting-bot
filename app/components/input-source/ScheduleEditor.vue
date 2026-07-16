@@ -97,6 +97,13 @@ const onValueInput = (raw: string) => {
 const onDailyAtInput = (raw: string) =>
   emitFromMode({ unit: "daily", dailyAt: raw || "08:00" });
 
+const { t } = useI18n();
+const unitOptions = computed(() => [
+  { value: "minutes", label: t("alertParamsEditor.units.minutes") },
+  { value: "hours", label: t("alertParamsEditor.units.hours") },
+  { value: "daily", label: t("alertParamsEditor.units.daily") },
+]);
+
 const onUnitChange = (unit: FriendlyUnit) => {
   if (unit === "daily") {
     emitFromMode({ unit: "daily", dailyAt: dailyAt.value });
@@ -186,15 +193,13 @@ const nextRunInfo = computed(() => {
         >
       </template>
 
-      <select
-        :value="basicUnit"
-        class="field-input interval-unit"
-        @change="onUnitChange(($event.target as HTMLSelectElement).value as FriendlyUnit)"
-      >
-        <option value="minutes">{{ $t("alertParamsEditor.units.minutes") }}</option>
-        <option value="hours">{{ $t("alertParamsEditor.units.hours") }}</option>
-        <option value="daily">{{ $t("alertParamsEditor.units.daily") }}</option>
-      </select>
+      <Select
+        :model-value="basicUnit"
+        :options="unitOptions"
+        size="sm"
+        class="interval-unit"
+        @update:model-value="onUnitChange($event as FriendlyUnit)"
+      />
     </div>
 
     <!-- ADVANCED: raw cron input + 5-field hint + parse error inline. -->

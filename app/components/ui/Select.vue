@@ -1,6 +1,22 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 
+/*
+  Single dropdown component. Two shapes, one API:
+
+    · size="md" (default) — full-width form field. Same tokens/height
+      as `.field-input`. Use for form fields (Message Format, Polling
+      Format, HTTP-range in status match).
+
+    · size="sm" — compact inline chip, auto-width, ~28-30px tall.
+      Matches the LanguageToggle vocabulary. Use for dropdowns that
+      live inline inside a row (condition operator + aggregation,
+      schedule time-unit).
+
+  Semantics (open/close, click-outside, keyboard, ARIA) are shared —
+  callers pick a shape, nothing else.
+*/
+
 type Option = { value: string; label: string };
 
 const { t } = useI18n();
@@ -11,10 +27,12 @@ const props = withDefaults(
     options: Option[];
     disabled?: boolean;
     placeholder?: string;
+    size?: "md" | "sm";
   }>(),
   {
     disabled: false,
     placeholder: () => "",
+    size: "md",
   },
 );
 
@@ -37,41 +55,46 @@ function toggle() {
   if (props.disabled) return;
   isOpen.value = !isOpen.value;
 }
-
 function select(opt: Option) {
   emit("update:modelValue", opt.value);
   isOpen.value = false;
 }
-
 function onClickOutside(e: MouseEvent) {
   if (containerRef.value && !containerRef.value.contains(e.target as Node)) {
     isOpen.value = false;
   }
 }
-
 onMounted(() => document.addEventListener("click", onClickOutside));
 onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 </script>
 
 <template>
-  <div ref="containerRef" class="select-wrap">
+  <div ref="containerRef" class="select-wrap" :class="[`size-${size}`]">
     <button
       type="button"
       class="select-trigger"
       :class="{ open: isOpen, disabled }"
       :disabled="disabled"
+      :aria-haspopup="true"
+      :aria-expanded="isOpen"
       @click="toggle"
     >
       <span class="select-label">{{ displayLabel }}</span>
-      <span class="select-chevron" :class="{ open: isOpen }">▾</span>
+      <span
+        class="select-chevron"
+        :class="{ open: isOpen }"
+        aria-hidden="true"
+      >▾</span>
     </button>
 
-    <div v-if="isOpen && !disabled" class="select-dropdown">
+    <div v-if="isOpen && !disabled" class="select-dropdown" role="listbox">
       <div
         v-for="opt in options"
         :key="opt.value"
         class="select-item"
         :class="{ selected: opt.value === modelValue }"
+        role="option"
+        :aria-selected="opt.value === modelValue"
         @mousedown.prevent="select(opt)"
       >
         {{ opt.label }}
@@ -83,22 +106,21 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 <style scoped>
 .select-wrap {
   position: relative;
+}
+.size-md {
   width: 100%;
 }
+.size-sm {
+  display: inline-block;
+  width: auto;
+}
 
-/* Trigger looks like a search-input in InputSourceSelector — same tokens, same
- * focus ring. The only addition is a chevron icon on the right that flips
- * when the dropdown is open. */
+/* ── Trigger — shared base ─────────────────────────────────── */
 .select-trigger {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 9px var(--space-4);
-  background: var(--color-bg-input);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   font-family: inherit;
-  font-size: var(--text-base);
   cursor: pointer;
   text-align: left;
   display: flex;
@@ -107,18 +129,41 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   gap: var(--space-3);
   transition:
     border-color 0.15s,
-    box-shadow 0.15s;
+    box-shadow 0.15s,
+    background-color 0.15s;
 }
-.select-trigger:focus,
+.select-trigger:focus-visible,
 .select-trigger.open {
   outline: none;
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
 .select-trigger.disabled {
   opacity: 0.7;
   cursor: not-allowed;
   background: var(--color-bg-card);
+}
+
+/* Size-specific trigger chrome. */
+.size-md .select-trigger {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px var(--space-4);
+  background: var(--color-bg-input);
+  font-size: var(--text-base);
+}
+/* sm — inline chip, but visually a sibling of .field-input: same
+ * background and vertical rhythm so a Select and an <input> sitting
+ * next to each other in a row line up. */
+.size-sm .select-trigger {
+  padding: var(--space-3) var(--space-3);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
+  line-height: 1;
+}
+.size-sm .select-trigger:hover:not(.open):not(.disabled) {
+  border-color: var(--color-border-default);
 }
 
 .select-label {
@@ -131,40 +176,62 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   color: var(--color-text-dim);
   font-size: 12px;
   transition: transform 0.15s;
+  flex-shrink: 0;
 }
 .select-chevron.open {
   transform: rotate(180deg);
 }
 
+/* ── Dropdown panel — shared, positioning is size-neutral ──── */
 .select-dropdown {
   position: absolute;
   top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background: var(--color-bg-card);
+  background: var(--color-bg-panel);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-  max-height: 200px;
+  box-shadow: var(--shadow-card);
+  max-height: 240px;
   overflow-y: auto;
-  z-index: 50;
+  z-index: 200;
 }
+.size-md .select-dropdown {
+  left: 0;
+  right: 0;
+}
+.size-sm .select-dropdown {
+  left: 0;
+  min-width: 100%;
+  padding: var(--space-1);
+}
+
 .select-item {
-  padding: 9px var(--space-4);
-  font-size: var(--text-base);
+  font-family: inherit;
   color: var(--color-text-secondary);
   cursor: pointer;
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-.select-item:last-child {
-  border-bottom: none;
+  transition:
+    background-color 0.12s,
+    color 0.12s;
 }
 .select-item:hover {
-  background: var(--color-border-subtle);
+  background: var(--color-bg-card-soft);
   color: var(--color-text-primary);
 }
 .select-item.selected {
   background: var(--color-accent-soft);
   color: var(--color-accent-text);
+}
+.size-md .select-item {
+  padding: 9px var(--space-4);
+  font-size: var(--text-base);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.size-md .select-item:last-child {
+  border-bottom: none;
+}
+.size-sm .select-item {
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  white-space: nowrap;
 }
 </style>
