@@ -35,6 +35,32 @@ const sourceLabel = computed(() => {
 
 <template>
   <div>
+    <!-- Title / description are the "what is this alert?" fields -->
+    <div class="field">
+      <label class="field-label">
+        {{ $t("wizard.fieldLabels.title") }}
+        <span class="field-required">*</span>
+      </label>
+      <input
+        v-model="form.title"
+        type="text"
+        class="field-input"
+        :placeholder="$t('common.untitledAlert')"
+      >
+    </div>
+
+    <div class="field">
+      <label class="field-label">
+        {{ $t("wizard.fieldLabels.description") }}
+      </label>
+      <input
+        v-model="form.description"
+        type="text"
+        class="field-input"
+        :placeholder="$t('common.descriptionPlaceholder')"
+      >
+    </div>
+
     <div class="field">
       <label class="field-label">
         {{ $t("wizard.fieldLabels.inputSource") }}

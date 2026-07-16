@@ -1,6 +1,6 @@
 // BundleOutput data access — the innermost repository of the alert
-// aggregate. One row per delivery target (today: one Olvid discussion;
-// future: one email address, one Slack webhook, …).
+// aggregate. One row per delivery target (an Olvid discussion, an
+// email address, and later Slack/Discord/…).
 //
 // Boundary rules:
 //   · Writes accept a Prisma transaction client so alert+bundle+output
@@ -10,6 +10,9 @@
 //   · Owns the BigInt / JSON coercion for `params.discussionId` — the
 //     wire has strings, the DB stores strings (via JSON), and the
 //     notifier does BigInt() when it needs to call the Olvid client.
+//   · Normalises + validates per-type params on the write path so the
+//     dispatcher can trust what's stored (mail addresses trimmed +
+//     lowercased + dedupe'd; obviously-malformed ones dropped).
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "#server/db/prisma";
@@ -32,11 +35,17 @@ export type PrismaTx = Prisma.TransactionClient | typeof prisma;
  * `type` values. Unknown types pass through opaquely so future channels
  * slot in without a code change here.
  */
+// Loose RFC-ish email regex — good enough to reject obviously-malformed
+// input at persistence time. Real deliverability is the SMTP provider's
+// job; over-strict validation blocks valid corner cases (IDN, +tags, …).
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/; // /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function buildOutputsCreate(
   outputs: unknown,
 ): Array<{ type: string; params: any }> {
   if (!Array.isArray(outputs)) return [];
   const rows: Array<{ type: string; params: any }> = [];
+  const seenAddresses = new Set<string>();
   for (const o of outputs) {
     if (!o || typeof o !== "object" || !("type" in o)) continue;
     const type = String((o as any).type);
@@ -44,6 +53,14 @@ export function buildOutputsCreate(
       const raw = (o as any).params?.discussionId;
       if (raw === null || raw === undefined || raw === "") continue;
       rows.push({ type: BundleOutputType.Olvid, params: { discussionId: String(raw) } });
+    } else if (type === BundleOutputType.Mail) {
+      const raw = (o as any).params?.address;
+      if (typeof raw !== "string") continue;
+      const address = raw.trim().toLowerCase();
+      if (!EMAIL_REGEX.test(address)) continue;
+      if (seenAddresses.has(address)) continue;
+      seenAddresses.add(address);
+      rows.push({ type: BundleOutputType.Mail, params: { address } });
     } else {
       // Passthrough for future channels — the caller is responsible
       // for the params shape until we add a validator here.
@@ -53,13 +70,21 @@ export function buildOutputsCreate(
   return rows;
 }
 
-/** DB row → wire shape. `discussionId` stays a string on both sides. */
+/** DB row → wire shape. Discussion ids stay strings; mail addresses
+ *  come out already normalised (they were normalised on write). */
 export function serializeOutput(output: any): BundleFrontendOutput {
   if (output.type === BundleOutputType.Olvid) {
     const discussionId = String(output.params?.discussionId ?? "");
     return { type: BundleOutputType.Olvid, params: { discussionId } };
   }
-  return { type: output.type, params: output.params ?? {} };
+  if (output.type === BundleOutputType.Mail) {
+    const address = String(output.params?.address ?? "");
+    return { type: BundleOutputType.Mail, params: { address } };
+  }
+  // Unknown type — pass through opaquely. Cast: the caller has narrowed
+  // via the DB `type` string; new future channels land here until a
+  // dedicated branch is added above.
+  return { type: output.type, params: output.params ?? {} } as BundleFrontendOutput;
 }
 
 // ── Repository ────────────────────────────────────────────────────────────

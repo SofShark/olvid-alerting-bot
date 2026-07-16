@@ -1,27 +1,51 @@
 <script setup lang="ts">
+import { BundleOutputType } from "#shared/types/bundleOutput";
+
 /*
-  Right-hand pane: chat-style bubble showing the rendered Handlebars
-  output, or a red error bubble when render / parse fails. The render
-  comes pre-computed from `useFormatEditorPreview` — this panel is
-  purely visual.
+  Right-hand pane. Delegates the actual rendering to a variant component
+  based on `mode`:
+    · olvid → OlvidChatPreview (chat bubble)
+    · mail  → MailPreview      (email frame)
+
+  This file only owns the shared shell — the pane's column, the header
+  bar, and the mode-appropriate title. Adding a new channel means a new
+  Preview*.vue and one case here.
 */
 
-defineProps<{
-  data: { text: string; error: string | null };
-}>();
+const { t } = useI18n();
+
+const props = withDefaults(
+  defineProps<{
+    data: { text: string; error: string | null };
+    /** Channel to render the preview for. Defaults to Olvid so callers
+     *  that don't yet pass a mode keep working. */
+    mode?: BundleOutputType;
+    /** Mail-only helpers surfaced through the panel. Ignored for olvid. */
+    mailFrom?: string;
+    mailTo?: string;
+    mailSubject?: string;
+  }>(),
+  { mode: BundleOutputType.Olvid },
+);
+
+const headerTitle = computed(() =>
+  props.mode === BundleOutputType.Mail
+    ? t("formatEditor.preview.mailTitle")
+    : t("formatEditor.preview.title"),
+);
 </script>
 
 <template>
   <div class="preview-column">
-    <div class="chat-header">{{ $t("formatEditor.preview.title") }}</div>
-    <div class="chat-background">
-      <div v-if="data.error" class="error-bubble">⚠️ {{ data.error }}</div>
-      <div v-else class="chat-bubble">
-        <div class="bubble-sender">{{ $t("formatEditor.preview.sender") }}</div>
-        <div class="bubble-text" v-html="data.text" />
-        <div class="bubble-time">{{ $t("formatEditor.preview.time") }}</div>
-      </div>
-    </div>
+    <div class="chat-header">{{ headerTitle }}</div>
+    <OlvidChatPreview v-if="mode === BundleOutputType.Olvid" :data="data" />
+    <MailPreview
+      v-else-if="mode === BundleOutputType.Mail"
+      :data="data"
+      :from="mailFrom"
+      :to="mailTo"
+      :subject="mailSubject"
+    />
   </div>
 </template>
 
@@ -40,53 +64,5 @@ defineProps<{
   color: var(--color-text-muted);
   border-bottom: 1px solid var(--color-border-subtle);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-.chat-background {
-  padding: var(--space-7);
-  flex-grow: 1;
-  overflow-y: auto;
-}
-.chat-bubble {
-  background: var(--color-bg-panel);
-  max-width: 85%;
-  width: fit-content;
-  padding: var(--space-4) var(--space-6);
-  border-radius: 0 16px 16px 16px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-  margin-bottom: var(--space-6);
-  border: 1px solid var(--color-border-subtle);
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-.bubble-sender {
-  color: var(--color-accent);
-  font-weight: 700;
-  font-size: var(--text-base);
-  margin-bottom: 5px;
-}
-.bubble-text {
-  margin: 0;
-  font-family: inherit;
-  font-size: var(--text-lg);
-  color: var(--color-text-primary);
-  white-space: pre-wrap;
-  line-height: 1.4;
-}
-.bubble-time {
-  text-align: right;
-  color: var(--color-text-dim);
-  font-size: var(--text-sm);
-  margin-top: 5px;
-}
-.error-bubble {
-  background: var(--color-danger-soft);
-  color: var(--color-danger-bright);
-  max-width: 85%;
-  padding: var(--space-4) var(--space-6);
-  border-radius: 16px;
-  border: 1px solid var(--color-danger-border);
-  font-family: var(--font-mono);
-  font-size: var(--text-base);
-  white-space: pre-wrap;
 }
 </style>

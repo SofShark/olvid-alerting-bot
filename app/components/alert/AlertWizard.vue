@@ -5,17 +5,18 @@ import { compactCondition, migrateCondition } from "#shared/condition/migrate";
 import { getErrorMessage, getErrorData } from "~/utils/errors";
 
 /*
-  Orchestration container for the alert create / edit flow. Owns
-  no UI semantics beyond layout: every visual region is a leaf component,
+  Orchestration container for the alert create / edit flow. Owns no UI
+  semantics beyond layout: every visual region is a leaf component,
   every imperative concern is a composable.
 
-      ┌─ Header (title + description + back) ─────── AlertWizardHeader
-      ├─ Stepper rail ────────────────────────────── ui/Stepper
-      ├─ Step body — one of:
-      │     general  → wizard/steps/StepGeneral
-      │     trigger  → wizard/steps/StepTrigger     (polling only)
+      ┌─ Topbar (back-link + Stepper) ─────────────── inline here
+      ├─ Step content — one of:
+      │     general  → wizard/steps/StepGeneral   (owns title + description
+      │                                             + source + params)
+      │     trigger  → wizard/steps/StepTrigger   (polling / monitoring)
       │     bundle   → wizard/steps/StepBundles
-      └─ Footer (Back / Save-as-draft / Continue / Save) — AlertWizardFooter
+      └─ Footbar (Back / Save-as-draft / Continue / Save) — AlertWizardFooter
+
 
   Composables called:
     - useAlertForm     → form + bundle helpers + isExisting/isPolling/isWebhook
@@ -151,8 +152,8 @@ const save = async (forceDraft: boolean, navigateAfter: boolean) => {
   }
 };
 
-// ── Header back / discard flow ────────────────────────────────────────────
-const onHeaderBack = () => {
+// ── Back-to-list / discard flow ───────────────────────────────────────────
+const onBackToList = () => {
   if (isDirty.value) {
     showDiscardPrompt.value = true;
   } else {
@@ -179,7 +180,7 @@ const onSaveDraftAndLeave = async () => {
 
 <template>
   <div class="wizard-root">
-    <DiscardChangesDialog 
+    <DiscardChangesDialog
       :open="showDiscardPrompt"
       :can-save-draft="canSaveDraft"
       :saving="saving"
@@ -188,69 +189,97 @@ const onSaveDraftAndLeave = async () => {
       @discard="onDiscard"
     />
 
-    <div class="wizard-stepper">
-      <Stepper v-model="currentStep" :steps="stepDefs" />
-    </div>
-
-    <div class="panel wizard">
-      <AlertWizardHeader
-        :title="form.title"
-        :description="form.description"
-        @update:title="form.title = $event"
-        @update:description="form.description = $event"
-        @back="onHeaderBack"
-      />
-
-      <div class="panel-body">
-        <StepGeneral v-if="currentStepKey === 'general'" v-model="form" />
-        <StepTrigger
-          v-else-if="currentStepKey === 'trigger'"
-          v-model="form"
-          @update:payload="lastPollPayload = $event"
-        />
-        <StepBundles
-          v-else-if="currentStepKey === 'bundle'"
-          v-model="form"
-          :available-discussions="availableDiscussions"
-          :discussions-loading="discussionsLoading"
-          :poll-payload="lastPollPayload"
-        />
+    <!-- Topbar — one thin row: back-link on the left, stepper on the right.
+         Replaces the old grey-strip masthead that was mimicking view mode. -->
+    <div class="wizard-topbar">
+      <button
+        type="button"
+        class="btn btn-ghost btn-sm topbar-back"
+        @click="onBackToList"
+      >
+        🡐 {{ $t("button.backToList") }}
+      </button>
+      <div class="topbar-stepper">
+        <Stepper v-model="currentStep" :steps="stepDefs" />
       </div>
+    </div>
 
-      <AlertWizardFooter
-        :show-back="currentStep > 1"
-        :saving="saving"
-        :is-on-bundle-step="isOnBundleStep"
-        :is-on-last-config-step="isOnLastConfigStep"
-        :can-advance="canAdvance"
-        :can-save-draft="canSaveDraft"
-        :would-be-complete="wouldBeComplete"
-        :effective-final-status="effectiveFinalStatus"
-        @back="back"
-        @next="next"
-        @save="save(false, true)"
-        @save-draft="save(true, true)"
+    <!-- Step content — no `.panel` wrapper. Content sits on the app
+         background with a max-width for readability. -->
+    <div class="wizard-content">
+      <StepGeneral v-if="currentStepKey === 'general'" v-model="form" />
+      <StepTrigger
+        v-else-if="currentStepKey === 'trigger'"
+        v-model="form"
+        @update:payload="lastPollPayload = $event"
+      />
+      <StepBundles
+        v-else-if="currentStepKey === 'bundle'"
+        v-model="form"
+        :available-discussions="availableDiscussions"
+        :discussions-loading="discussionsLoading"
+        :poll-payload="lastPollPayload"
       />
     </div>
+
+    <AlertWizardFooter
+      :show-back="currentStep > 1"
+      :saving="saving"
+      :is-on-bundle-step="isOnBundleStep"
+      :is-on-last-config-step="isOnLastConfigStep"
+      :can-advance="canAdvance"
+      :can-save-draft="canSaveDraft"
+      :would-be-complete="wouldBeComplete"
+      :effective-final-status="effectiveFinalStatus"
+      @back="back"
+      @next="next"
+      @save="save(false, true)"
+      @save-draft="save(true, true)"
+    />
   </div>
 </template>
 
 <style scoped>
+/* Flow-first layout: topbar (thin) + content (scrolls) + footbar (thin).
+ * Deliberately no card/panel wrapping — the app's grey nav on the left
+ * already provides all the chrome the eye needs, and the previous
+ * `.panel` shell was eating ~130px of vertical space + ambient noise. */
 .wizard-root {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
   height: 100%;
   min-height: 0;
+  background: var(--color-bg-app);
 }
 
-.wizard.panel {
-  flex: 1;
-}
-
-.wizard-stepper {
-  padding: var(--space-1) var(--space-3);
+.wizard-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--color-border-subtle);
   flex-shrink: 0;
+}
+.topbar-back {
+  flex-shrink: 0;
+}
+.topbar-stepper {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.wizard-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-7) var(--space-8);
+}
+.wizard-content > * {
+  /* Keep line lengths readable on wide screens without capping too
+   * hard on narrow ones. */
+  max-width: 880px;
+  margin: 0 auto;
 }
 </style>

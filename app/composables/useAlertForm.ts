@@ -118,9 +118,12 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
   };
 };
 
-// ── Output <-> Olvid-id helpers ──────────────────────────────────────────────
-// Bridge between the wire shape (typed outputs) and the flat string[] of
-// discussion ids that DiscussionSelector still speaks natively.
+// ── Output <-> per-channel helpers ───────────────────────────────────────────
+// Bridge between the wire shape (typed outputs) and the flat lists each
+// selector component speaks natively (Olvid discussion ids for
+// DiscussionSelector, email strings for EmailRecipientSelector).
+// The discriminated `BundleFrontendOutput` narrows `params` inside each
+// filter so no cast is needed at the call site.
 
 export function olvidIdsOf(outputs: BundleFrontendOutput[]): string[] {
   return outputs
@@ -133,4 +136,49 @@ export function outputsFromOlvidIds(ids: string[]): BundleFrontendOutput[] {
     type: BundleOutputType.Olvid,
     params: { discussionId },
   }));
+}
+
+export function mailAddressesOf(outputs: BundleFrontendOutput[]): string[] {
+  return outputs
+    .filter((o) => o.type === BundleOutputType.Mail)
+    .map((o) => o.params.address);
+}
+
+export function outputsFromMailAddresses(
+  addresses: string[],
+): BundleFrontendOutput[] {
+  return addresses.map((address) => ({
+    type: BundleOutputType.Mail,
+    params: { address },
+  }));
+}
+
+/** Single place that enforces the "olvid rows first, then mail rows"
+ *  ordering on `bundle.outputs`. Any editor that updates one subset
+ *  goes through here so the other subset is preserved verbatim.
+ *
+ *  Note: bundles are now single-kind at the UI layer (see `bundleKind`),
+ *  so in practice only one of the two arrays is non-empty per call. The
+ *  merge signature is kept so older mixed persistence still round-trips
+ *  cleanly through the editor. */
+export function mergeOutputs(
+  olvidIds: string[],
+  mailAddresses: string[],
+): BundleFrontendOutput[] {
+  return [
+    ...outputsFromOlvidIds(olvidIds),
+    ...outputsFromMailAddresses(mailAddresses),
+  ];
+}
+
+/** Bundle "kind" is the single output type across a bundle's outputs.
+ *  Bundles are now homogeneous by policy (one channel per bundle).
+ *  Returns null for empty bundles — the editor prompts the user to
+ *  pick one before adding recipients. If a legacy mixed bundle survives
+ *  from an older version, we go by the first output's type so the row
+ *  keeps rendering (the editor will then normalize on save). */
+export function bundleKind(
+  outputs: BundleFrontendOutput[],
+): BundleOutputType | null {
+  return outputs[0]?.type ?? null;
 }

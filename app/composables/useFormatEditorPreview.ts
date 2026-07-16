@@ -58,6 +58,7 @@ export const useFormatEditorPreview = (opts: {
       return {
         text: msg
           .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+          .replace(/_(.*?)_/g, "<i>$1</i>")
           .replace(/\n-/g, "\n•"),
         error: null,
       };

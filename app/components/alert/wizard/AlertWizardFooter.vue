@@ -35,7 +35,7 @@ defineEmits<{
 </script>
 
 <template>
-  <div class="panel-foot">
+  <div class="wizard-footbar">
     <button
       v-if="showBack"
       type="button"
@@ -114,6 +114,18 @@ defineEmits<{
 </template>
 
 <style scoped>
+/* Lightweight action row — no grey `.panel-foot` chrome. Sits over the
+ * app background with a subtle top-border to anchor the actions above
+ * the scrolling content. */
+.wizard-footbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-8);
+  border-top: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-app);
+  flex-shrink: 0;
+}
 .foot-spacer {
   flex: 1;
 }

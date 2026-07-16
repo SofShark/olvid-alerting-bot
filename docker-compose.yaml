@@ -11,6 +11,10 @@ services:
       - DATABASE_URL=postgresql://postgres@postgres_db:5432/mi_base_datos?schema=public
       - OLVID_DAEMON_URL=http://daemon:50051
       - OLVID_CLIENT_KEY=34f52581-a6b7-47d0-9201-e7437ac6aa64
+    # SMTP_* (and any other secrets) come from the untracked .env at the
+    # project root. `.env.example` documents the expected keys.
+    env_file:
+      - .env
     depends_on:
       - postgres_db
       - daemon

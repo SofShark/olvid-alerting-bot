@@ -5,6 +5,8 @@ import {
   isPolling as isPollingSource,
   isMonitoring as isMonitoringSource,
 } from "#shared/types/source";
+import { BundleOutputType } from "#shared/types/bundleOutput";
+import type { WebhookTemplateId } from "~~/shared/payloadTemplates";
 
 /*
   Smart container for the Handlebars script editor modal. Mounts the
@@ -30,6 +32,17 @@ const props = defineProps({
   inputSource: { type: String, default: Source.Webhook },
   alertParams: { type: Object, default: () => ({}) },
   alertId: { type: Number as () => number | null, default: null },
+  /** Channel the bundle delivers to — drives the preview's flavor
+   *  (chat bubble vs email frame). Defaults to Olvid for callers that
+   *  don't yet pass it. */
+  previewMode: {
+    type: String as () => BundleOutputType,
+    default: BundleOutputType.Olvid,
+  },
+  /** Optional labels for the mail preview's From / Subject rows —
+   *  ignored when previewMode is olvid. */
+  mailFrom: { type: String, default: undefined },
+  mailSubject: { type: String, default: undefined },
 });
 
 const emit = defineEmits(["save", "close"]);
@@ -91,7 +104,7 @@ const closeLoad = () => {
 // returns the matching script string when the user confirms applying it;
 // the container is responsible for writing it back to `scriptContent`.
 const onSelectTemplate = (id: string) => {
-  const script = payload.loadLibraryPayload(id);
+  const script = payload.loadLibraryPayload(id as WebhookTemplateId);
   if (script) scriptContent.value = script;
   closeLoad();
 };
@@ -161,7 +174,12 @@ const onClose = () => emit("close");
           />
         </div>
 
-        <PreviewPanel :data="preview.previewData.value" />
+        <PreviewPanel
+          :data="preview.previewData.value"
+          :mode="previewMode"
+          :mail-from="mailFrom"
+          :mail-subject="mailSubject"
+        />
       </div>
 
       <div class="window-footer">

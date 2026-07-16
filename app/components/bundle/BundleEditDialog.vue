@@ -10,7 +10,13 @@ import {
 } from "#shared/types/bundle";
 import type { DiscussionModel } from "#shared/types/discussion";
 import { buildPollingDefaultMessage } from "#shared/polling/message";
-import { olvidIdsOf, outputsFromOlvidIds } from "~/composables/useAlertForm";
+import {
+  olvidIdsOf,
+  mailAddressesOf,
+  outputsFromOlvidIds,
+  outputsFromMailAddresses,
+} from "~/composables/useAlertForm";
+import { BundleOutputType } from "#shared/types/bundleOutput";
 
 /*
   THE bundle editor — one modal for both flows:
@@ -78,9 +84,27 @@ const normalizeFormat = (b: BundleModel): BundleModel => {
   return b;
 };
 
+// Legacy bundles may persist mixed-kind `outputs` (from before the
+// one-channel-per-bundle policy). Collapse to the first row's kind on
+// open so the editor's visible state matches what a save would persist —
+// no hidden rows to surprise the user later.
+const normalizeToKind = (b: BundleModel): BundleModel => {
+  const firstKind = b.outputs[0]?.type;
+  if (!firstKind) return b;
+  const filtered = b.outputs.filter((o) => o.type === firstKind);
+  return filtered.length === b.outputs.length
+    ? b
+    : { ...b, outputs: filtered };
+};
+
 const draft = ref<BundleModel | null>(null);
 const snapshot = ref("");
 const confirmDiscard = ref(false);
+// Local editor-state for the active channel kind. Kept separate from
+// `draft.outputs` so an empty selection still remembers which selector
+// to show — deriving kind from `outputs[0]?.type` alone would flip back
+// to "no channel picked" the moment the user cleared their picks.
+const activeKind = ref<BundleOutputType | null>(null);
 
 // (Re)seed the draft every time the modal opens. Create mode seeds a
 // blank; edit mode deep-copies the incoming bundle.
@@ -96,7 +120,8 @@ watch(
     const seed = b
       ? { ...b, outputs: [...b.outputs] }
       : blankBundle();
-    draft.value = normalizeFormat(seed);
+    draft.value = normalizeFormat(normalizeToKind(seed));
+    activeKind.value = draft.value.outputs[0]?.type ?? null;
     snapshot.value = JSON.stringify(draft.value);
     confirmDiscard.value = false;
   },
@@ -126,12 +151,25 @@ const bundleName = computed<string>({
   set: (val) => patch({ name: val.trim() || undefined }),
 });
 
+// `kind` reads from the editor's activeKind, not the outputs array —
+// that lets an "I've picked Email but haven't typed an address yet"
+// state stick. Once the user commits recipients, activeKind and
+// bundleKind(outputs) agree.
+const kind = computed<BundleOutputType | null>(() => activeKind.value);
+
+// Switching kind is destructive by design (user-confirmed): the picker
+// drops any pre-existing recipients of the other kind. Idempotent when
+// the requested kind is already active.
+const onKindChange = (next: BundleOutputType) => {
+  if (!draft.value || activeKind.value === next) return;
+  activeKind.value = next;
+  patch({ outputs: [] });
+};
+
 // Bridge between the outputs shape (source of truth in draft) and the
-// DiscussionModel[] API that DiscussionSelector still speaks natively.
-// The selector doesn't need to know about outputs / types — it only
-// deals with Olvid discussions today. Title lookup is on-the-fly from
-// availableDiscussions; if a discussion hasn't been fetched yet, we
-// fall back to `#<id>` (same placeholder resolveDiscussions used).
+// DiscussionModel[] API that DiscussionSelector speaks. Title lookup is
+// on-the-fly from availableDiscussions; if a discussion hasn't been
+// fetched yet, we fall back to `#<id>`.
 const discussions = computed<DiscussionModel[]>({
   get: () => {
     if (!draft.value) return [];
@@ -142,7 +180,18 @@ const discussions = computed<DiscussionModel[]>({
     });
   },
   set: (val) => {
+    if (!draft.value) return;
     patch({ outputs: outputsFromOlvidIds(val.map((d) => d.id)) });
+  },
+});
+
+// Mirror of `discussions` for the mail subset. Homogeneous — never
+// coexists with olvid rows in the persisted `outputs`.
+const mailAddresses = computed<string[]>({
+  get: () => (draft.value ? mailAddressesOf(draft.value.outputs) : []),
+  set: (val) => {
+    if (!draft.value) return;
+    patch({ outputs: outputsFromMailAddresses(val) });
   },
 });
 
@@ -230,12 +279,13 @@ const onSave = () => {
         :input-source="inputSource"
         :alert-params="alertParams ?? alertContext?.alertParams"
         :alert-id="alertContext?.id ?? null"
+        :preview-mode="kind ?? BundleOutputType.Olvid"
+        :mail-subject="alertContext?.title"
         @save="saveScript"
         @close="isEditorOpen = false"
       />
 
       <ModalHead
-        :title="modalTitle"
         :close-label="t('editor.bundleModal.closeTitle')"
         @close="requestClose"
       />
@@ -252,8 +302,22 @@ const onSave = () => {
           >
         </div>
 
-        <!-- Destinations — WhatsApp-style picker with avatars + toggles. -->
+        <!-- Channel picker — one bundle, one kind. -->
         <div class="field">
+          <label class="field-label">{{ $t("bundleKind.fieldLabel") }}</label>
+          <BundleKindPicker
+            :model-value="kind"
+            @update:model-value="onKindChange"
+          />
+        </div>
+
+        <!-- Recipients — the picker above decides which one renders.
+             Empty bundles show a soft hint asking the user to pick first. -->
+        <div v-if="kind === null" class="field field-hint">
+          {{ $t("bundleKind.pickPrompt") }}
+        </div>
+
+        <div v-else-if="kind === BundleOutputType.Olvid" class="field">
           <label class="field-label">{{
             $t("bundleRow.fields.discussions")
           }}</label>
@@ -262,6 +326,13 @@ const onSave = () => {
             :available="availableDiscussions"
             :is-loading="discussionsLoading"
           />
+        </div>
+
+        <div v-else-if="kind === BundleOutputType.Mail" class="field">
+          <label class="field-label">{{
+            $t("bundleRow.fields.emailRecipients")
+          }}</label>
+          <EmailRecipientSelector v-model="mailAddresses" />
         </div>
 
         <!-- Format + optional custom-script editor + preview. -->
@@ -349,6 +420,16 @@ const onSave = () => {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+}
+.field-hint {
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-bg-input);
+  border: 1px dashed var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  font-style: italic;
+  text-align: center;
 }
 
 .format-row {

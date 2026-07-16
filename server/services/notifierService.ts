@@ -20,7 +20,7 @@
 // to be recovery-aware.
 
 import { AlertStatus } from "#shared/types/alert";
-import { BundleOutputType } from "#shared/types/bundleOutput";
+import { BundleOutputType, MailOutputParams, OlvidOutputParams } from "#shared/types/bundleOutput";
 
 export type FireKind = "alert" | "recovery";
 
@@ -77,21 +77,25 @@ export const notifierService = {
 
     const message = this.formatMessage(alert, bundle, payload, kind);
 
-    // Dispatch by output.type. One if/branch per channel today; future
-    // channels (email / slack / discord) slot in here without touching
-    // the caller. Group Olvid outputs into a single sendMessage call so
-    // we don't open one gRPC round-trip per discussion.
+    // Dispatch by output.type. Group per channel so we open one round-trip
+    // per channel, not per row. Future channels (slack / discord / …) slot in here without touching the caller.
     const olvidDiscussions: bigint[] = [];
+    const mailAddresses: string[] = [];
     for (const output of outputs) {
       if (output.type === BundleOutputType.Olvid) {
-        const raw = output.params?.discussionId;
-        if (raw === null || raw === undefined || raw === "") continue;
+        const raw = (output.params as OlvidOutputParams)?.discussionId;
+        if (raw === null || raw === undefined) continue;
         try {
           olvidDiscussions.push(BigInt(raw));
         } catch {
           console.warn(
             `⚠️ Bundle #${bundle.id}: invalid Olvid discussionId ${JSON.stringify(raw)}`,
           );
+        }
+      } else if (output.type === BundleOutputType.Mail) {
+        const raw = (output.params as MailOutputParams)?.address;
+        if (typeof raw === "string" && raw.trim() !== "") {
+          mailAddresses.push(raw.trim());
         }
       } else {
         console.warn(
@@ -100,9 +104,18 @@ export const notifierService = {
       }
     }
 
-    if (olvidDiscussions.length > 0) {
-      await olvidClient.sendMessage(olvidDiscussions, message);
-    }
+    // Dispatch channels in parallel — one channel's failure can't block
+    // the other. Both clients swallow errors internally and return bool.
+    const subject =
+      kind === "recovery" ? `${RECOVERY_PREFIX} ${alert.title}` : alert.title;
+    await Promise.all([
+      olvidDiscussions.length > 0
+        ? olvidClient.sendMessage(olvidDiscussions, message)
+        : Promise.resolve(),
+      mailAddresses.length > 0
+        ? mailClient.send(mailAddresses, subject, message)
+        : Promise.resolve(),
+    ]);
   },
 
   formatMessage(

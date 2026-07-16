@@ -100,6 +100,8 @@
     },
 
     "fieldLabels": {
+      "title": "Title",
+      "description": "Description",
       "inputSource": "Input Source",
       "pollingConfiguration": "Polling configuration",
       "monitorConfiguration": "Monitoring configuration"
@@ -231,14 +233,16 @@
         "equals": "equal \"{value}\"",
         "greaterThan": "are greater than {value}",
         "lessThan": "are less than {value}",
-        "contains": "contain \"{value}\""
+        "contains": "contain \"{value}\"",
+        "regExp": "match /{value}/"
       },
       "phraseSingular": {
         "changed": "changes between polls",
         "equals": "equals \"{value}\"",
         "greaterThan": "is greater than {value}",
         "lessThan": "is less than {value}",
-        "contains": "contains \"{value}\""
+        "contains": "contains \"{value}\"",
+        "regExp": "matches /{value}/"
       }
     },
 
@@ -340,7 +344,8 @@
       "equals": "equals",
       "greaterThan": "is greater than",
       "lessThan": "is less than",
-      "contains": "contains"
+      "contains": "contains",
+      "regExp": "matches regex"
     },
     "value": {
       "placeholder": "value"
@@ -420,15 +425,32 @@
     },
     "preview": {
       "title": "📱 Preview on device",
+      "mailTitle": "✉️ Preview in inbox",
       "placeholder": "Formatted message will appear here...",
       "sender": "Alerting Bot",
       "time": "now"
+    },
+    "mailPreview": {
+      "from": "From",
+      "to": "To",
+      "subject": "Subject",
+      "fromPlaceholder": "Alerting Bot",
+      "toPlaceholder": "recipient",
+      "subjectPlaceholder": "Alert title"
     },
     "buttons": {
       "cancel": "Cancel",
       "save": "Save Script",
       "closeTitle": "Close"
     }
+  },
+
+  "bundleKind": {
+    "groupLabel": "Bundle channel",
+    "fieldLabel": "Channel",
+    "olvid": "Olvid",
+    "mail": "Email",
+    "pickPrompt": "Pick a channel above to add recipients."
   },
 
   "bundleRow": {
@@ -440,6 +462,7 @@
     },
     "fields": {
       "discussions": "Discussions",
+      "emailRecipients": "Email recipients",
       "format": "Message Format"
     },
     "format": {
@@ -467,6 +490,12 @@
       "allAdded": "All discussions already added"
     },
     "empty": "— no discussions —"
+  },
+
+  "emailRecipientSelector": {
+    "addPlaceholder": "Add an email address...",
+    "empty": "— no recipients —",
+    "invalidAddress": "Not a valid email address"
   },
 
   "inputSourceSelector": {

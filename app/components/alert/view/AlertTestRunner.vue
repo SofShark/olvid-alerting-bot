@@ -117,6 +117,7 @@ const verdictHeadline = computed(() => {
   flex-direction: column;
   overflow: hidden;
 }
+
 .modal-body {
   flex: 1;
   min-height: 0;
