@@ -140,32 +140,6 @@ const onAdvancedInput = (raw: string) => {
   }
 };
 
-// ── Next-run preview ───────────────────────────────────────────────────────
-const nextRunInfo = computed(() => {
-  try {
-    const next = scheduler.nextRun(props.modelValue || DEFAULT_SCHEDULE);
-    const diffMs = next.getTime() - Date.now();
-    const diffMin = Math.max(0, Math.round(diffMs / 60000));
-    let humanDiff: string;
-    if (diffMin < 1) humanDiff = "in <1 min";
-    else if (diffMin < 60) humanDiff = `in ${diffMin} min`;
-    else if (diffMin < 1440) {
-      const h = Math.floor(diffMin / 60);
-      const m = diffMin % 60;
-      humanDiff = m === 0 ? `in ${h}h` : `in ${h}h ${m}m`;
-    } else {
-      const d = Math.floor(diffMin / 1440);
-      humanDiff = `in ${d}d`;
-    }
-    return {
-      human: humanDiff,
-      absolute: next.toLocaleString(),
-      ok: true,
-    };
-  } catch {
-    return { human: "", absolute: "", ok: false };
-  }
-});
 </script>
 
 <template>
@@ -173,7 +147,7 @@ const nextRunInfo = computed(() => {
     <!-- BASIC: minute / hour / daily controls. -->
     <div v-if="mode === 'basic'" class="interval-row">
       <template v-if="!isDaily">
-        <span class="interval-label">{{ $t("alertParamsEditor.interval.every") }}</span>
+        <span class="field-hint">{{ $t("alertParamsEditor.interval.every") }}</span>
         <input
           type="number"
           :value="basicValue"

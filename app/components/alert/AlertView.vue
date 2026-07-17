@@ -223,7 +223,7 @@ const onSaveBundle = async ({
   index: number | null;
   bundle: BundleModel;
 }) => {
-  // View mode only edits existing bundles — create (index null) is a
+  // View mode only edits existing bundles — create and delete is a
   // wizard-only flow and can't be reached from here.
   if (index === null || !form.value.id) return;
   // Patch only this bundle on the local form; the payload below carries
@@ -259,7 +259,7 @@ const onSaveBundle = async ({
 
 <template>
   
-      <div class="panel editor">
+      <div class="panel">
         <ConfirmDialog
           :open="confirmingDelete"
           :title="$t('wizard.deleteModal.title')"
@@ -292,8 +292,7 @@ const onSaveBundle = async ({
           @save="onSaveBundle"
           @cancel="closeBundleEditor"
         />
-        
-
+      
         <AlertViewHeader
           :title="form.title"
           :description="truncatedDescription"
@@ -340,9 +339,6 @@ const onSaveBundle = async ({
                 @edit-bundle="openBundleEditor"
               />
 
-              <!-- "Test now" is driven by AlertActionsMenu; the headless
-                   AlertTestRunner is mounted at the top of this component
-                   and dispatches polling vs monitoring server-side. -->
             </div>
             <div class="split-right">
               <AlertLogs :alert-id="form.id" />
@@ -363,7 +359,7 @@ const onSaveBundle = async ({
 .split {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 0;
+  gap: var(--space-4);
   height: 100%;
   --sidebar-w: 200px;
   transition: grid-template-columns 0.18s ease;
@@ -374,10 +370,6 @@ const onSaveBundle = async ({
   min-height: 0;
   height: 100%;
   overflow-y: auto;
-}
-
-.split-right{
-  padding-left: 10px;
 }
 
 </style>

@@ -162,6 +162,6 @@ const selectedId = computed(() => {
 /* Main content area gets breathing room; internal scroll lives in the
  * routed component (AlertEditor / AlertWizard), not on this container. */
 .split-right {
-  padding: 10px 12px 0px;
+  padding: 0;
 }
 </style>
