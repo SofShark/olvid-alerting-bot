@@ -140,11 +140,25 @@ const selectedId = computed(() => {
 .split.sidebar-collapsed {
   --sidebar-w: 64px;
 }
-.split-left,
-.split-right {
+.split-left {
   min-height: 0;
   height: 100%;
   overflow-y: auto;
+}
+
+/* Right column is a flex container: the routed component (panel or
+ * wizard) flexes to fill it exactly. NO scroll here — each routed
+ * component owns its own internal scroll (AlertLogs, wizard-content). */
+.split-right {
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.split-right > * {
+  flex: 1;
+  min-height: 0;
 }
 
 /* Sidebar recedes to the app background so it doesn't collide with the

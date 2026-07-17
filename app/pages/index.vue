@@ -18,11 +18,12 @@
 
 <style scoped>
 .placeholder {
+  margin: var(--space-3);
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg-card);
+  background: var(--color-bg-panel);
   border: 1px dashed var(--color-border-subtle);
   border-radius: var(--radius-xl);
 }

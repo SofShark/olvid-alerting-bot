@@ -60,7 +60,7 @@
   --neutral-10: #f8fafc;
   --neutral-20: #f1f5f9;
   --neutral-25: #e2e8f0;
-  --neutral-30: #cad2e1;
+  --neutral-30: #cdd3df;
   --neutral-40: #94a3b8;
   --neutral-50: #64748b;
   --neutral-60: #475569;
@@ -224,14 +224,14 @@
 
   
 
-  /* Surfaces — app is a soft slate, cards are white. Inputs stay
-   * white and rely on their border to define the slot (works whether
-   * the input sits on the app grey OR inside a white card). Card-
-   * heads and nav step to neutral-25 for clear separation. */
+  /* Surfaces — the panel steps DOWN from white to a soft slate so
+   * white cards elevate visibly against it. Same elevation direction
+   * as dark theme (panel darker than card). Inputs stay white and
+   * rely on their border to define the slot. */
   --color-bg-app: var(--neutral-20);          /* soft slate page */
   --color-bg-input: var(--white);             /* border defines the slot */
   --color-bg-nav: var(--neutral-30);          /* nav pops from the page */
-  --color-bg-panel: var(--white);
+  --color-bg-panel: var(--neutral-10);        /* off-white so cards lift */
   --color-bg-sidebar-head: var(--neutral-30);
   --color-bg-card: var(--white);
   --color-bundle-card: var(--white);

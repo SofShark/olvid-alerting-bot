@@ -1,0 +1,52 @@
+/* Panel — the full-height editor / view / wizard shell.
+ *   .panel        outer container: margin, rounded frame, flex column.
+ *   .panel-head   sticky head strip (title, primary actions).
+ *   .panel-body   scrolls internally so the panel itself stays still.
+ *   .panel-foot   sticky foot strip (secondary actions).
+ */
+
+.panel {
+  /* Sized by the parent flex container (see layout .split-right).
+   * `flex:1;min-height:0` lets .panel-body claim the leftover height
+   * without spilling past the viewport — that's what keeps the panel
+   * itself still while AlertLogs scrolls inside .panel-body. */
+  margin: var(--space-4);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  min-height: 0;
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-7);
+  background: var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.panel-body {
+  /* Contains the scroll — children (like AlertView's split columns)
+   * own their own overflow. Keeping this at `hidden` prevents a
+   * double-scroll where both the panel-body AND an inner column
+   * could scroll on the same wheel event. */
+  flex: 1;
+  overflow: hidden;
+  padding: var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-height: 0;
+}
+.panel-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-1) var(--space-7);
+  background: var(--color-border-subtle);
+  border-top: 1px solid var(--color-border-subtle);
+}
