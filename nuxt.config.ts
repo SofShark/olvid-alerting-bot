@@ -66,10 +66,10 @@ export default defineNuxtConfig({
       ],
     },
     
-    experimental: { tasks: true }, // Internal heartbeat that conditionally triggers the activation of scheduled alerts
-    scheduledTasks: {
-      "* * * * *": ["polling:heartbeat"],
-    },
+    //experimental: { tasks: true }, // Internal heartbeat that conditionally triggers the activation of scheduled alerts
+    //scheduledTasks: {
+      //"* * * * *": ["polling:heartbeat"],
+    //},
 
   },
 

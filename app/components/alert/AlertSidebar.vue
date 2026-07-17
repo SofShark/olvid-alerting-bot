@@ -45,7 +45,7 @@ const initials = (title: string): string => {
       }}</span>
       <button
         type="button"
-        class="btn-collapse"
+        class="btn-icon"
         :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
         :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
         :aria-expanded="!collapsed"
@@ -136,35 +136,11 @@ const initials = (title: string): string => {
   overflow: hidden;
 }
 
-/* Collapse toggle — neutral button, the chevron rotates with state. */
-.btn-collapse {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: var(--color-accent-soft);
-  border: 1px solid var(--color-accent-border);
-  border-radius: 9999px;
-  color: var(--color-text-dim);
-  cursor: pointer;
-  transition:
-    background-color 0.15s,
-    color 0.15s;
-}
-.btn-collapse:hover {
-  background: var(--color-accent-hover);
-  color: var(--color-text-primary);
-}
-
 /* Chevron for collapse button */
 .chev-icon {
   font-size: 10px;
   line-height: 1;
   transition: transform 0.18s ease;
-  color:var(--color-accent) .btn-collapse:hover & {
-    color: var(--color-accent-soft);
-  }
 }
 
 .sidebar.collapsed .chev-icon {
@@ -173,6 +149,9 @@ const initials = (title: string): string => {
 
 /* ── Body / rows ────────────────────────────────────────────────── */
 .sidebar-body {
+  /* Transparent so the body inherits the sidebar container's `bg-app` —
+   * one continuous chrome tone from the top of the head through the row
+   * list. Rows pop on hover/selected via their own backgrounds. */
   flex: 1;
   overflow-y: auto;
   padding: var(--space-1);

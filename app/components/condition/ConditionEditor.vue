@@ -81,11 +81,11 @@ const { t } = useI18n();
       @update:model-value="setKind"
     />
 
-    <div v-if="kind === ConditionKind.Rule" class="cond-panel">
-      <div class="cond-panel-head">
+    <div v-if="kind === ConditionKind.Rule" class="wcard">
+      <div class="wcard-head">
         {{ $t("conditionEditor.panel.title") }}
       </div>
-      <div class="cond-panel-body">
+      <div class="wcard-body">
         <WatchedFieldsPanel
           :paths="paths"
           :effective-count="effectivePaths.length"
@@ -134,32 +134,6 @@ const { t } = useI18n();
   gap: var(--space-4);
 }
 
-/* Condition panel — renamed from .panel to avoid clashing with the
- * global wizard/editor shell. Kept here (not in a sub-component)
- * because it wraps two children (WatchedFieldsPanel + ConditionRuleRow)
- * as a visual group. */
-.cond-panel {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-}
-.cond-panel-head {
-  padding: var(--space-3) var(--space-5);
-  background: var(--color-bg-card-soft);
-  border-bottom: 1px solid var(--color-border-subtle);
-  font-size: var(--text-sm);
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-.cond-panel-body {
-  padding: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-
+/* Card chrome delegated to the shared .wcard classes. */
 /* Per-path breakdown styles now live inside condition/VerdictBreakdown.vue. */
 </style>

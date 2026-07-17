@@ -77,7 +77,7 @@ const selectedId = computed(() => {
 
 .top-nav {
   background-color: var(--color-bg-nav);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-default);
   padding: 14px 0;
   flex-shrink: 0;
   z-index: 100;
@@ -140,19 +140,34 @@ const selectedId = computed(() => {
 .split.sidebar-collapsed {
   --sidebar-w: 64px;
 }
-.split-left,
-.split-right {
+.split-left {
   min-height: 0;
   height: 100%;
   overflow-y: auto;
 }
 
-/* Sidebar reads as nav-chrome (same background as the top nav). Drop
- * the rounded corners + outer borders inherited from the old padded-card
- * version. The right border is the visual divider between rail and
- * content; the top is already covered by the nav's bottom border. */
+/* Right column is a flex container: the routed component (panel or
+ * wizard) flexes to fill it exactly. NO scroll here — each routed
+ * component owns its own internal scroll (AlertLogs, wizard-content). */
+.split-right {
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.split-right > * {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Sidebar recedes to the app background so it doesn't collide with the
+ * top nav's `bg-nav` (which is pure white in light mode). The sidebar
+ * reads as chrome extending the page, not a floating card next to the
+ * nav. Right border divides rail from content; the nav's bottom border
+ * already caps the top. */
 .split-left :deep(.sidebar) {
-  background: var(--color-bg-nav);
+  background: var(--color-bg-app);
   border: none;
   border-right: 1px solid var(--color-border-subtle);
   border-radius: 0;
@@ -161,6 +176,6 @@ const selectedId = computed(() => {
 /* Main content area gets breathing room; internal scroll lives in the
  * routed component (AlertEditor / AlertWizard), not on this container. */
 .split-right {
-  padding: 10px 12px 0px;
+  padding: 0;
 }
 </style>

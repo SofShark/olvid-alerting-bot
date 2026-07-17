@@ -7,6 +7,7 @@ import {
 } from "#shared/types/source";
 import { BundleOutputType } from "#shared/types/bundleOutput";
 import type { WebhookTemplateId } from "~~/shared/payloadTemplates";
+import { T } from "vue-router/dist/index-BQLwgiyK.js";
 
 /*
   Smart container for the Handlebars script editor modal. Mounts the
@@ -49,6 +50,13 @@ const emit = defineEmits(["save", "close"]);
 
 const isPolling = computed(() => isPollingSource(props.inputSource));
 const isMonitoring = computed(() => isMonitoringSource(props.inputSource));
+
+const {t} = useI18n();
+const formatHint = computed(()=>{
+  if (isPolling.value) return t("formatEditor.intro.polling")
+  else if (isMonitoring.value) return t("formatEditor.intro.monitoring")
+  else return t("formatEditor.intro.webhook") 
+});
 
 // Seed from `initialScript` so re-opening the editor on a saved bundle shows
 // the persisted Handlebars template. The editor is mounted fresh on every
@@ -123,11 +131,7 @@ const onClose = () => emit("close");
       <div class="window-header">
         <div class="header-titles">
           <h3>{{ $t("formatEditor.title") }}</h3>
-          <p v-if="isPolling">{{ $t("formatEditor.intro.polling") }}</p>
-          <p v-else-if="isMonitoring">
-            {{ $t("formatEditor.intro.monitoring") }}
-          </p>
-          <p v-else>{{ $t("formatEditor.intro.webhook") }}</p>
+          <HelpTooltip :message="formatHint"/>
         </div>
         <button
           class="btn-close-icon"
@@ -245,7 +249,8 @@ const onClose = () => emit("close");
   background: var(--color-border-subtle);
 }
 .header-titles {
-  flex: 1;
+  display: flex;
+  flex-direction: row;
   min-width: 0;
 }
 .header-titles h3 {

@@ -70,16 +70,13 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         <strong>{{ labelFor(modelValue) }}</strong>
       </div>
       <button
-        v-if="!locked"
         type="button"
         class="btn-change"
         @click.stop="clear"
       >
         {{ $t("inputSourceSelector.changeButton") }}
       </button>
-      <span v-else class="locked-hint">{{
-        $t("inputSourceSelector.lockedHint")
-      }}</span>
+      
     </div>
     <div v-else ref="containerRef" class="search-wrap">
       <input
@@ -110,6 +107,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 .selector {
   width: 25%;
   position: relative;
+  padding: 0 0 var(--space-4) 0;
 }
 
 .selected-badge {

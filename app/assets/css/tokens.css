@@ -1,51 +1,131 @@
-/* Design tokens — single source of truth for colors, spacing, type, radii.
- * Switch [data-theme="light"] on the <html> element to flip palettes; the
- * accent + status colors are intentionally shared because they read well on
- * both surfaces.
- */
+/* ────────────────────────────────────────────────────────────────────
+ * Design tokens — the single source of truth for color, type, spacing.
+ * Two layers, in strict order:
+ *
+ *   1. PRIMITIVES  — raw palette scales (`--blue-10..90`, `--neutral-10..95`)
+ *                    and non-color primitives (radii, spacing, type).
+ *                    These are the atoms. Consumers do NOT read them
+ *                    directly; treat them as private.
+ *
+ *   2. SEMANTIC    — context-named tokens (`--color-bg-app`,
+ *                    `--color-text-primary`, `--color-accent`, …) that
+ *                    map onto the primitives. Components read only from
+ *                    this layer. Re-theming = swap this layer, primitives
+ *                    stay put.
+ *
+ * Elevation ladder (both themes, same slot names):
+ *   bg-0 = app / page          — the canvas
+ *   bg-1 = surface / paper     — panels, nav, cards
+ *   bg-2 = elevated surface    — modal, popover, secondary card
+ *   bg-3 = header strip / hover
+ *   bg-4 = max elevation       — menus, dropdowns
+ *
+ * Status colors (success / warning / danger) are intentionally OUT of
+ * the scale — they're categorical, not gradient.
+ *
+ * Toggle themes by setting [data-theme="light"] on <html>.
+ * ─────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Tells the browser to use dark UI for native form controls — the
-   * OS-rendered <select> dropdown panel, date pickers, scrollbars. Flips
-   * to `light` under [data-theme='light']. */
   color-scheme: dark;
 
-  /* ── Brand & accent ───────────────────────────── */
-  --color-accent: #2563eb;
-  --color-accent-hover: #1d4ed8;
-  --color-accent-soft: #1a2a4a; /* slightly more elevated than #0F2744 */
-  --color-accent-border: #3858a0;
-  --color-accent-text: #a8c5f5; /* readable accent on accent-soft */
-  /* ── Surfaces ─────────────────────────────────── */
-  --color-bg-app: #0f1115; /* page — was #0F172A (blue-tinted) */
-  --color-bg-nav: #15181e; /* header bar */
-  --color-bg-panel: #15181e; /* main panel = surface level */
-  --color-bg-card: #1f2229; /* cards sit ONE level above panel */
-  --color-bg-card-soft: #272b34; /* hover / nested */
-  --color-bg-sidebar-head: #15181e; /* sidebar header */
-  --color-bundle-card: #262a31; /* matches card */
-  --color-bg-input: #0f1115; /* inputs read as recessed wells */
+  /* ──────────────────────────────────────────────────────────────
+   *  PRIMITIVES — Blue brand ladder (10 stops, low → high value).
+   *  Sampled from the reference palette so the whole app shares one
+   *  identity. Use the middle stops (50–70) for interactive accents;
+   *  the extremes (10–20 / 80–90) power soft tints and deep backdrops.
+   * ────────────────────────────────────────────────────────────── */
+  --blue-10: #eaf0fe;
+  --blue-20: #d5e0fd;
+  --blue-30: #acc1fb;
+  --blue-40: #82a3f9;
+  --blue-50: #4375f6;
+  --blue-60: #2f65f5;
+  --blue-70: #2651c4;
+  --blue-80: #1c3d90;
+  --blue-90: #132862;
+
+  /* ──────────────────────────────────────────────────────────────
+   *  PRIMITIVES — Neutrals. Text stops (10..70) stay pure grey so
+   *  copy reads cleanly on any dark surface. Surface stops (80..95)
+   *  are the app's bespoke dark ladder — a faint blue undertone
+   *  (hue ~220°, very low chroma) that gives the palette a hint of
+   *  identity without competing with the brand blue.
+   *
+   *  Light theme overrides all of these to a slate ladder (see the
+   *  `[data-theme="light"]` block below).
+   *
+   *  10 is the softest off-white; 95 is the deepest near-black.
+   * ────────────────────────────────────────────────────────────── */
+  --neutral-10: #f8fafc;
+  --neutral-20: #f1f5f9;
+  --neutral-25: #e2e8f0;
+  --neutral-30: #cdd3df;
+  --neutral-40: #94a3b8;
+  --neutral-50: #64748b;
+  --neutral-60: #475569;
+  --neutral-70: #334155;
+  --neutral-80: #272c36;   /* menus, strong borders */
+  --neutral-83: #262a31;   /* alt: hover / bundle-card variant */
+  --neutral-85: #1f222b;   /* inputs, card-soft (wcard-head) */
+  --neutral-90: #15181e;   /* nav, cards, sidebar-head */
+   /* panels — same tone as nav on purpose */
+  --neutral-95: #0f1115;   /* app / page — deepest */
+
+  --white: #ffffff;
+  --black: #000000;
+
+  /* ──────────────────────────────────────────────────────────────
+   *  SEMANTIC — Dark theme mapping.
+   *  Elevation increases with slot number and with brightness.
+   * ────────────────────────────────────────────────────────────── */
+
+  /* Surfaces */
+  --color-bg-app: var(--neutral-95);
+  --color-bg-input: var(--black);     /* slightly lifted so slots read
+                                              both on app bg AND inside cards */
+  --color-bg-nav: var(--neutral-85);
+  --color-bg-sidebar-head: var(--neutral-85);
+  --color-bg-panel: var(--neutral-90);
+ 
+  --color-bg-card: var(--neutral-85);
+  --color-bundle-card: var(--neutral-80);
+  --color-bg-card-soft: var(--neutral-80);
+  --color-bg-menu: var(--neutral-80);
+
+  /* Text */
+
+  --color-text-on-accent: var(--white);
+  --color-text-primary: var(--neutral-10);
+  --color-text-secondary: var(--neutral-30);
+  --color-text-muted: var(--neutral-40);
+  --color-text-dim: var(--neutral-60);
+  --color-text-faint: var(--neutral-70);
+  
+  --color-text-webhook: #80e0e4;         /* informational sky blue */
+
+  /* Borders */
+  --color-border-subtle: var(--neutral-80);   /* matches `bg-card-soft` */
+  --color-border-default: var(--neutral-85);
+  --color-border-strong: var(--neutral-70);
+
+  /* Accent — the actionable blue. `soft`/`border`/`text` form the
+   * "colored surface" trio used by chips, info boxes, focus rings. */
+  --color-accent: var(--blue-60);
+  --color-accent-hover: var(--blue-70);
+  --color-accent-soft: #182236;           /* dark-blue tinted surface */
+  --color-accent-border: var(--blue-80);
+  --color-accent-text: var(--blue-30);    /* legible on --accent-soft */
+
+  /* Code blocks (special-purpose, kept out of the elevation scale so
+   * they always look like an embedded IDE surface) */
   --color-bg-code: #151515;
   --color-bg-code-header: #302c2c;
   --color-bg-code-soft: #262626;
-
-  /* ── Borders ──────────────────────────────────── */
-  --color-border-subtle: #272b34;
-  --color-border-default: #3a3f4b;
-  --color-border-strong: #4e5562;
-  --color-border-code: #272b34;
- 
-  /* ── Text ─────────────────────────────────────── */
-  --color-text-primary: #f9fafb;
-  --color-text-secondary: #bfc6cf;
-  --color-text-muted: #8591a3;
-  --color-text-dim: #6f7889;
-  --color-text-faint: #586474;
   --color-text-code: #d4d4d4;
-  --color-text-on-accent: #ffffff;
-  --color-text-webhook: #80e0e4; /* unchanged — informational sky blue */
+  --color-border-code: var(--neutral-85);
 
-  /* ── Status ───────────────────────────────────── */
+  /* Status — categorical, unchanged from before */
   --color-success: #22c55e;
   --color-success-text: #4ade80;
   --color-success-soft: #06270f;
@@ -65,18 +145,21 @@
   --color-danger-bright: #fecaca;
   --color-danger-strong: #dc2626;
 
-  /* ── Overlays ─────────────────────────────────── */
-  /*semi-translucid black*/
+  /* Overlays */
   --color-overlay: rgba(0, 0, 0, 0.55);
 
-  /* ── Radii ────────────────────────────────────── */
+  /* ──────────────────────────────────────────────────────────────
+   *  PRIMITIVES — Non-color
+   * ────────────────────────────────────────────────────────────── */
+
+  /* Radii — tight, dev-tool feel. */
   --radius-sm: 4px;
   --radius-md: 5px;
   --radius-lg: 6px;
   --radius-xl: 8px;
   --radius-pill: 999px;
 
-  /* ── Spacing scale ────────────────────────────── */
+  /* Spacing scale — 4px base, tight steps up to 24px. */
   --space-1: 4px;
   --space-2: 6px;
   --space-3: 8px;
@@ -86,77 +169,107 @@
   --space-7: 20px;
   --space-8: 24px;
 
-  /* ── Type ─────────────────────────────────────── */
+  /* Typography — system stacks (fast + native feel).
+   * The mono stack prefers modern coding fonts if the OS has them; if
+   * you install "JetBrains Mono" or "Fira Code" they'll take over. */
   --font-sans:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
-    sans-serif;
-  --font-mono: ui-monospace, "Consolas", "Courier New", monospace;
+    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-mono:
+    "JetBrains Mono", "Fira Code", ui-monospace, "SFMono-Regular",
+    "Consolas", "Courier New", monospace;
 
+  /* Font sizes — small by design (tech-tool density). `lg` is the new
+   * reading step used by preview bodies and long-form fields. */
   --text-xs: 10px;
   --text-sm: 11px;
   --text-md: 12px;
   --text-base: 13px;
+  --text-lg: 15px;
   --text-l: 18px;
   --text-xl: 20px;
+  --text-2xl: 24px;
 
-  /* ── Shadow ───────────────────────────────────── */
+  /* Font weights — one alias per intent, no numeric literals scattered
+   * across component CSS. */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line heights — three ratios cover every case. */
+  --line-tight: 1.25;    /* headings, single-line labels */
+  --line-normal: 1.4;    /* ui text */
+  --line-reading: 1.55;  /* body prose */
+
+  /* Shadows — quiet by default; overlays stack heavier. */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.25),
+                 0 1px 2px rgba(0, 0, 0, 0.15);
   --shadow-overlay: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
+/* ──────────────────────────────────────────────────────────────────
+ *  LIGHT theme — semantic mapping only. Primitives are shared with
+ *  dark (blues, grays); only the alias layer flips.
+ * ────────────────────────────────────────────────────────────────── */
 [data-theme="light"] {
   color-scheme: light;
 
-  /* ── Brand & accent ───────────────────────────── */
-  --color-accent: #3377e6; /* was #2563EB — same hue, lower saturation */
-  --color-accent-hover: #1b66de; /* darker on hover in light mode */
-  --color-accent-soft: #dbeafe;
-  --color-accent-border: #60a5fa;
-  --color-accent-text: #1d4ed8;
+  /* Primitives — light theme uses the SLATE ladder (a whisper of
+   * blue, hue ~215°) so the page reads a touch colder than the
+   * pure-grey dark. The rest of the aliases below just map onto
+   * these local overrides. */
 
-  /* ── Surfaces ─────────────────────────────────── */
+  
 
-  --color-bg-app: #f8fafc;
-  --color-bg-nav: #e2e8f0;
-  --color-bg-panel: #ffffff;
-  --color-bg-card: #f8fcff;
-  --color-bg-card-soft: #e2e8f0;
-  --color-bg-sidebar-head: #e2e8f0;
-  --color-bg-input: #ffffff;
-  --color-bg-code: #343434;
-  --color-bg-code-header: #2d2d2d;
-  --color-bg-code-soft: #262626;
-  --color-bundle-card: #e8f4ff;
+  
 
-  /* ── Borders ─────────────────────────────────── */
-  --color-border-subtle: #e2e8f0;
-  --color-border-default: #cbd5e1;
-  --color-border-strong: #94a3b8;
+  /* Surfaces — the panel steps DOWN from white to a soft slate so
+   * white cards elevate visibly against it. Same elevation direction
+   * as dark theme (panel darker than card). Inputs stay white and
+   * rely on their border to define the slot. */
+  --color-bg-app: var(--neutral-20);          /* soft slate page */
+  --color-bg-input: var(--white);             /* border defines the slot */
+  --color-bg-nav: var(--neutral-30);          /* nav pops from the page */
+  --color-bg-panel: var(--neutral-10);        /* off-white so cards lift */
+  --color-bg-sidebar-head: var(--neutral-30);
+  --color-bg-card: var(--white);
+  --color-bundle-card: var(--white);
+  --color-bg-card-soft: var(--neutral-25);    /* wcard-head, hover strips */
+  --color-bg-menu: var(--white);
 
-  /* ── Text ─────────────────────────────────── */
+  /* Text */
+  --color-text-primary: var(--neutral-95);
+  --color-text-secondary: var(--neutral-80);
+  --color-text-muted: var(--neutral-60);
+  --color-text-dim: var(--neutral-50);
+  --color-text-faint: var(--neutral-40);
+  --color-text-on-accent: var(--white);
 
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #1e293b;
-  --color-text-muted: #475569;
-  --color-text-dim: #64748b;
-  --color-text-faint: #94a3b8;
-  --color-text-code: #d4d4d4;
-  --color-text-on-accent: #ffffff;
-  /*--color-text-webhook:   #60f396;*/
+  /* Borders — subtle is neutral-25 so cards get a visible outline
+   * against the grey app; default/strong stay in the greyer mid-scale. */
+  --color-border-subtle: var(--neutral-25);
+  --color-border-default: var(--neutral-30);
+  --color-border-strong: var(--neutral-40);
+  --color-border-code: var(--neutral-25);
 
-  /* ── Text ─────────────────────────────────── */
-  /*lower opacity than in dark mode*/
-  --color-overlay: rgba(0, 0, 0, 0.35);
+  /* Accent — same brand hue, but the soft trio switches to a light
+   * tinted background with darker text. */
+  --color-accent: var(--blue-60);
+  --color-accent-hover: var(--blue-70);
+  --color-accent-soft: var(--blue-10);
+  --color-accent-border: var(--blue-30);
+  --color-accent-text: var(--blue-70);
 
-  /* Status-soft tints: lighten the dark-mode backgrounds so the colored
-   * borders read on a white surface. */
+  /* Softer scrim on light backgrounds. */
+  --color-overlay: rgba(15, 23, 42, 0.35);
+
+  /* Status-soft tints — light backgrounds keep colored borders legible. */
   --color-success-soft: #dcfce7;
   --color-warning-soft: #fef3c7;
   --color-danger-soft: #fee2e2;
 
-  /* Status text colors flip dark-on-light for legibility on the soft
-   * backgrounds above (the dark-mode -text and -bright tokens are pale
-   * shades that vanish on white). */
+  /* Status text — dark-on-light for legibility on the soft tints. */
   --color-success-text: #15803d;
   --color-success-bright: #166534;
   --color-warning-text: #b45309;
@@ -166,3 +279,26 @@
 
   /* Code blocks stay dark — they read as embedded IDE panels. */
 }
+
+/* ──────────────────────────────────────────────────────────────────
+ *  ARCHIVE — "Cool dark mode" (SLATE)
+ *
+ *  A blue-tinted dark palette we tried before switching the default
+ *  dark neutrals to a pure grey. Kept here as a ready-to-swap
+ *  alternative — drop these back into the :root neutrals block to
+ *  restore the arctic feel, no other changes required.
+ *
+ *  --neutral-10: #f8fafc;
+ *  --neutral-20: #f1f5f9;
+ *  --neutral-25: #e2e8f0;
+ *  --neutral-30: #cbd5e1;
+ *  --neutral-40: #94a3b8;
+ *  --neutral-50: #64748b;
+ *  --neutral-60: #475569;
+ *  --neutral-70: #334155;
+ *  --neutral-80: #1e290b;
+ *  --neutral-85: #17223a;
+ *  --neutral-90: #0f172a;
+ *  --neutral-90: #0a1122;
+ *  --neutral-95: #020617;
+ * ────────────────────────────────────────────────────────────────── */

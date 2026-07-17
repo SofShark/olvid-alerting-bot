@@ -31,10 +31,14 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
 </script>
 
 <template>
-  <div class="params-editor">
+  <div class="wcard">
+  <div class="wcard-head">
+    {{ $t("wizard.fieldLabels.monitorConfiguration") }}
+  </div>
+  <div class="wcard-body">
     <!-- URL -->
-    <div class="field">
-      <label class="field-label">
+    <div class="wcard-row">
+      <label class="wcard-label">
         {{ $t("monitorEditor.url.label") }}
         <span class="field-required">*</span>
       </label>
@@ -49,14 +53,15 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
     </div>
 
     <!-- Schedule — same widget as polling; label + mode toggle on one row. -->
-    <div class="field">
-      <div class="field-head">
-        <label class="field-label">
+    <div class="wcard-row">
+      
+        <label class="wcard-label">
           {{ $t("monitorEditor.interval.label") }}
           <span class="field-required">*</span>
+          <ScheduleModeToggle v-model="scheduleMode" />
         </label>
-        <ScheduleModeToggle v-model="scheduleMode" />
-      </div>
+        
+     
       <ScheduleEditor
         :model-value="p.schedule ?? ''"
         :mode="scheduleMode"
@@ -65,26 +70,6 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
       />
     </div>
   </div>
+  </div>
 </template>
 
-<style scoped>
-.params-editor {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-  padding: var(--space-6);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-}
-
-.field-head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-2);
-}
-.field-head .field-label {
-  margin: 0;
-}
-</style>

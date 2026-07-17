@@ -52,12 +52,12 @@ function onMInput(e: Event) {
 </script>
 
 <template>
-  <div class="firing-behavior">
-    <div class="fb-head">{{ $t("wizard.firingBehavior.title") }}</div>
-    <div class="fb-body">
+  <div class="wcard">
+    <div class="wcard-head">{{ $t("wizard.firingBehavior.title") }}</div>
+    <div class="wcard-body">
       <!-- Trigger mode row -->
-      <div v-if="showTriggerMode" class="fb-row">
-        <span class="fb-label">{{ $t("wizard.firingBehavior.triggerModeLabel") }}</span>
+      <div v-if="showTriggerMode" class="wcard-row">
+        <span class="wcard-label">{{ $t("wizard.firingBehavior.triggerModeLabel") }}</span>
         <TriggerModePicker v-model="model" :variant="variant" />
       </div>
 
@@ -65,8 +65,8 @@ function onMInput(e: Event) {
            <i18n-t> weaves the two number inputs into the localised
            sentence via named slots {n} and {m}, so translators can
            reorder the placeholders as needed without breaking the UI. -->
-      <div class="fb-row">
-        <span class="fb-label">{{ $t("wizard.firingBehavior.datapointsLabel") }}</span>
+      <div class="wcard-row">
+        <span class="wcard-label">{{ $t("wizard.firingBehavior.datapointsLabel") }}</span>
         <div class="datapoints">
           <i18n-t
             keypath="wizard.firingBehavior.datapointsSentence"
@@ -102,41 +102,9 @@ function onMInput(e: Event) {
 </template>
 
 <style scoped>
-.firing-behavior {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-}
-.fb-head {
-  padding: var(--space-3) var(--space-5);
-  background: var(--color-bg-card-soft);
-  border-bottom: 1px solid var(--color-border-subtle);
-  font-size: var(--text-sm);
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-.fb-body {
-  padding: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-
-.fb-row {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-.fb-label {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--color-text-dim);
-}
+/* Card chrome delegated to the shared .wcard/.wcard-head/.wcard-body/
+ * .wcard-row/.wcard-label classes (see app/assets/css/components/wcard.css)
+ * — same shape as ConditionEditor + StatusMatchEditor. */
 
 /* Datapoints — inline number inputs woven into a sentence. */
 .datapoints {

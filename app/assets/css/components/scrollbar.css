@@ -1,0 +1,16 @@
+/* Corrección: Usa :: en lugar de . */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px; /* Opcional: para la barra de scroll horizontal */
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-bg-nav);
+  border-radius: var(--radius-sm);
+}
+
+/* Opcional: También suele venir bien darle un estilo al fondo (track) 
+   para que no se vea el gris por defecto del navegador */
+::-webkit-scrollbar-track {
+  background: transparent; 
+}

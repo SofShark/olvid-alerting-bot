@@ -16,7 +16,10 @@ import {
   outputsFromOlvidIds,
   outputsFromMailAddresses,
 } from "~/composables/useAlertForm";
-import { BundleOutputType } from "#shared/types/bundleOutput";
+import {
+  BundleOutputType,
+  type BundleFrontendOutput,
+} from "#shared/types/bundleOutput";
 
 /*
   THE bundle editor — one modal for both flows:
@@ -106,6 +109,13 @@ const confirmDiscard = ref(false);
 // to "no channel picked" the moment the user cleared their picks.
 const activeKind = ref<BundleOutputType | null>(null);
 
+// Per-kind recipients stash. Held for the modal's lifetime so flipping
+// olvid → mail → olvid restores the discussions the user had before the
+// switch. Reset every time the modal opens; discarded on cancel or save.
+const outputsByKind = ref<
+  Partial<Record<BundleOutputType, BundleFrontendOutput[]>>
+>({});
+
 // (Re)seed the draft every time the modal opens. Create mode seeds a
 // blank; edit mode deep-copies the incoming bundle.
 watch(
@@ -115,6 +125,7 @@ watch(
       draft.value = null;
       snapshot.value = "";
       confirmDiscard.value = false;
+      outputsByKind.value = {};
       return;
     }
     const seed = b
@@ -122,6 +133,11 @@ watch(
       : blankBundle();
     draft.value = normalizeFormat(normalizeToKind(seed));
     activeKind.value = draft.value.outputs[0]?.type ?? null;
+    // Seed the stash from whatever kind the bundle opened with. Other
+    // kinds start empty and only accumulate as the user picks them.
+    outputsByKind.value = activeKind.value
+      ? { [activeKind.value]: [...draft.value.outputs] }
+      : {};
     snapshot.value = JSON.stringify(draft.value);
     confirmDiscard.value = false;
   },
@@ -157,13 +173,17 @@ const bundleName = computed<string>({
 // bundleKind(outputs) agree.
 const kind = computed<BundleOutputType | null>(() => activeKind.value);
 
-// Switching kind is destructive by design (user-confirmed): the picker
-// drops any pre-existing recipients of the other kind. Idempotent when
+// Switching kind is non-destructive until save: current outputs get
+// stashed under the outgoing kind, and if the incoming kind has a
+// stashed set we restore it. Fresh kinds start empty. Idempotent when
 // the requested kind is already active.
 const onKindChange = (next: BundleOutputType) => {
   if (!draft.value || activeKind.value === next) return;
+  if (activeKind.value) {
+    outputsByKind.value[activeKind.value] = [...draft.value.outputs];
+  }
   activeKind.value = next;
-  patch({ outputs: [] });
+  patch({ outputs: outputsByKind.value[next] ?? [] });
 };
 
 // Bridge between the outputs shape (source of truth in draft) and the
@@ -410,6 +430,7 @@ const onSave = () => {
   width: 100%;
   height: 100%;
   display: flex;
+  padding: 0 var(--space-4);
   flex-direction: column;
 }
 .modal-body {

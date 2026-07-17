@@ -29,22 +29,19 @@ const props = defineProps<{
 }
 
 .help-tooltip-icon{
-    /* 1. Activamos Flexbox e indicamos alineación total */
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    padding-top: 1px; /* Balance visual weight of ? symbol*/
 
-    /* 2. Dimensiones (subido a 14px para que respire mejor) */
     width: 11px;
     height: 11px;
     border-radius: 50%; 
 
-    /* 3. Estilos de texto y colores */
     background-color: var(--color-accent-soft);
     border: 1px solid var(--color-accent);
     color: var(--color-accent);
 
-    /* Reducimos un poco el font-size y quitamos el line-height heredado */
     font-size: 9px;
     font-weight: 400;
     line-height: 1; 
@@ -68,8 +65,8 @@ const props = defineProps<{
     transform: translateY(4px); 
 
     /* Estilos visuales de la burbuja */
-    background-color: #1e293b; 
-    color: #ffffff;
+    background-color: var(--color-accent-soft); 
+    color: var(--color-accent-text);
     padding: 6px 10px;
     border-radius: 6px;
     font-size: 11px;
@@ -98,7 +95,7 @@ const props = defineProps<{
     border-bottom: 2px;
     border-style: solid;
     /* 👈 Cambiado: Ahora el color está en el lado derecho para que el triángulo apunte a la izquierda */
-    border-color: transparent #1e293b transparent transparent; 
+    border-color: transparent var(--color-accent-soft) transparent transparent; 
 }
 
 /* --- EFECTO HOVER --- */

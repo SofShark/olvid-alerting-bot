@@ -97,6 +97,13 @@ const onValueInput = (raw: string) => {
 const onDailyAtInput = (raw: string) =>
   emitFromMode({ unit: "daily", dailyAt: raw || "08:00" });
 
+const { t } = useI18n();
+const unitOptions = computed(() => [
+  { value: "minutes", label: t("alertParamsEditor.units.minutes") },
+  { value: "hours", label: t("alertParamsEditor.units.hours") },
+  { value: "daily", label: t("alertParamsEditor.units.daily") },
+]);
+
 const onUnitChange = (unit: FriendlyUnit) => {
   if (unit === "daily") {
     emitFromMode({ unit: "daily", dailyAt: dailyAt.value });
@@ -133,32 +140,6 @@ const onAdvancedInput = (raw: string) => {
   }
 };
 
-// ── Next-run preview ───────────────────────────────────────────────────────
-const nextRunInfo = computed(() => {
-  try {
-    const next = scheduler.nextRun(props.modelValue || DEFAULT_SCHEDULE);
-    const diffMs = next.getTime() - Date.now();
-    const diffMin = Math.max(0, Math.round(diffMs / 60000));
-    let humanDiff: string;
-    if (diffMin < 1) humanDiff = "in <1 min";
-    else if (diffMin < 60) humanDiff = `in ${diffMin} min`;
-    else if (diffMin < 1440) {
-      const h = Math.floor(diffMin / 60);
-      const m = diffMin % 60;
-      humanDiff = m === 0 ? `in ${h}h` : `in ${h}h ${m}m`;
-    } else {
-      const d = Math.floor(diffMin / 1440);
-      humanDiff = `in ${d}d`;
-    }
-    return {
-      human: humanDiff,
-      absolute: next.toLocaleString(),
-      ok: true,
-    };
-  } catch {
-    return { human: "", absolute: "", ok: false };
-  }
-});
 </script>
 
 <template>
@@ -166,7 +147,7 @@ const nextRunInfo = computed(() => {
     <!-- BASIC: minute / hour / daily controls. -->
     <div v-if="mode === 'basic'" class="interval-row">
       <template v-if="!isDaily">
-        <span class="interval-label">{{ $t("alertParamsEditor.interval.every") }}</span>
+        <span class="field-hint">{{ $t("alertParamsEditor.interval.every") }}</span>
         <input
           type="number"
           :value="basicValue"
@@ -186,15 +167,13 @@ const nextRunInfo = computed(() => {
         >
       </template>
 
-      <select
-        :value="basicUnit"
-        class="field-input interval-unit"
-        @change="onUnitChange(($event.target as HTMLSelectElement).value as FriendlyUnit)"
-      >
-        <option value="minutes">{{ $t("alertParamsEditor.units.minutes") }}</option>
-        <option value="hours">{{ $t("alertParamsEditor.units.hours") }}</option>
-        <option value="daily">{{ $t("alertParamsEditor.units.daily") }}</option>
-      </select>
+      <Select
+        :model-value="basicUnit"
+        :options="unitOptions"
+        size="sm"
+        class="interval-unit"
+        @update:model-value="onUnitChange($event as FriendlyUnit)"
+      />
     </div>
 
     <!-- ADVANCED: raw cron input + 5-field hint + parse error inline. -->

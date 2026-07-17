@@ -28,7 +28,7 @@ const form = defineModel<AlertModel>({ required: true });
 // here (via useSourceBinding), so this is safe.
 const params = computed<MonitorParams>(
   () => form.value.alertParams as MonitorParams,
-);
+); 
 
 // ── Match kind ────────────────────────────────────────────────────────────
 
@@ -103,6 +103,13 @@ const RANGES: HttpRange[] = ["2xx", "3xx", "4xx", "5xx"];
 const currentRange = computed<HttpRange>(() =>
   params.value.match?.kind === "range" ? params.value.match.range : "5xx",
 );
+const { t } = useI18n();
+const rangeOptions = computed(() =>
+  RANGES.map((r) => ({
+    value: r,
+    label: t(`monitorEditor.match.rangeOptions.${r}`),
+  })),
+);
 
 function setRange(r: HttpRange) {
   patchParams({ match: { kind: "range", range: r } });
@@ -143,11 +150,11 @@ const summaryLabel = computed(() => {
 <template>
   <div class="status-match-editor">
     <!-- ── Match panel ────────────────────────────────────────────────── -->
-    <div class="cond-panel">
-      <div class="cond-panel-head">
+    <div class="wcard">
+      <div class="wcard-head">
         {{ $t("monitorEditor.match.label") }}
       </div>
-      <div class="cond-panel-body">
+      <div class="wcard-body">
         <!-- Kind radios -->
         <div class="kind-row">
           <label
@@ -209,15 +216,13 @@ const summaryLabel = computed(() => {
 
         <!-- Range editor -->
         <div v-else-if="currentKind === 'range'" class="mode-body">
-          <select
-            :value="currentRange"
-            class="field-input range-select"
-            @change="setRange(($event.target as HTMLSelectElement).value as HttpRange)"
-          >
-            <option v-for="r in RANGES" :key="r" :value="r">
-              {{ $t(`monitorEditor.match.rangeOptions.${r}`) }}
-            </option>
-          </select>
+          <Select
+            :model-value="currentRange"
+            :options="rangeOptions"
+            size="md"
+            class="range-select"
+            @update:model-value="setRange($event as HttpRange)"
+          />
         </div>
 
         <!-- not-ok — no extra widget, just a hint -->
@@ -241,28 +246,7 @@ const summaryLabel = computed(() => {
   gap: var(--space-5);
 }
 
-.cond-panel {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-.cond-panel-head {
-  padding: var(--space-3) var(--space-5);
-  background: var(--color-border-subtle);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--color-text-dim);
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-.cond-panel-body {
-  padding: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
+/* Card chrome delegated to the shared .wcard classes. */
 
 /* ── Kind radios rendered as pill buttons ─────────────────────────── */
 .kind-row {

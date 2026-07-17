@@ -24,6 +24,9 @@ function set(key: string, value: any) {
 const isPolling = computed(() => props.triggerType === Source.Polling);
 
 const FORMATS = Object.values(PollingFormat);
+const formatOptions = computed(() =>
+  FORMATS.map((f) => ({ value: f, label: f.toUpperCase() })),
+);
 const selectedFormat = computed(
   () => (p.value.format as PollingFormat) ?? PollingFormat.XML,
 );
@@ -35,10 +38,15 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
 </script>
 
 <template>
-  <div v-if="isPolling" class="params-editor">
+  <div v-if="isPolling" class="wcard">
+    <div class="wcard-head">
+      {{ $t("wizard.fieldLabels.pollingConfiguration") }}
+    </div>
     <!-- URL -->
-    <div class="field">
-      <label class="field-label"
+
+    <div class="wcard-body">
+    <div class="wcard-row">
+      <label class="wcard-label"
         >{{ $t("alertParamsEditor.url.label") }}
         <span class="field-required">*</span></label
       >
@@ -53,32 +61,30 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
     </div>
 
     <!-- Format -->
-    <div class="field">
-      <label class="field-label"
+    <div class="wcard-row">
+      <label class="wcard-label"
         >{{ $t("alertParamsEditor.format.label") }}
         <span class="field-required">*</span></label
       >
-      <select
-        :value="selectedFormat"
-        class="field-input"
-        @change="set('format', ($event.target as HTMLSelectElement).value)"
-      >
-        <option v-for="f in FORMATS" :key="f" :value="f">{{ f }}</option>
-      </select>
+      <Select
+        :model-value="selectedFormat"
+        :options="formatOptions"
+        size="md"
+        @update:model-value="set('format', $event)"
+      />
       <span class="field-hint">{{ $t("alertParamsEditor.format.hint") }}</span>
     </div>
 
     <!-- Schedule. Field-head puts the label on the left and the
          Basic/Advanced pill on the right — visually anchored to the same
          row so the toggle reads as "controls how this field is edited". -->
-    <div class="field">
-      <div class="field-head">
-        <label class="field-label">
+    <div class="wcard-row">
+      
+      <label class="wcard-label">
           {{ $t("alertParamsEditor.interval.label") }}
           <span class="field-required">*</span>
+          <ScheduleModeToggle v-model="scheduleMode" />
         </label>
-        <ScheduleModeToggle v-model="scheduleMode" />
-      </div>
       <ScheduleEditor
         :model-value="p.schedule ?? ''"
         :mode="scheduleMode"
@@ -86,31 +92,18 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
         @update:mode="scheduleMode = $event"
       />
     </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
+/* Card chrome from the shared .wcard class; local rules just handle
+ * the inner layout since this card has no wcard-head. */
 .params-editor {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
   padding: var(--space-6);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-}
-
-/* Label + mode-toggle on the same row. The label keeps its normal block
- * layout (so the asterisk floats next to the text); margin-left:auto on
- * the toggle pushes it to the right edge of the field. */
-.field-head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-2);
-}
-.field-head .field-label {
-  margin: 0;
 }
 
 </style>

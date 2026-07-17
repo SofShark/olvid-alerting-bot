@@ -7,6 +7,7 @@ import {
   inputTypeForOperator,
 } from "#shared/types/condition";
 import { orderedAggregations } from "#shared/condition/aggregators/aggregatorFactory";
+import { useI18n } from "vue-i18n";
 
 /*
   The "Trigger — [aggregation] [operator] [value]" row of the polling
@@ -43,6 +44,14 @@ const emit = defineEmits<{
 
 const needsValue = computed(() => OPERATORS_NEEDING_VALUE.has(props.operator));
 const { options: OPERATORS } = useConditionOperators();
+
+const { t } = useI18n();
+const aggregationOptions = computed(() =>
+  orderedAggregations.map((a) => ({
+    value: a,
+    label: t(`conditionEditor.aggregation.${a}`),
+  })),
+);
 </script>
 
 <template>
@@ -51,36 +60,26 @@ const { options: OPERATORS } = useConditionOperators();
 
     <!-- Aggregation — options from the factory so new aggregators
          appear here without touching this file. -->
-    <select
+    <Select
+      :model-value="aggregation"
+      :options="aggregationOptions"
+      size="sm"
       class="rule-select agg"
-      :value="aggregation"
-      @change="
-        emit('patch', {
-          aggregation: ($event.target as HTMLSelectElement)
-            .value as ConditionAggregation,
-        })
+      @update:model-value="
+        emit('patch', { aggregation: $event as ConditionAggregation })
       "
-    >
-      <option v-for="a in orderedAggregations" :key="a" :value="a">
-        {{ $t(`conditionEditor.aggregation.${a}`) }}
-      </option>
-    </select>
+    />
 
     <!-- Operator — fixed enum, labels via i18n. -->
-    <select
+    <Select
+      :model-value="operator"
+      :options="OPERATORS"
+      size="sm"
       class="rule-select op"
-      :value="operator"
-      @change="
-        emit('patch', {
-          operator: ($event.target as HTMLSelectElement)
-            .value as ConditionOperator,
-        })
+      @update:model-value="
+        emit('patch', { operator: $event as ConditionOperator })
       "
-    >
-      <option v-for="o in OPERATORS" :key="o.value" :value="o.value">
-        {{ o.label }}
-      </option>
-    </select>
+    />
 
     <!-- Value — only when the operator uses one. Input type follows the
          operator (numeric for GreaterThan/LessThan, text for Equals/
@@ -122,48 +121,28 @@ const { options: OPERATORS } = useConditionOperators();
   flex-shrink: 0;
 }
 
-.rule-select,
+/* .rule-select is the wrapper of the shared <Select> component; it must
+ * NOT redraw its own border/chevron/background — the Select handles
+ * those. Width is left auto so the trigger hugs its label with no
+ * empty gap between label and chevron. Row gap comes from .rule-row. */
+
 .rule-input {
-  height: 32px;
-  padding: 0 var(--space-3);
+  padding: var(--space-3);
   background: var(--color-bg-input);
   color: var(--color-text-primary);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
   font-family: inherit;
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.rule-select {
-  cursor: pointer;
-  /* Chevron indicator instead of the browser-native arrow — matches
-   * the app's other tech-tool selects (Grafana / Linear style). */
-  appearance: none;
-  -webkit-appearance: none;
-  padding-right: calc(var(--space-3) + 16px);
-  background-image: linear-gradient(45deg, transparent 50%, var(--color-text-dim) 50%),
-    linear-gradient(135deg, var(--color-text-dim) 50%, transparent 50%);
-  background-position:
-    calc(100% - 12px) 50%,
-    calc(100% - 7px) 50%;
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-}
-.rule-select:hover,
 .rule-input:hover {
   border-color: var(--color-border-strong);
 }
-.rule-select:focus,
 .rule-input:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
-}
-.rule-select.agg {
-  min-width: 120px;
-}
-.rule-select.op {
-  min-width: 200px;
 }
 .rule-input {
   min-width: 120px;
