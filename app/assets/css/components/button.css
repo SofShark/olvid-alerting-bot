@@ -8,7 +8,7 @@
   justify-content: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   border: 1px solid transparent;
   font: inherit;
   font-size: var(--text-base);
@@ -33,22 +33,9 @@
   color: var(--color-text-on-accent);
   border: 1px solid var(--color-accent-hover);
   padding: 8px 16px;
-  border-radius: var(--radius-lg);
   font-weight: 600;
   font-size: 14px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition:
-    background-color 0.15s,
-    border-color 0.15s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.btn-primary.btn-small {
-  padding: 6px 12px;
-  font-size: 12px;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -56,14 +43,8 @@
   border-color: var(--color-accent-border);
 }
 
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 
-
-
-
+/*── Secondary ──────────────────────────────────────────────────────── */
 .btn-secondary {
   background: var(--color-bg-card);
   color: var(--color-text-secondary);
@@ -74,6 +55,7 @@
   border-color: var(--color-border-strong);
 }
 
+/*── Ghost ──────────────────────────────────────────────────────── */
 .btn-ghost {
   background: transparent;
   color: var(--color-text-muted);
@@ -85,6 +67,7 @@
   color: var(--color-text-primary);
 }
 
+/*── Danger ──────────────────────────────────────────────────────── */
 .btn-danger {
   background: var(--color-danger-strong);
   color: var(--color-text-on-accent);
@@ -126,7 +109,7 @@
   color: var(--color-accent-soft);
 }
 
-/* ── Radio pill ──────────────────────────────────────────────────────── */
+/* ── Pill ──────────────────────────────────────────────────────── */
 .btn-pill-group {
   display: flex;
   gap: var(--space-2);

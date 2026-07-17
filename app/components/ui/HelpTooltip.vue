@@ -51,15 +51,15 @@ const props = defineProps<{
 }
 
 .help-tooltip-icon:hover{
-    cursor: help;
+  cursor: help;
 }
 
 /* La burbuja (oculta por defecto) */
 .tooltip-bubble {
     position: absolute;
-    top: -6px;            /* 👈 Lo sitúa un poco por arriba del centro del icono */
-    left: 100%;           /* 👈 Lo coloca completamente a la derecha del icono */
-    margin-left: 8px;     /* 👈 Espacio de separación entre el icono y el bocadillo */
+    top: -10px;            
+    left: 100%;          
+    margin-left: 4px;     
 
     /* Eliminamos el translateX(-50%) viejo para que no se mueva a la izquierda */
     transform: translateY(4px); 
@@ -68,7 +68,7 @@ const props = defineProps<{
     background-color: var(--color-accent-soft); 
     color: var(--color-accent-text);
     padding: 6px 10px;
-    border-radius: 6px;
+    border-radius: 16px 16px 16px 0 ;
     font-size: 11px;
     font-weight: normal;
     text-transform: none; 
@@ -81,21 +81,6 @@ const props = defineProps<{
     transition: opacity 0.2s ease, transform 0.2s ease;
     pointer-events: none; 
     z-index: 50; 
-}
-
-/* Flecha apuntando a la izquierda (hacia el icono de origen) */
-.tooltip-bubble::after {
-    content: "";
-    position: absolute;
-    top: 45%;             /* 👈 Centra el pico verticalmente en el lateral del bocadillo */
-    right: 100%;          /* 👈 Lo saca por el lado izquierdo del bocadillo */
-    transform: translateY(-50%); /* 👈 Ajuste perfecto de centrado vertical del pico */
-    
-    border-width: 5px;
-    border-bottom: 2px;
-    border-style: solid;
-    /* 👈 Cambiado: Ahora el color está en el lado derecho para que el triángulo apunte a la izquierda */
-    border-color: transparent var(--color-accent-soft) transparent transparent; 
 }
 
 /* --- EFECTO HOVER --- */

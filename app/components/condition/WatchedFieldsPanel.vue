@@ -73,7 +73,7 @@ const {
           class="btn btn-ghost btn-sm"
           @click="startAdding"
         >
-          <FontAwesomeIcon :icon="['fas', 'pencil']" class="btn-icon" />
+          <FontAwesomeIcon :icon="['fas', 'pencil']" class="icon" />
           {{ $t("conditionEditor.watchedFields.typePath") }}
         </button>
         <button
@@ -81,7 +81,7 @@ const {
           class="btn btn-ghost btn-sm"
           @click="emit('open-picker')"
         >
-          <FontAwesomeIcon :icon="['fas', 'diagram-project']" class="btn-icon" />
+          <FontAwesomeIcon :icon="['fas', 'diagram-project']" class="icon" />
           {{ $t("conditionEditor.watchedFields.pickFromSource") }}
         </button>
       </div>
@@ -166,9 +166,8 @@ const {
   align-items: center;
   flex-shrink: 0;
 }
-.btn-icon {
+.icon {
   font-size: var(--text-sm);
-  opacity: 0.85;
 }
 
 .rule-label {
