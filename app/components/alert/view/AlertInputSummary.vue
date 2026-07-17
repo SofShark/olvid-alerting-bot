@@ -208,7 +208,7 @@ onMounted(() => {
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: var(--color-text-dim);
+  color: var(--color-text-muted);
 }
 .data-value {
   margin: 0;

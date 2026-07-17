@@ -79,13 +79,12 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
          Basic/Advanced pill on the right — visually anchored to the same
          row so the toggle reads as "controls how this field is edited". -->
     <div class="wcard-row">
-      <div class="field-head">
-        <label class="wcard-label">
+      
+      <label class="wcard-label">
           {{ $t("alertParamsEditor.interval.label") }}
           <span class="field-required">*</span>
+          <ScheduleModeToggle v-model="scheduleMode" />
         </label>
-        <ScheduleModeToggle v-model="scheduleMode" />
-      </div>
       <ScheduleEditor
         :model-value="p.schedule ?? ''"
         :mode="scheduleMode"
@@ -105,19 +104,6 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
   flex-direction: column;
   gap: var(--space-5);
   padding: var(--space-6);
-}
-
-/* Label + mode-toggle on the same row. The label keeps its normal block
- * layout (so the asterisk floats next to the text); margin-left:auto on
- * the toggle pushes it to the right edge of the field. */
-.field-head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-2);
-}
-.field-head .wcard-label {
-  margin: 0;
 }
 
 </style>

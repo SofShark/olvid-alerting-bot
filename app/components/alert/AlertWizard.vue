@@ -274,7 +274,7 @@ const onSaveDraftAndLeave = async () => {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-7) var(--space-8);
+  padding: var(--space-4) var(--space-8);
 }
 .wizard-content > * {
   /* Keep line lengths readable on wide screens without capping too

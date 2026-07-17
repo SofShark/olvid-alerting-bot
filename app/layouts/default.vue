@@ -77,7 +77,7 @@ const selectedId = computed(() => {
 
 .top-nav {
   background-color: var(--color-bg-nav);
-  border-bottom: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-default);
   padding: 14px 0;
   flex-shrink: 0;
   z-index: 100;
