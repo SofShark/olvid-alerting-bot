@@ -14,14 +14,14 @@ const { t } = useI18n();
 
 <template>
   <div
-    class="kind-picker"
+    class="btn-pill-group"
     role="radiogroup"
     :aria-label="t('bundleKind.groupLabel')"
   >
     <!-- Olvid -->
     <button
       type="button"
-      class="tile"
+      class="btn-pill"
       :class="{ active: modelValue === BundleOutputType.Olvid }"
       @click="$emit('update:modelValue', BundleOutputType.Olvid)"
     >
@@ -37,7 +37,7 @@ const { t } = useI18n();
     <!-- Mail -->
     <button
       type="button"
-      class="tile"
+      class="btn-pill"
       :class="{ active: modelValue === BundleOutputType.Mail }"
       @click="$emit('update:modelValue', BundleOutputType.Mail)"
     >
@@ -45,54 +45,12 @@ const { t } = useI18n();
         <FontAwesomeIcon :icon="['fas', 'envelope']" />
       </span>
 
-      <span class="tile-label">
-        {{ t("bundleKind.mail") }}
-      </span>
+      <span>{{ t("bundleKind.mail") }}</span>
     </button>
   </div>
 </template>
 
 <style scoped>
-.kind-picker {
-  display: inline-flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-.tile {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  color: var(--color-text-muted);
-  font: inherit;
-  cursor: pointer;
-  transition:
-    border-color .15s,
-    background-color .15s,
-    color .15s;
-}
-
-.tile:hover:not(.active) {
-  border-color: var(--color-border-default);
-  color: var(--color-text-primary);
-}
-
-.tile:focus-visible {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px
-    color-mix(in srgb, var(--color-accent) 20%, transparent);
-}
-
-.tile.active {
-  border-color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
-  color: var(--color-text-primary);
-}
 
 /* ---------- Shared media container ---------- */
 
@@ -101,23 +59,19 @@ const { t } = useI18n();
   height: 16px;
   flex: 0 0 16px;
   color: var(--color-text-faint);
+  font-size: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 
-  .tile.active & {
+  .btn-pill.active & {
     color:var(--color-accent)
   }
-  .tile:hover:not(.active) &{
+
+  .btn-pill:hover:not(.active) &{
     color:var(--color-accent)
   }
 }
 
-/* ---------- Label ---------- */
 
-.tile-label {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  letter-spacing: .01em;
-}
 </style>

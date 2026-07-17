@@ -52,9 +52,6 @@
    *  (hue ~220°, very low chroma) that gives the palette a hint of
    *  identity without competing with the brand blue.
    *
-   *  Light theme overrides all of these to a slate ladder (see the
-   *  `[data-theme="light"]` block below).
-   *
    *  10 is the softest off-white; 95 is the deepest near-black.
    * ────────────────────────────────────────────────────────────── */
   --neutral-10: #f8fafc;
@@ -68,8 +65,7 @@
   --neutral-80: #272c36;   /* menus, strong borders */
   --neutral-83: #262a31;   /* alt: hover / bundle-card variant */
   --neutral-85: #1f222b;   /* inputs, card-soft (wcard-head) */
-  --neutral-90: #15181e;   /* nav, cards, sidebar-head */
-   /* panels — same tone as nav on purpose */
+  --neutral-90: #15181e;   /* nav, cards, sidebar-head, panels — same tone as nav on purpose */
   --neutral-95: #0f1115;   /* app / page — deepest */
 
   --white: #ffffff;
@@ -215,24 +211,15 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Primitives — light theme uses the SLATE ladder (a whisper of
-   * blue, hue ~215°) so the page reads a touch colder than the
-   * pure-grey dark. The rest of the aliases below just map onto
-   * these local overrides. */
-
-  
-
-  
-
   /* Surfaces — the panel steps DOWN from white to a soft slate so
    * white cards elevate visibly against it. Same elevation direction
    * as dark theme (panel darker than card). Inputs stay white and
    * rely on their border to define the slot. */
   --color-bg-app: var(--neutral-20);          /* soft slate page */
   --color-bg-input: var(--white);             /* border defines the slot */
-  --color-bg-nav: var(--neutral-30);          /* nav pops from the page */
+  --color-bg-nav: var(--neutral-25);          /* nav pops from the page */
   --color-bg-panel: var(--neutral-10);        /* off-white so cards lift */
-  --color-bg-sidebar-head: var(--neutral-30);
+  --color-bg-sidebar-head: var(--neutral-25);
   --color-bg-card: var(--white);
   --color-bundle-card: var(--white);
   --color-bg-card-soft: var(--neutral-25);    /* wcard-head, hover strips */

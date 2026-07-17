@@ -34,20 +34,21 @@ const activeHint = computed(() => hintFor(model.value));
 
 <template>
   <div class="trigger-mode">
-    <div class="trigger-mode-pills">
-      <label
+    <div class="btn-pill-group">
+      <button
+        type="button"
         v-for="opt in options"
         :key="opt.value"
-        class="pill"
+        class="btn-pill"
         :class="{ active: model === opt.value }"
+        @click="model = opt.value"
       >
         <input
           type="radio"
           :checked="model === opt.value"
-          @change="model = opt.value"
         >
         <span>{{ opt.label }}</span>
-      </label>
+    </button>
     </div>
     <p v-if="showHint" class="trigger-mode-hint">{{ activeHint }}</p>
   </div>
@@ -82,18 +83,6 @@ const activeHint = computed(() => hintFor(model.value));
   cursor: pointer;
   transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
-.pill:hover {
-  border-color: var(--color-border-strong);
-}
-.pill.active {
-  background: var(--color-accent-soft);
-  border-color: var(--color-accent-border);
-  color: var(--color-text-primary);
-}
-.pill input[type="radio"] {
-  accent-color: var(--color-accent);
-  cursor: pointer;
-}
 
 .trigger-mode-hint {
   margin: 0;
@@ -102,3 +91,4 @@ const activeHint = computed(() => hintFor(model.value));
   line-height: 1.5;
 }
 </style>
+ 
