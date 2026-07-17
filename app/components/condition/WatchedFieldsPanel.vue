@@ -37,6 +37,9 @@ const {
   () => props.parsed,
   (v) => emit("add-path", v),
 );
+
+const {t} = useI18n();
+const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
 </script>
 
 <template>
@@ -48,22 +51,11 @@ const {
         <span class="rule-label">
           {{ $t("conditionEditor.watchedFields.label") }}
           <span class="rule-count">({{ effectiveCount }})</span>
+          <HelpTooltip :message="watchedFieldsHint" />
         </span>
         <!-- Hint has two code-styled snippets — kept as one translatable
              string via i18n-t children. -->
         <p class="rule-hint">
-          <i18n-t keypath="conditionEditor.watchedFields.hint" tag="span">
-            <template #dotdot
-              ><code>{{
-                $t("conditionEditor.watchedFields.hintCode")
-              }}</code></template
-            >
-            <template #example
-              ><code>{{
-                $t("conditionEditor.watchedFields.hintExample")
-              }}</code></template
-            >
-          </i18n-t>
         </p>
       </div>
 

@@ -37,44 +37,44 @@ const sourceLabel = computed(() => {
 </script>
 
 <template>
-  <div>
-    <!-- Title / description are the "what is this alert?" fields -->
-    <div class="wcard-body">
-    <div class="wcard-row">
-      <label class="wcard-label">
-        {{ $t("wizard.fieldLabels.title") }}
-        <span class="field-required">*</span>
-        <HelpTooltip message="Help Message"/>
-      </label>
-      <input
-        v-model="form.title"
-        type="text"
-        class="field-input"
-        :placeholder="$t('common.untitledAlert')"
-      >
-    </div>
+  <div class="step-general">
+    <!-- Title / description / source are the "what is this alert?" fields -->
+    <div class="wcard">
+      <div class="wcard-body">
+        <div class="wcard-row">
+          <label class="wcard-label">
+            {{ $t("wizard.fieldLabels.title") }}
+            <span class="field-required">*</span>
+          </label>
+          <input
+            v-model="form.title"
+            type="text"
+            class="field-input"
+            :placeholder="$t('common.untitledAlert')"
+          >
+        </div>
 
-    <div class="wcard-row">
-      <label class="wcard-label">
-        {{ $t("wizard.fieldLabels.description") }}
-      </label>
-      <input
-        v-model="form.description"
-        type="text"
-        class="field-input"
-        :placeholder="$t('common.descriptionPlaceholder')"
-      >
-    </div>
+        <div class="wcard-row">
+          <label class="wcard-label">
+            {{ $t("wizard.fieldLabels.description") }}
+          </label>
+          <input
+            v-model="form.description"
+            type="text"
+            class="field-input"
+            :placeholder="$t('common.descriptionPlaceholder')"
+          >
+        </div>
 
-    <div class="wcard-row">
-      <label class="wcard-label">
-        {{ $t("wizard.fieldLabels.inputSource") }}
-        <span class="field-required">*</span>
-        <HelpTooltip :message="inputSourceHint"/>
-      </label>
-      <InputSourceSelector v-model="selectedSource" />
-      
-      
+        <div class="wcard-row">
+          <label class="wcard-label">
+            {{ $t("wizard.fieldLabels.inputSource") }}
+            <span class="field-required">*</span>
+            <HelpTooltip :message="inputSourceHint"/>
+          </label>
+          <InputSourceSelector v-model="selectedSource" />
+        </div>
+      </div>
     </div>
 
     <!-- Polling sources expose URL / format / timing inline. -->
@@ -88,7 +88,6 @@ const sourceLabel = computed(() => {
 
     <!-- Monitoring sources expose URL + timing only (no body parsing). -->
     <div v-if="isMonitoring" class="field">
-      
       <MonitorParamsEditor
         :model-value="(form.alertParams ?? {}) as Partial<MonitorParams>"
         @update:model-value="form.alertParams = $event as MonitorParams"
@@ -109,10 +108,14 @@ const sourceLabel = computed(() => {
       </div>
     </template>
   </div>
-  </div>
 </template>
 
 <style scoped>
+.step-general {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
 .field-hint strong {
   color: var(--color-accent-text);
   font-weight: 600;

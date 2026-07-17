@@ -256,8 +256,8 @@ const onSaveDraftAndLeave = async () => {
 .wizard-topbar {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-2) var(--space-5);
+  gap: 45px;
+  padding: var(--space-2) var(--space-8);
   border-bottom: 1px solid var(--color-border-subtle);
   flex-shrink: 0;
 }

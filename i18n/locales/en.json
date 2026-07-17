@@ -318,7 +318,7 @@
     },
     "watchedFields": {
       "label": "Watched fields",
-      "hint": "Type a path, or use {dotdot} as a wildcard (e.g. {example} matches every day's max). Or open the picker to choose visually.",
+      "hint": "Type a path, or use .. as a wildcard (e.g. ..user.name mathes every 'name' value on any 'user' on the file). Or open the picker to choose visually.",
       "hintCode": "..",
       "hintExample": "dia..temperatura.maxima",
       "emptyChips": "— no watched fields yet —",

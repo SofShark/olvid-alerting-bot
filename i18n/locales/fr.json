@@ -320,7 +320,7 @@
     },
     "watchedFields": {
       "label": "Champs surveillés",
-      "hint": "Tapez un chemin, ou utilisez {dotdot} comme caractère générique (par ex. {example} correspond au maximum de chaque jour). Ou ouvrez le sélecteur pour choisir visuellement.",
+      "hint": "Tapez un chemin, ou utilisez .. comme caractère générique (par ex. ..user.name correspond au prénom de chaque utilisateur). Ou ouvrez le sélecteur pour choisir visuellement.",
       "hintCode": "..",
       "hintExample": "dia..temperatura.maxima",
       "emptyChips": "— aucun champ surveillé pour le moment —",
