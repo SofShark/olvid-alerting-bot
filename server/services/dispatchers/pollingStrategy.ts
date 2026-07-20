@@ -5,7 +5,10 @@
 //
 // `pollingEngine` and `notifierService` resolve via Nitro auto-imports.
 
-import type { DispatchStrategy, DispatchResult } from "#shared/types/dispatchStrategy";
+import type {
+  DispatchStrategy,
+  DispatchResult,
+} from "#shared/types/dispatchStrategy";
 import type { AlertModel } from "#shared/types/alert";
 import { getPollingParams } from "#shared/types/alert";
 import { ConditionOperator } from "#shared/types/condition";

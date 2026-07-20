@@ -10,7 +10,10 @@
 // cap is deleted in the same request. Fine at our scale (≤ 20 active
 // polling alerts × 1-minute cadence = ~1200 inserts/hour worst case).
 
-import { LogStatus, type LogStatus as LogStatusT } from "#shared/types/statusLog";
+import {
+  LogStatus,
+  type LogStatus as LogStatusT,
+} from "#shared/types/statusLog";
 import { prisma } from "../db/prisma";
 
 /** Hard cap per alertId. See the schema comment for rationale. */
@@ -40,7 +43,11 @@ export const alertLogRepository = {
    * and error rows carry a short human-readable message. After insert, any
    * rows past the 200 cap for this alert are pruned (oldest first).
    */
-  async insert( alertId: number, status: LogStatusT, error: string | null = null,) { 
+  async insert(
+    alertId: number,
+    status: LogStatusT,
+    error: string | null = null,
+  ) {
     const inserted = await prisma.alertLog.create({
       data: { alertId, status, error },
     });

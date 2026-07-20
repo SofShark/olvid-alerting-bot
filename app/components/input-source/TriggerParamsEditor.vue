@@ -45,53 +45,54 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
     <!-- URL -->
 
     <div class="wcard-body">
-    <div class="wcard-row">
-      <label class="wcard-label"
-        >{{ $t("alertParamsEditor.url.label") }}
-        <span class="field-required">*</span></label
-      >
-      <input
-        type="url"
-        :value="p.url ?? ''"
-        :placeholder="$t('alertParamsEditor.url.placeholder')"
-        class="field-input"
-        @input="set('url', ($event.target as HTMLInputElement).value)"
-      >
-      <span class="field-hint">{{ $t("alertParamsEditor.url.hint") }}</span>
-    </div>
+      <div class="wcard-row">
+        <label class="wcard-label"
+          >{{ $t("alertParamsEditor.url.label") }}
+          <span class="field-required">*</span></label
+        >
+        <input
+          type="url"
+          :value="p.url ?? ''"
+          :placeholder="$t('alertParamsEditor.url.placeholder')"
+          class="field-input"
+          @input="set('url', ($event.target as HTMLInputElement).value)"
+        />
+        <span class="field-hint">{{ $t("alertParamsEditor.url.hint") }}</span>
+      </div>
 
-    <!-- Format -->
-    <div class="wcard-row">
-      <label class="wcard-label"
-        >{{ $t("alertParamsEditor.format.label") }}
-        <span class="field-required">*</span></label
-      >
-      <Select
-        :model-value="selectedFormat"
-        :options="formatOptions"
-        size="md"
-        @update:model-value="set('format', $event)"
-      />
-      <span class="field-hint">{{ $t("alertParamsEditor.format.hint") }}</span>
-    </div>
+      <!-- Format -->
+      <div class="wcard-row">
+        <label class="wcard-label"
+          >{{ $t("alertParamsEditor.format.label") }}
+          <span class="field-required">*</span></label
+        >
+        <Select
+          :model-value="selectedFormat"
+          :options="formatOptions"
+          size="md"
+          @update:model-value="set('format', $event)"
+        />
+        <span class="field-hint">{{
+          $t("alertParamsEditor.format.hint")
+        }}</span>
+      </div>
 
-    <!-- Schedule. Field-head puts the label on the left and the
+      <!-- Schedule. Field-head puts the label on the left and the
          Basic/Advanced pill on the right — visually anchored to the same
          row so the toggle reads as "controls how this field is edited". -->
-    <div class="wcard-row">
-      
-      <label class="wcard-label">
+      <div class="wcard-row">
+        <label class="wcard-label">
           {{ $t("alertParamsEditor.interval.label") }}
           <span class="field-required">*</span>
           <ScheduleModeToggle v-model="scheduleMode" />
         </label>
-      <ScheduleEditor
-        :model-value="p.schedule ?? ''"
-        :mode="scheduleMode"
-        @update:model-value="set('schedule', $event)"
-        @update:mode="scheduleMode = $event"
-      />
-    </div>
+        <ScheduleEditor
+          :model-value="p.schedule ?? ''"
+          :mode="scheduleMode"
+          @update:model-value="set('schedule', $event)"
+          @update:mode="scheduleMode = $event"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -105,5 +106,4 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
   gap: var(--space-5);
   padding: var(--space-6);
 }
-
 </style>

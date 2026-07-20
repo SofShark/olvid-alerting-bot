@@ -51,11 +51,11 @@ const emit = defineEmits(["save", "close"]);
 const isPolling = computed(() => isPollingSource(props.inputSource));
 const isMonitoring = computed(() => isMonitoringSource(props.inputSource));
 
-const {t} = useI18n();
-const formatHint = computed(()=>{
-  if (isPolling.value) return t("formatEditor.intro.polling")
-  else if (isMonitoring.value) return t("formatEditor.intro.monitoring")
-  else return t("formatEditor.intro.webhook") 
+const { t } = useI18n();
+const formatHint = computed(() => {
+  if (isPolling.value) return t("formatEditor.intro.polling");
+  else if (isMonitoring.value) return t("formatEditor.intro.monitoring");
+  else return t("formatEditor.intro.webhook");
 });
 
 // Seed from `initialScript` so re-opening the editor on a saved bundle shows
@@ -131,13 +131,15 @@ const onClose = () => emit("close");
       <div class="window-header">
         <div class="header-titles">
           <h3>{{ $t("formatEditor.title") }}</h3>
-          <HelpTooltip :message="formatHint"/>
+          <HelpTooltip :message="formatHint" />
         </div>
         <button
           class="btn-close-icon"
           :title="$t('formatEditor.buttons.closeTitle')"
           @click="onClose"
-        >✕</button>
+        >
+          ✕
+        </button>
       </div>
 
       <div class="window-body">

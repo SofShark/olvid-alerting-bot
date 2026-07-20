@@ -18,7 +18,7 @@ withDefaults(
     /** aria-label + title attr for the close button. */
     closeLabel?: string;
   }>(),
-  { variant: "plain", closeLabel: "Close" },
+  { title: "", variant: "plain", closeLabel: "Close" },
 );
 
 defineEmits<{ (e: "close"): void }>();
@@ -79,7 +79,9 @@ defineEmits<{ (e: "close"): void }>();
   font-size: var(--text-lg);
   cursor: pointer;
   border-radius: var(--radius-sm);
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
   flex-shrink: 0;
 }
 .modal-close:hover {

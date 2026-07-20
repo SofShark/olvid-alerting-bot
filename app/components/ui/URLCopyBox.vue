@@ -32,7 +32,9 @@ const copyWebhook = () => {
       @click="copyWebhook"
     >
       <span v-if="copied"> ✓ </span>
-      <span v-else > <FontAwesomeIcon class="clipboard-icon" :icon="['fas', 'copy']"/>  </span>
+      <span v-else>
+        <FontAwesomeIcon class="clipboard-icon" :icon="['fas', 'copy']" />
+      </span>
     </button>
   </div>
 </template>
@@ -59,7 +61,7 @@ const copyWebhook = () => {
   flex: 1;
 }
 
-.clipboard-icon{
+.clipboard-icon {
   color: #bebebe;
 }
 /* Copy button — small scale + color pulse on click, swaps to ✓ for ~1.4s.

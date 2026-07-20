@@ -31,13 +31,25 @@ export const useTriggerModeOptions = (variant: Variant = "polling") => {
   const hintFor = (mode: TriggerMode): string =>
     t(`wizard.triggerMode.hints.${variant}.${mode}`);
 
-  const options = computed<Array<{ value: TriggerMode; label: string; hint: string }>>(
-    () => [
-      { value: TriggerMode.EveryTime, label: labelFor(TriggerMode.EveryTime), hint: hintFor(TriggerMode.EveryTime) },
-      { value: TriggerMode.OneShot, label: labelFor(TriggerMode.OneShot), hint: hintFor(TriggerMode.OneShot) },
-      { value: TriggerMode.WithRecovery, label: labelFor(TriggerMode.WithRecovery), hint: hintFor(TriggerMode.WithRecovery) },
-    ],
-  );
+  const options = computed<
+    Array<{ value: TriggerMode; label: string; hint: string }>
+  >(() => [
+    {
+      value: TriggerMode.EveryTime,
+      label: labelFor(TriggerMode.EveryTime),
+      hint: hintFor(TriggerMode.EveryTime),
+    },
+    {
+      value: TriggerMode.OneShot,
+      label: labelFor(TriggerMode.OneShot),
+      hint: hintFor(TriggerMode.OneShot),
+    },
+    {
+      value: TriggerMode.WithRecovery,
+      label: labelFor(TriggerMode.WithRecovery),
+      hint: hintFor(TriggerMode.WithRecovery),
+    },
+  ]);
 
   return { options, labelFor, hintFor };
 };

@@ -28,17 +28,34 @@ defineEmits<{
       :class="{ 'is-open': loadOpen }"
       :aria-expanded="loadOpen"
       title="Load template payload"
-      @click="$emit('open-load', ($event.currentTarget as HTMLElement).getBoundingClientRect())"
+      @click="
+        $emit(
+          'open-load',
+          ($event.currentTarget as HTMLElement).getBoundingClientRect(),
+        )
+      "
     >
       <span>Load Template</span>
       <span class="caret" aria-hidden="true" />
     </button>
     <span class="toolbar-divider" aria-hidden="true" />
-    <button class="toggle-btn" title="Picker Mode" @click="$emit('toggle-picker')">
-      <img src="../../../assets/eyedrop.png" alt="Picker Mode" class="eyedrop-icon">
+    <button
+      class="toggle-btn"
+      title="Picker Mode"
+      @click="$emit('toggle-picker')"
+    >
+      <img
+        src="../../../assets/eyedrop.png"
+        alt="Picker Mode"
+        class="eyedrop-icon"
+      />
     </button>
-    <button class="toggle-btn" title="Prettify JSON" @click="$emit('prettify')">{ }</button>
-    <button class="toggle-btn" title="Clear Payload" @click="$emit('clear')">Clear</button>
+    <button class="toggle-btn" title="Prettify JSON" @click="$emit('prettify')">
+      { }
+    </button>
+    <button class="toggle-btn" title="Clear Payload" @click="$emit('clear')">
+      Clear
+    </button>
   </div>
 </template>
 

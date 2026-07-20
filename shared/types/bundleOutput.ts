@@ -26,7 +26,8 @@ export const BundleOutputType = {
   Olvid: "olvid",
   Mail: "mail",
 } as const;
-export type BundleOutputType = (typeof BundleOutputType)[keyof typeof BundleOutputType];
+export type BundleOutputType =
+  (typeof BundleOutputType)[keyof typeof BundleOutputType];
 
 /** Server-side params, one variant per type. */
 export type OlvidOutputParams = { discussionId: bigint };

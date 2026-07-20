@@ -1,7 +1,7 @@
 <script setup lang="ts"></script>
 
 <template>
-  <div class="placeholder">
+  <div class="placeholder" style="align-items: center">
     <div class="placeholder-inner">
       <div class="ph-icon">🔔</div>
       <p>{{ $t("index.placeholder") }}</p>
@@ -28,7 +28,10 @@
   border-radius: var(--radius-xl);
 }
 .placeholder-inner {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
   color: var(--color-text-faint);
 }
 .ph-icon {

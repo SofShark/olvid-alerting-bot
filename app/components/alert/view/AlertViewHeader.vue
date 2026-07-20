@@ -57,7 +57,11 @@ const statusModel = computed({
           :can-activate="canActivate"
           @update:state="$emit('update:status')"
         />
-        <button type="button" class="btn btn-primary btn-sm" @click="$emit('edit')">
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          @click="$emit('edit')"
+        >
           {{ $t("editor.header.editAlert") }}
         </button>
 

@@ -177,16 +177,16 @@ const onToggleStatus = async () => {
     form.value.status === AlertStatus.Active
       ? AlertStatus.Inactive
       : AlertStatus.Active;
-    try {
-      const newStatus = await setStatus(form.value.id as number, next);
-      // Optimistic local update. Mutating the alert in-place in the shared
-      // alerts ref avoids re-evaluating the page's `alert` computed, which
-      // would otherwise cascade through fillFrom and flash the form.
-      form.value.status = newStatus;
-      const idx = alerts.value.findIndex((a) => a.id === form.value.id);
-      if (idx >= 0 && alerts.value[idx]) alerts.value[idx].status = newStatus;
-    } catch (error: any) {
-      console.error("Error toggling:", error);
+  try {
+    const newStatus = await setStatus(form.value.id as number, next);
+    // Optimistic local update. Mutating the alert in-place in the shared
+    // alerts ref avoids re-evaluating the page's `alert` computed, which
+    // would otherwise cascade through fillFrom and flash the form.
+    form.value.status = newStatus;
+    const idx = alerts.value.findIndex((a) => a.id === form.value.id);
+    if (idx >= 0 && alerts.value[idx]) alerts.value[idx].status = newStatus;
+  } catch (error: any) {
+    console.error("Error toggling:", error);
   }
 };
 
@@ -258,97 +258,88 @@ const onSaveBundle = async ({
 </script>
 
 <template>
-  
-      <div class="panel">
-        <ConfirmDialog
-          :open="confirmingDelete"
-          :title="$t('wizard.deleteModal.title')"
-          :message="$t('wizard.deleteModal.message')"
-          :confirm-label="$t('button.delete')"
-          :cancel-label="$t('button.cancel')"
-          variant="danger"
-          @confirm="onDelete"
-          @cancel="confirmingDelete = false"
-        />
+  <div class="panel">
+    <ConfirmDialog
+      :open="confirmingDelete"
+      :title="$t('wizard.deleteModal.title')"
+      :message="$t('wizard.deleteModal.message')"
+      :confirm-label="$t('button.delete')"
+      :cancel-label="$t('button.cancel')"
+      variant="danger"
+      @confirm="onDelete"
+      @cancel="confirmingDelete = false"
+    />
 
-        <DuplicateAlertDialog
-          :open="confirmingDuplicate"
-          :original-title="form.title"
-          :saving="saving"
-          @confirm="onDuplicate"
-          @cancel="confirmingDuplicate = false"
-        />
+    <DuplicateAlertDialog
+      :open="confirmingDuplicate"
+      :original-title="form.title"
+      :saving="saving"
+      @confirm="onDuplicate"
+      @cancel="confirmingDuplicate = false"
+    />
 
-        <BundleEditDialog
-          :open="editingBundleIndex !== null"
-          :bundle="editingBundle"
-          :index="editingBundleIndex"
-          :alert-context="form"
-          :alert-params="form.alertParams"
-          :input-source="form.input"
-          :available-discussions="availableDiscussions"
-          :discussions-loading="discussionsLoading"
-          :saving="saving"
-          @save="onSaveBundle"
-          @cancel="closeBundleEditor"
-        />
-      
-        <AlertViewHeader
-          :title="form.title"
-          :description="truncatedDescription"
-          :input-title="inputTitle"
-          :bundle-count="form.bundles.length"
-          :status="form.status"
-          :is-existing="isExisting"
-          :can-activate="canActivate"
-          :can-test="canTest"
-          @edit="openEditAlert"
-          @test="onTest"
-          @duplicate="confirmingDuplicate = true"
-          @delete="confirmingDelete = true"
-          @update:status="onToggleStatus"
-        />
+    <BundleEditDialog
+      :open="editingBundleIndex !== null"
+      :bundle="editingBundle"
+      :index="editingBundleIndex"
+      :alert-context="form"
+      :alert-params="form.alertParams"
+      :input-source="form.input"
+      :available-discussions="availableDiscussions"
+      :discussions-loading="discussionsLoading"
+      :saving="saving"
+      @save="onSaveBundle"
+      @cancel="closeBundleEditor"
+    />
 
-        <!-- One-time explainer + headless test runner driven imperatively
+    <AlertViewHeader
+      :title="form.title"
+      :description="truncatedDescription"
+      :input-title="inputTitle"
+      :bundle-count="form.bundles.length"
+      :status="form.status"
+      :is-existing="isExisting"
+      :can-activate="canActivate"
+      :can-test="canTest"
+      @edit="openEditAlert"
+      @test="onTest"
+      @duplicate="confirmingDuplicate = true"
+      @delete="confirmingDelete = true"
+      @update:status="onToggleStatus"
+    />
+
+    <!-- One-time explainer + headless test runner driven imperatively
              by the overflow menu. The runner owns the result modal; we
              only call its `run()`. Source-agnostic — the server picks
              polling vs monitoring behind the unified endpoint. -->
-        <AlertTestIntroDialog
-          :open="showingTestIntro"
-          @confirm="onTestIntroConfirm"
-          @cancel="showingTestIntro = false"
-        />
-        <AlertTestRunner
-          v-if="canTest"
-          ref="testRunnerRef"
-          :alert-id="form.id"
-        />
-        
-          <div class="panel-body">
-            <div class="split">
-              <div class="split-left">
-              <AlertInputSummary
-                :input-title="inputTitle"
-                :source="form.input"
-                :alert-params="form.alertParams"
-                :webhook-url="webhookUrl"
-              />
+    <AlertTestIntroDialog
+      :open="showingTestIntro"
+      @confirm="onTestIntroConfirm"
+      @cancel="showingTestIntro = false"
+    />
+    <AlertTestRunner v-if="canTest" ref="testRunnerRef" :alert-id="form.id" />
 
-              <AlertBundleTable
-                :bundles="form.bundles"
-                @edit-bundle="openBundleEditor"
-              />
+    <div class="panel-body">
+      <div class="split">
+        <div class="split-left">
+          <AlertInputSummary
+            :input-title="inputTitle"
+            :source="form.input"
+            :alert-params="form.alertParams"
+            :webhook-url="webhookUrl"
+          />
 
-            </div>
-            <div class="split-right">
-              <AlertLogs :alert-id="form.id" />
-            </div>
-          </div>
-
+          <AlertBundleTable
+            :bundles="form.bundles"
+            @edit-bundle="openBundleEditor"
+          />
         </div>
-        
+        <div class="split-right">
+          <AlertLogs :alert-id="form.id" />
+        </div>
       </div>
-   
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -371,5 +362,4 @@ const onSaveBundle = async ({
   height: 100%;
   overflow-y: auto;
 }
-
 </style>

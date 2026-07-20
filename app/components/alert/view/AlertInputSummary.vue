@@ -1,15 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
 import { Source } from "#shared/types/source";
-import {
-  TriggerMode,
-  type PollingParams,
-} from "#shared/types/polling";
+import { TriggerMode, type PollingParams } from "#shared/types/polling";
 import type { MonitorParams } from "#shared/types/monitor";
-import {
-  ConditionKind,
-  ConditionOperator,
-} from "#shared/types/condition";
+import { ConditionKind, ConditionOperator } from "#shared/types/condition";
 
 /*
   INPUT block in view mode. Renders the alert's source-side configuration:
@@ -42,7 +36,9 @@ const isWebhook = computed(() => props.source === Source.Webhook);
 // which lives outside the union in `props.source`, so we cast at read
 // time. Cheap: same shape either way.
 const pollingParams = computed(() =>
-  isPolling.value ? (props.alertParams as PollingParams | undefined) : undefined,
+  isPolling.value
+    ? (props.alertParams as PollingParams | undefined)
+    : undefined,
 );
 const monitorParams = computed(() =>
   isMonitoring.value
@@ -50,9 +46,8 @@ const monitorParams = computed(() =>
     : undefined,
 );
 
-
-const pollingInterval = computed(() =>
-  scheduleLabel(props.alertParams?.schedule), // todo 
+const pollingInterval = computed(
+  () => scheduleLabel(props.alertParams?.schedule), // todo
 );
 
 // Trigger-mode row only renders when it's meaningful — edge-native conditions
@@ -62,8 +57,7 @@ const triggerModeMeaningful = computed(() => {
   if (isPolling.value) {
     const c = pollingParams.value?.condition;
     return (
-      c?.kind === ConditionKind.Rule &&
-      c.operator !== ConditionOperator.Changed
+      c?.kind === ConditionKind.Rule && c.operator !== ConditionOperator.Changed
     );
   }
   // Monitoring: the trigger mode is always meaningful — matching is a
@@ -86,7 +80,6 @@ onMounted(() => {
     console.error("AlertInputSummary: Monitoring source but no MonitorParams");
   }
 });
-
 </script>
 
 <template>
@@ -147,7 +140,9 @@ onMounted(() => {
         </div>
         <div class="data-row">
           <dt class="data-label">{{ $t("monitorEditor.view.triggersOn") }}</dt>
-          <dd class="data-value">{{ statusMatchLabel(monitorParams?.match) }}</dd>
+          <dd class="data-value">
+            {{ statusMatchLabel(monitorParams?.match) }}
+          </dd>
         </div>
         <div v-if="triggerModeMeaningful" class="data-row">
           <dt class="data-label">Trigger</dt>

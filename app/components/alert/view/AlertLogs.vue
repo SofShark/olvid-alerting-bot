@@ -47,16 +47,17 @@ function stateLabel(status: string): string {
     <div v-if="!hasLogs && !isLoading" class="logs-empty">
       No polls recorded yet.
     </div>
-    <div v-else-if="!hasLogs && isLoading" class="logs-empty">
-      Loading…
-    </div>
+    <div v-else-if="!hasLogs && isLoading" class="logs-empty">Loading…</div>
 
     <ol v-else class="logs-list">
       <li
         v-for="log in logs"
         :key="log.id"
         class="log-row"
-        :class="[`log-${log.status}`, { 'is-expanded': expandedIds.has(log.id) }]"
+        :class="[
+          `log-${log.status}`,
+          { 'is-expanded': expandedIds.has(log.id) },
+        ]"
       >
         <button
           v-if="isExpandable(log)"
@@ -65,11 +66,15 @@ function stateLabel(status: string): string {
           :aria-expanded="expandedIds.has(log.id)"
           :title="expandedIds.has(log.id) ? 'Hide details' : 'Show details'"
           @click="toggleExpanded(log.id)"
-        >▸</button>
+        >
+          ▸
+        </button>
         <span v-else class="log-chevron-placeholder" aria-hidden="true" />
 
         <span class="log-dot" :class="`dot-${log.status}`" aria-hidden="true" />
-        <time class="log-time" :datetime="log.createdAt">{{ formatTimestamp(log.createdAt) }}</time>
+        <time class="log-time" :datetime="log.createdAt">{{
+          formatTimestamp(log.createdAt)
+        }}</time>
         <span class="log-state">{{ stateLabel(log.status) }}</span>
 
         <div
@@ -91,8 +96,6 @@ function stateLabel(status: string): string {
   flex-direction: column;
   min-height: 0;
 }
-
-
 
 .section-eyebrow {
   margin: 0 0 var(--space-3);
@@ -122,7 +125,7 @@ function stateLabel(status: string): string {
   margin: 0;
   padding: var(--space-2);
   display: flex;
-  flex-direction: column/*-reverse*/;
+  flex-direction: column /*-reverse*/;
   gap: 2px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-subtle);
@@ -131,7 +134,6 @@ function stateLabel(status: string): string {
   min-height: 0;
   flex: 1;
 }
-
 
 /* ── Row ────────────────────────────────────────────────────────────────── */
 .log-row {
@@ -162,7 +164,9 @@ function stateLabel(status: string): string {
   color: var(--color-text-faint);
   font-size: var(--text-base);
   line-height: 1;
-  transition: transform 0.15s ease, color 0.12s ease;
+  transition:
+    transform 0.15s ease,
+    color 0.12s ease;
 }
 .log-chevron:hover {
   color: var(--color-text-primary);
@@ -183,9 +187,15 @@ function stateLabel(status: string): string {
   border-radius: 50%;
   justify-self: center;
 }
-.dot-success { background: var(--color-success, #22c55e); }
-.dot-warning { background: var(--color-warning, #f59e0b); }
-.dot-error   { background: var(--color-danger,  #ef4444); }
+.dot-success {
+  background: var(--color-success, #22c55e);
+}
+.dot-warning {
+  background: var(--color-warning, #f59e0b);
+}
+.dot-error {
+  background: var(--color-danger, #ef4444);
+}
 
 /* ── Timestamp + state ──────────────────────────────────────────────────── */
 .log-time {
@@ -202,9 +212,15 @@ function stateLabel(status: string): string {
   text-transform: uppercase;
   justify-self: end;
 }
-.log-success .log-state { color: var(--color-text-faint); }
-.log-warning .log-state { color: var(--color-warning-text, #b45309); }
-.log-error   .log-state { color: var(--color-danger-text, #b91c1c); }
+.log-success .log-state {
+  color: var(--color-text-faint);
+}
+.log-warning .log-state {
+  color: var(--color-warning-text, #b45309);
+}
+.log-error .log-state {
+  color: var(--color-danger-text, #b91c1c);
+}
 
 /* ── Expanded detail (error message) ────────────────────────────────────── */
 .log-details {
@@ -219,8 +235,8 @@ function stateLabel(status: string): string {
 .log-warning .log-details {
   border-left-color: var(--color-warning, #f59e0b);
 }
-.log-error   .log-details {
-  border-left-color: var(--color-danger,  #ef4444);
+.log-error .log-details {
+  border-left-color: var(--color-danger, #ef4444);
 }
 .log-error-pre,
 .log-error {
@@ -232,6 +248,4 @@ function stateLabel(status: string): string {
   word-break: break-word;
   line-height: 1.4;
 }
-
-
 </style>

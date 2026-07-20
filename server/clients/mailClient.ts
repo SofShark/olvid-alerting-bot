@@ -20,10 +20,7 @@
 // effect on whether the alert stays armed.
 
 import MailPace from "@mailpace/mailpace.js";
-import {
-  olvidMarkupToHtml,
-  olvidMarkupToPlainText,
-} from "#shared/olvidMarkup";
+import { olvidMarkupToHtml, olvidMarkupToPlainText } from "#shared/olvidMarkup";
 
 const PASSWORD = process.env.SMTP_PASSWORD;
 const FROM = process.env.SMTP_FROM;

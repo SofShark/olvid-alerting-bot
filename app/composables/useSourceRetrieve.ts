@@ -55,8 +55,7 @@ export const useSourceRetrieve = (
         body: { url, format },
       });
       if (!res.ok) {
-        error.value =
-          res.error ?? t("conditionEditor.errors.failedToRetrieve");
+        error.value = res.error ?? t("conditionEditor.errors.failedToRetrieve");
         parsed.value = null;
         raw.value = res.raw ?? "";
         onPayload?.(null);

@@ -15,58 +15,24 @@ defineEmits<{ (e: "update:modelValue", v: ConditionKind): void }>();
 </script>
 
 <template>
-  <div class="kind-picker">
-    <label class="kind" :class="{ active: modelValue === ConditionKind.None }">
-      <input
-        type="radio"
-        :checked="modelValue === ConditionKind.None"
-        @change="$emit('update:modelValue', ConditionKind.None)"
-      >
+  <div class="btn-pill-group">
+    <button
+      type="button"
+      class="btn-pill"
+      :class="{ active: modelValue === ConditionKind.None }"
+      @click="$emit('update:modelValue', ConditionKind.None)"
+    >
+      <input type="radio" :checked="modelValue === ConditionKind.None" />
       <span>{{ $t("conditionEditor.mode.none") }}</span>
-    </label>
-    <label class="kind" :class="{ active: modelValue === ConditionKind.Rule }">
-      <input
-        type="radio"
-        :checked="modelValue === ConditionKind.Rule"
-        @change="$emit('update:modelValue', ConditionKind.Rule)"
-      >
+    </button>
+    <button
+      type="button"
+      class="btn-pill"
+      :class="{ active: modelValue === ConditionKind.Rule }"
+      @click="$emit('update:modelValue', ConditionKind.Rule)"
+    >
+      <input type="radio" :checked="modelValue === ConditionKind.Rule" />
       <span>{{ $t("conditionEditor.mode.rule") }}</span>
-    </label>
+    </button>
   </div>
 </template>
-
-<style scoped>
-.kind-picker {
-  display: flex;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-.kind {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 7px var(--space-4);
-  background: var(--color-border-subtle);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  font-size: var(--text-md);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition:
-    background-color 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-}
-.kind:hover {
-  border-color: var(--color-border-strong);
-}
-.kind.active {
-  background: var(--color-accent-soft);
-  border-color: var(--color-accent-border);
-  color: var(--color-text-primary);
-}
-.kind input[type="radio"] {
-  accent-color: var(--color-accent);
-  cursor: pointer;
-}
-</style>

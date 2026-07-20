@@ -33,7 +33,7 @@ const toggleStatus = () => {
       :disabled="!canActivate"
       @click="toggleStatus"
     >
-      <span class="knob"/>
+      <span class="knob" />
     </button>
   </div>
 </template>

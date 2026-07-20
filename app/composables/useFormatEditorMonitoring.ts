@@ -1,6 +1,6 @@
 import { ref, computed } from "vue";
 import { getErrorMessage } from "~/utils/errors";
-import type {MonitorProbePayload} from "#shared/types/monitor";
+import type { MonitorProbePayload } from "#shared/types/monitor";
 /**
  * Monitoring-side state for FormatEditor: fetches a single probe of the
  * monitor's URL and exposes it as a plain object so JsonTreeNodeExp can
@@ -19,7 +19,7 @@ import type {MonitorProbePayload} from "#shared/types/monitor";
  * No template library for monitoring (no reference payloads exist), so
  * this composable exposes NO `loadLibraryPayload` counterpart — the
  * container hides the Load Templates button on the monitoring branch.
- */ 
+ */
 
 export const useFormatEditorMonitoring = (
   getAlertParams: () => Record<string, any> | null | undefined,
@@ -47,8 +47,7 @@ export const useFormatEditorMonitoring = (
     monitorError.value = "";
     try {
       const res = await $fetch<
-        | { ok: true; probe: MonitorProbePayload }
-        | { ok: false; error: string }
+        { ok: true; probe: MonitorProbePayload } | { ok: false; error: string }
       >("/api/monitor/probe", { method: "POST", body: { url } });
       if (!res.ok) {
         monitorError.value =

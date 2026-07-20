@@ -27,7 +27,6 @@
   gap: var(--space-3);
 }
 
-
 .code-title {
   color: #858585;
   font-family: var(--font-mono);
@@ -77,10 +76,18 @@
   resize: vertical;
   box-sizing: border-box;
 }
-.hbs-color  { color: #dcdcaa; min-height: 150px; }
-.json-color { color: #9cdcfe; min-height: 250px; }
+.hbs-color {
+  color: #dcdcaa;
+  min-height: 150px;
+}
+.json-color {
+  color: #9cdcfe;
+  min-height: 250px;
+}
 
-.editor-textarea::-webkit-scrollbar { width: 8px; }
+.editor-textarea::-webkit-scrollbar {
+  width: 8px;
+}
 .editor-textarea::-webkit-scrollbar-thumb {
   background: #4b4b4b;
   border-radius: var(--radius-sm);
@@ -94,7 +101,9 @@
   min-height: 250px;
   max-height: 360px;
 }
-.tree-panel::-webkit-scrollbar { width: 8px; }
+.tree-panel::-webkit-scrollbar {
+  width: 8px;
+}
 .tree-panel::-webkit-scrollbar-thumb {
   background: #4b4b4b;
   border-radius: var(--radius-sm);
@@ -133,7 +142,9 @@
   padding: 3px var(--space-4);
   font-size: var(--text-md);
   cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 .toggle-btn:hover {
   background: #4a4a4a;
@@ -156,7 +167,9 @@
   border-top: 5px solid currentColor;
   margin-top: 1px;
   opacity: 0.7;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
 }
 .toggle-btn-wide.is-open {
   background: #4a4a4a;

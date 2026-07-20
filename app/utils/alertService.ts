@@ -48,4 +48,3 @@ export const alertService = {
     return await $fetch("/api/discussions");
   },
 };
- 

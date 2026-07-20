@@ -52,7 +52,10 @@ export function buildOutputsCreate(
     if (type === BundleOutputType.Olvid) {
       const raw = (o as any).params?.discussionId;
       if (raw === null || raw === undefined || raw === "") continue;
-      rows.push({ type: BundleOutputType.Olvid, params: { discussionId: String(raw) } });
+      rows.push({
+        type: BundleOutputType.Olvid,
+        params: { discussionId: String(raw) },
+      });
     } else if (type === BundleOutputType.Mail) {
       const raw = (o as any).params?.address;
       if (typeof raw !== "string") continue;
@@ -84,7 +87,10 @@ export function serializeOutput(output: any): BundleFrontendOutput {
   // Unknown type — pass through opaquely. Cast: the caller has narrowed
   // via the DB `type` string; new future channels land here until a
   // dedicated branch is added above.
-  return { type: output.type, params: output.params ?? {} } as BundleFrontendOutput;
+  return {
+    type: output.type,
+    params: output.params ?? {},
+  } as BundleFrontendOutput;
 }
 
 // ── Repository ────────────────────────────────────────────────────────────
@@ -100,7 +106,10 @@ export const alertOutputRepository = {
     bundleId: number,
     outputs: unknown,
   ): Promise<void> {
-    const rows = buildOutputsCreate(outputs).map((row) => ({ ...row, bundleId }));
+    const rows = buildOutputsCreate(outputs).map((row) => ({
+      ...row,
+      bundleId,
+    }));
     if (rows.length === 0) return;
     await tx.bundleOutput.createMany({ data: rows });
   },

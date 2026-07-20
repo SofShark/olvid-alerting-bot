@@ -33,7 +33,7 @@ defineProps<{
   max-width: 85%;
   width: fit-content;
   padding: var(--space-4) var(--space-6);
-  border-radius: 0 16px 16px 16px;
+  border-radius: 16px 16px 16px 0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
   margin-bottom: var(--space-6);
   border: 1px solid var(--color-border-subtle);

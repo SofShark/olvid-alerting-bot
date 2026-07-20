@@ -63,7 +63,9 @@ const parsedJson = computed(() => {
 <template>
   <div class="code-block">
     <div class="code-header">
-      <span class="dot dot-red" /><span class="dot dot-yellow" /><span class="dot dot-green" />
+      <span class="dot dot-red" /><span class="dot dot-yellow" /><span
+        class="dot dot-green"
+      />
       <span class="code-title">
         <template v-if="isPolling">
           {{
@@ -72,9 +74,7 @@ const parsedJson = computed(() => {
             })
           }}
         </template>
-        <template v-else-if="isMonitoring">
-          monitor-probe.json
-        </template>
+        <template v-else-if="isMonitoring"> monitor-probe.json </template>
         <template v-else>payload.json (Test Data)</template>
       </span>
 
@@ -88,7 +88,9 @@ const parsedJson = computed(() => {
         :disabled="pollingLoading"
         :title="$t('formatEditor.sourceRefreshTitle')"
         @click="$emit('retrieve')"
-      >{{ pollingLoading ? "…" : "⟳" }}</button>
+      >
+        {{ pollingLoading ? "…" : "⟳" }}
+      </button>
 
       <button
         v-else-if="isMonitoring"
@@ -97,7 +99,9 @@ const parsedJson = computed(() => {
         :disabled="monitorLoading"
         :title="$t('formatEditor.monitorProbeTitle')"
         @click="$emit('retrieve-monitor')"
-      >{{ monitorLoading ? "…" : "⟳" }}</button>
+      >
+        {{ monitorLoading ? "…" : "⟳" }}
+      </button>
 
       <PayloadToolbar
         v-else
@@ -114,7 +118,9 @@ const parsedJson = computed(() => {
       <div v-if="pollingLoading" class="payload-notice">
         {{ $t("formatEditor.sourceLoadingPolling") }}
       </div>
-      <div v-else-if="pollingError" class="payload-empty">⚠ {{ pollingError }}</div>
+      <div v-else-if="pollingError" class="payload-empty">
+        ⚠ {{ pollingError }}
+      </div>
       <div v-else-if="rootEntries.length === 0" class="payload-empty">
         {{ $t("formatEditor.sourceEmptyPolling") }}
       </div>
@@ -188,7 +194,12 @@ const parsedJson = computed(() => {
         :value="jsonPayload"
         class="editor-textarea json-color"
         spellcheck="false"
-        @input="$emit('update:jsonPayload', ($event.target as HTMLTextAreaElement).value)"
+        @input="
+          $emit(
+            'update:jsonPayload',
+            ($event.target as HTMLTextAreaElement).value,
+          )
+        "
       />
     </template>
   </div>

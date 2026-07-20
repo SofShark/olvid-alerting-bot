@@ -27,11 +27,11 @@ import { blankCondition } from "#shared/condition/migrate";
  * Polling(url+condition) → Monitoring → Polling brings the URL and
  * condition back verbatim, right up until the user hits Save.
  *
- * The empty string represents the blank-form state (no source picked yet).
+ * `undefined` represents the blank-form state (no source picked yet).
  */
 export const useSourceBinding = (
   form: Ref<AlertModel>,
-): WritableComputedRef<string> => {
+): WritableComputedRef<Source | undefined> => {
   // Wizard-lifetime stash. Keyed by Source. Untouched by save (a save is
   // a page transition; the composable is discarded with the wizard).
   const stash: Partial<Record<Source, AlertParams | undefined>> = {};
@@ -40,19 +40,19 @@ export const useSourceBinding = (
     get: () => form.value.input,
     set: (src) => {
       // Snapshot outgoing params under the OLD source before overwriting.
-      const previousSrc = form.value.input as Source | "";
+      const previousSrc = form.value.input;
       if (previousSrc && previousSrc !== src) {
         stash[previousSrc] = form.value.alertParams;
       }
 
       if (!src) {
-        form.value.input = "";
+        form.value.input = undefined;
         form.value.alertParams = undefined;
         return;
       }
 
-      form.value.input = src as Source;
-      const restored = stash[src as Source];
+      form.value.input = src;
+      const restored = stash[src];
 
       if (src === Source.Polling) {
         // Restored takes precedence over the (now-stale) current params.
@@ -99,7 +99,7 @@ export const useSourceBinding = (
             : {}),
         };
       } else {
-        // Webhook or unknown — no params. Restored value ignored 
+        // Webhook or unknown — no params. Restored value ignored
         // (Webhook has none).
         form.value.alertParams = undefined;
       }

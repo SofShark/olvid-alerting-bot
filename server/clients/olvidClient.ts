@@ -12,8 +12,7 @@
 
 import { OlvidClient, datatypes } from "@olvid/bot-node";
 type MessageId = datatypes.MessageId;
-const client = new OlvidClient()
-
+const client = new OlvidClient();
 
 export const olvidClient = {
   async sendMessage(discussions: bigint[], message: string) {
@@ -44,12 +43,15 @@ export const olvidClient = {
       console.log(`✅ [Olvid] Message edited:`, messageId.id);
       return true;
     } catch (error: any) {
-      console.error("❌ [Olvid] An error occurred while editing a message:", error);
+      console.error(
+        "❌ [Olvid] An error occurred while editing a message:",
+        error,
+      );
       return false;
     }
   },
 
-  async getDiscussions() : Promise<datatypes.Discussion[]> {
+  async getDiscussions(): Promise<datatypes.Discussion[]> {
     try {
       const discussions = client.discussionList();
       const arrayDiscussions: any[] = [];
@@ -86,5 +88,4 @@ export const olvidClient = {
       return null;
     }
   },
-  
 };

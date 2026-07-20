@@ -20,7 +20,11 @@
 // to be recovery-aware.
 
 import { AlertStatus } from "#shared/types/alert";
-import { BundleOutputType, MailOutputParams, OlvidOutputParams } from "#shared/types/bundleOutput";
+import {
+  BundleOutputType,
+  MailOutputParams,
+  OlvidOutputParams,
+} from "#shared/types/bundleOutput";
 
 export type FireKind = "alert" | "recovery";
 
@@ -66,7 +70,10 @@ export const notifierService = {
     payload: any,
     kind: FireKind = "alert",
   ) {
-    const outputs = (bundle.outputs ?? []) as Array<{ type: string; params: any }>;
+    const outputs = (bundle.outputs ?? []) as Array<{
+      type: string;
+      params: any;
+    }>;
 
     if (outputs.length === 0) {
       console.warn(

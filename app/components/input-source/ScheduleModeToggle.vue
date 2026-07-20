@@ -26,7 +26,9 @@ const updateSlider = async () => {
   await nextTick(); // Wait for DOM/class changes to apply
   if (!containerRef.value) return;
 
-  const activeBtn = containerRef.value.querySelector(".mode-btn.is-active") as HTMLElement;
+  const activeBtn = containerRef.value.querySelector(
+    ".mode-btn.is-active",
+  ) as HTMLElement;
   if (activeBtn) {
     sliderStyle.value = {
       width: `${activeBtn.offsetWidth}px`,
@@ -56,12 +58,8 @@ onUnmounted(() => {
 
 <template>
   <div ref="containerRef" class="mode-toggle" role="tablist">
-    <div 
-      class="slider-bg" 
-      :style="sliderStyle" 
-      aria-hidden="true" 
-    />
-    
+    <div class="slider-bg" :style="sliderStyle" aria-hidden="true" />
+
     <button
       type="button"
       role="tab"
@@ -69,7 +67,9 @@ onUnmounted(() => {
       :class="{ 'is-active': modelValue === 'basic' }"
       :aria-selected="modelValue === 'basic'"
       @click="$emit('update:modelValue', 'basic')"
-    >{{ $t("editor.schedule.mode.basic") }}</button>
+    >
+      {{ $t("editor.schedule.mode.basic") }}
+    </button>
     <button
       type="button"
       role="tab"
@@ -77,7 +77,9 @@ onUnmounted(() => {
       :class="{ 'is-active': modelValue === 'advanced' }"
       :aria-selected="modelValue === 'advanced'"
       @click="$emit('update:modelValue', 'advanced')"
-    >{{ $t("editor.schedule.mode.advanced") }}</button>
+    >
+      {{ $t("editor.schedule.mode.advanced") }}
+    </button>
   </div>
 </template>
 
@@ -101,8 +103,8 @@ onUnmounted(() => {
   background: var(--color-accent);
   border-radius: 9999px;
   /* Animates both position and width simultaneously for a fluid "stretching" effect */
-  transition: 
-    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+  transition:
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
     width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 0;
 }

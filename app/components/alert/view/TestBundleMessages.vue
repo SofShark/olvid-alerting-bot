@@ -32,11 +32,7 @@ const discussionCountLabel = (n: number) =>
       <span class="result-count">({{ messages.length }})</span>
     </h5>
     <div class="bundle-messages">
-      <div
-        v-for="bm in messages"
-        :key="bm.index"
-        class="bundle-message"
-      >
+      <div v-for="bm in messages" :key="bm.index" class="bundle-message">
         <div class="bundle-message-head">
           <span class="bundle-tag">{{
             $t("editor.view.bundleTag", { n: bm.index + 1 })

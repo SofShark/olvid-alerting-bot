@@ -26,5 +26,11 @@ logs
 !.env.example
 
 /app/generated/prisma
+/generated/prisma
 
-/app/generated/prisma
+# SQLite dev DB (created on first `prisma db push`)
+dev.db
+dev.db-journal
+dev.db-wal
+dev.db-shm
+prisma/dev.db*

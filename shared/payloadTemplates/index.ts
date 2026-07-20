@@ -32,8 +32,7 @@ export type WebhookTemplateId =
   | "github-issue"
   | "github-workflow-run"
   | "grafana-alert"
-  | "sentry-issue"
-
+  | "sentry-issue";
 
 export type WebhookTemplate = {
   id: WebhookTemplateId;

@@ -30,7 +30,7 @@ const selectedId = computed(() => {
               src="../assets/olvid_name_logo.png"
               alt="Olvid"
               class="olvid-logo-img"
-            >
+            />
             {{ $t("topNav.title") }}
           </span>
         </div>
@@ -77,8 +77,8 @@ const selectedId = computed(() => {
 
 .top-nav {
   background-color: var(--color-bg-nav);
-  border-bottom: 1px solid var(--color-border-default);
-  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border-subltle);
+  padding: 10px 0;
   flex-shrink: 0;
   z-index: 100;
 }
@@ -105,7 +105,7 @@ const selectedId = computed(() => {
 }
 .olvid-logo-img {
   margin-left: 15px;
-  width: 150px;
+  width: 120px;
   height: auto;
   object-fit: contain;
 }

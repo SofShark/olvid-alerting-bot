@@ -28,7 +28,7 @@ const form = defineModel<AlertModel>({ required: true });
 // here (via useSourceBinding), so this is safe.
 const params = computed<MonitorParams>(
   () => form.value.alertParams as MonitorParams,
-); 
+);
 
 // ── Match kind ────────────────────────────────────────────────────────────
 
@@ -39,7 +39,9 @@ const KINDS: Array<{ value: MatchKind; labelKey: string }> = [
   { value: "not-ok", labelKey: "monitorEditor.match.kind.notOk" },
 ];
 
-const currentKind = computed<MatchKind>(() => params.value.match?.kind ?? "not-ok");
+const currentKind = computed<MatchKind>(
+  () => params.value.match?.kind ?? "not-ok",
+);
 
 // Switching kind: preserve fields where they still make sense; otherwise
 // seed a sensible default so the match is always well-formed.
@@ -156,21 +158,22 @@ const summaryLabel = computed(() => {
       </div>
       <div class="wcard-body">
         <!-- Kind radios -->
-        <div class="kind-row">
-          <label
+        <div class="btn-pill-group">
+          <button
+            type="button"
             v-for="k in KINDS"
             :key="k.value"
-            class="kind-option"
+            class="btn-pill"
             :class="{ active: currentKind === k.value }"
+            @click="pickKind(k.value)"
           >
             <input
               type="radio"
               :value="k.value"
               :checked="currentKind === k.value"
-              @change="pickKind(k.value)"
-            >
+            />
             <span>{{ $t(k.labelKey) }}</span>
-          </label>
+          </button>
         </div>
 
         <!-- Codes editor -->
@@ -183,7 +186,9 @@ const summaryLabel = computed(() => {
                 class="chip-x"
                 :title="`Remove ${c}`"
                 @click="removeCode(c)"
-              >✕</button>
+              >
+                ✕
+              </button>
             </span>
             <span v-if="codes.length === 0" class="chips-empty">
               {{ $t("monitorEditor.match.codesEmpty") }}
@@ -200,7 +205,7 @@ const summaryLabel = computed(() => {
               class="field-input"
               :class="{ 'has-error': codesError }"
               @keydown.enter.prevent="addCode"
-            >
+            />
             <button
               type="button"
               class="btn btn-primary btn-sm"
@@ -235,7 +240,6 @@ const summaryLabel = computed(() => {
         <VerdictStrip :ok="isValid" :label="summaryLabel" />
       </div>
     </div>
-
   </div>
 </template>
 
@@ -244,42 +248,6 @@ const summaryLabel = computed(() => {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
-}
-
-/* Card chrome delegated to the shared .wcard classes. */
-
-/* ── Kind radios rendered as pill buttons ─────────────────────────── */
-.kind-row {
-  display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-.kind-option {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  background: transparent;
-  transition:
-    background-color 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-}
-.kind-option input {
-  margin: 0;
-}
-.kind-option:hover {
-  background: var(--color-bg-card-soft);
-}
-.kind-option.active {
-  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
-  border-color: var(--color-accent);
-  color: var(--color-text-primary);
 }
 
 /* ── Body sections per kind ────────────────────────────────────────── */

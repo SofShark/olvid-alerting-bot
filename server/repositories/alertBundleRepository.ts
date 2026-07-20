@@ -10,7 +10,11 @@
 //   · Read serialization (serializeBundle) is exported so alertRepository
 //     can compose the aggregate response without knowing about outputs.
 
-import { alertOutputRepository, serializeOutput, type PrismaTx } from "./alertOutputRepository";
+import {
+  alertOutputRepository,
+  serializeOutput,
+  type PrismaTx,
+} from "./alertOutputRepository";
 
 // ── Shape helpers ────────────────────────────────────────────────────────
 

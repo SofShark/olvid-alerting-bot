@@ -25,56 +25,63 @@ const isWebhook = computed(() => form.value.input === Source.Webhook);
 
 // Localised label for the source hint line (matches what the selector shows).
 const { t } = useI18n();
-const inputSourceHint = computed(()=>{
-  return t("wizard.communicationHint") + t("wizard.communicationHintSuffix")
-})
+const inputSourceHint = computed(() => {
+  return t("wizard.communicationHint") + t("wizard.communicationHintSuffix");
+});
 const sourceLabel = computed(() => {
   if (!form.value.input) return "";
   const key = `inputSourceSelector.labels.${form.value.input}`;
   const translated = t(key);
   return translated === key ? form.value.input : translated;
 });
+
+function setAlertParams(value: PollingParams | MonitorParams) {
+  form.value.alertParams = value;
+}
 </script>
 
 <template>
-  <div>
-    <!-- Title / description are the "what is this alert?" fields -->
-    <div class="wcard-body">
-    <div class="wcard-row">
-      <label class="wcard-label">
-        {{ $t("wizard.fieldLabels.title") }}
-        <span class="field-required">*</span>
-        <HelpTooltip message="Help Message"/>
-      </label>
-      <input
-        v-model="form.title"
-        type="text"
-        class="field-input"
-        :placeholder="$t('common.untitledAlert')"
-      >
-    </div>
+  <div class="step-general">
+    <!-- Title / description / source are the "what is this alert?" fields -->
+    <div class="wcard">
+      <div class="wcard-head">
+        {{ $t("wizard.fieldLabels.generalInfo") }}
+      </div>
+      <div class="wcard-body">
+        <div class="wcard-row">
+          <label class="wcard-label">
+            {{ $t("wizard.fieldLabels.title") }}
+            <span class="field-required">*</span>
+          </label>
+          <input
+            v-model="form.title"
+            type="text"
+            class="field-input"
+            :placeholder="$t('common.untitledAlert')"
+          />
+        </div>
 
-    <div class="wcard-row">
-      <label class="wcard-label">
-        {{ $t("wizard.fieldLabels.description") }}
-      </label>
-      <input
-        v-model="form.description"
-        type="text"
-        class="field-input"
-        :placeholder="$t('common.descriptionPlaceholder')"
-      >
-    </div>
+        <div class="wcard-row">
+          <label class="wcard-label">
+            {{ $t("wizard.fieldLabels.description") }}
+          </label>
+          <input
+            v-model="form.description"
+            type="text"
+            class="field-input"
+            :placeholder="$t('common.descriptionPlaceholder')"
+          />
+        </div>
 
-    <div class="wcard-row">
-      <label class="wcard-label">
-        {{ $t("wizard.fieldLabels.inputSource") }}
-        <span class="field-required">*</span>
-        <HelpTooltip :message="inputSourceHint"/>
-      </label>
-      <InputSourceSelector v-model="selectedSource" />
-      
-      
+        <div class="wcard-row">
+          <label class="wcard-label">
+            {{ $t("wizard.fieldLabels.inputSource") }}
+            <span class="field-required">*</span>
+            <HelpTooltip :message="inputSourceHint" />
+          </label>
+          <InputSourceSelector v-model="selectedSource" />
+        </div>
+      </div>
     </div>
 
     <!-- Polling sources expose URL / format / timing inline. -->
@@ -82,16 +89,15 @@ const sourceLabel = computed(() => {
       <TriggerParamsEditor
         :trigger-type="form.input"
         :model-value="form.alertParams ?? {}"
-        @update:model-value="form.alertParams = $event as PollingParams"
+        @update:model-value="setAlertParams($event as PollingParams)"
       />
     </div>
 
     <!-- Monitoring sources expose URL + timing only (no body parsing). -->
     <div v-if="isMonitoring" class="field">
-      
       <MonitorParamsEditor
         :model-value="(form.alertParams ?? {}) as Partial<MonitorParams>"
-        @update:model-value="form.alertParams = $event as MonitorParams"
+        @update:model-value="setAlertParams($event as MonitorParams)"
       />
     </div>
 
@@ -109,10 +115,14 @@ const sourceLabel = computed(() => {
       </div>
     </template>
   </div>
-  </div>
 </template>
 
 <style scoped>
+.step-general {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
 .field-hint strong {
   color: var(--color-accent-text);
   font-weight: 600;

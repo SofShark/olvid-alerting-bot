@@ -6,9 +6,9 @@ export default defineNuxtConfig({
   typescript: {
     tsConfig: {
       compilerOptions: {
-        useUnknownInCatchVariables: true
-      }
-    }
+        useUnknownInCatchVariables: true,
+      },
+    },
   },
 
   compatibilityDate: "2025-07-15",
@@ -21,7 +21,7 @@ export default defineNuxtConfig({
   // Global stylesheet — design tokens + shared component classes. Loaded
   // before any component-scoped <style>, so scoped rules can still override.
   css: ["~/assets/css/main.css"],
-  
+
   // Components live in domain subfolders for organization but keep flat,
   // unprefixed names in templates (<Stepper />, <BundleCard />, <AlertEditor />…).
   // `pathPrefix: false` makes Nuxt skip the directory name when synthesizing
@@ -65,15 +65,14 @@ export default defineNuxtConfig({
         "server/services/testers",
       ],
     },
-    
-    //experimental: { tasks: true }, // Internal heartbeat that conditionally triggers the activation of scheduled alerts
-    //scheduledTasks: {
-      //"* * * * *": ["polling:heartbeat"],
-    //},
 
+    experimental: { tasks: true }, // Internal heartbeat that conditionally triggers the activation of scheduled alerts
+    scheduledTasks: {
+      "* * * * *": ["polling:heartbeat"],
+    },
   },
 
-  modules: ['@nuxt/ui', "@nuxtjs/i18n", "@nuxt/eslint"],
+  modules: ["@nuxt/ui", "@nuxtjs/i18n", "@nuxt/eslint"],
   i18n: {
     bundle: {
       optimizeTranslationDirective: false,

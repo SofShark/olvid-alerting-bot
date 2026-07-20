@@ -38,20 +38,30 @@ const pathToHandlebars = (path: string): string =>
 <template>
   <div class="code-block">
     <div class="code-header">
-      <span class="dot dot-red" /><span class="dot dot-yellow" /><span class="dot dot-green" />
+      <span class="dot dot-red" /><span class="dot dot-yellow" /><span
+        class="dot dot-green"
+      />
       <span class="code-title">{{ $t("formatEditor.scriptTitle") }}</span>
     </div>
 
     <div v-if="isPolling && watchedPaths.length > 0" class="shortcuts">
-      <span class="shortcuts-label">{{ $t("formatEditor.watchedPathsLabel") }}</span>
+      <span class="shortcuts-label">{{
+        $t("formatEditor.watchedPathsLabel")
+      }}</span>
       <button
         v-for="p in watchedPaths"
         :key="p"
         type="button"
         class="shortcut-chip"
-        :title="$t('formatEditor.watchedPathsInsertTitle', { token: `{{${pathToHandlebars(p)}}}` })"
+        :title="
+          $t('formatEditor.watchedPathsInsertTitle', {
+            token: `{{${pathToHandlebars(p)}}}`,
+          })
+        "
         @click="$emit('select-path', p)"
-      >{{ p }}</button>
+      >
+        {{ p }}
+      </button>
     </div>
 
     <textarea
@@ -59,7 +69,9 @@ const pathToHandlebars = (path: string): string =>
       :value="modelValue"
       class="editor-textarea hbs-color"
       spellcheck="false"
-      @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
+      @input="
+        $emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)
+      "
     />
   </div>
 </template>
@@ -92,7 +104,9 @@ const pathToHandlebars = (path: string): string =>
   padding: 3px var(--space-3);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 .shortcut-chip:hover {
   background: #1e3a8a;

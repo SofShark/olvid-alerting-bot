@@ -37,6 +37,9 @@ const {
   () => props.parsed,
   (v) => emit("add-path", v),
 );
+
+const { t } = useI18n();
+const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
 </script>
 
 <template>
@@ -48,32 +51,16 @@ const {
         <span class="rule-label">
           {{ $t("conditionEditor.watchedFields.label") }}
           <span class="rule-count">({{ effectiveCount }})</span>
+          <HelpTooltip :message="watchedFieldsHint" />
         </span>
         <!-- Hint has two code-styled snippets — kept as one translatable
              string via i18n-t children. -->
-        <p class="rule-hint">
-          <i18n-t keypath="conditionEditor.watchedFields.hint" tag="span">
-            <template #dotdot
-              ><code>{{
-                $t("conditionEditor.watchedFields.hintCode")
-              }}</code></template
-            >
-            <template #example
-              ><code>{{
-                $t("conditionEditor.watchedFields.hintExample")
-              }}</code></template
-            >
-          </i18n-t>
-        </p>
+        <p class="rule-hint" />
       </div>
 
       <div class="watched-actions">
-        <button
-          type="button"
-          class="btn btn-ghost btn-sm"
-          @click="startAdding"
-        >
-          <FontAwesomeIcon :icon="['fas', 'pencil']" class="btn-icon" />
+        <button type="button" class="btn btn-ghost btn-sm" @click="startAdding">
+          <FontAwesomeIcon :icon="['fas', 'pencil']" class="icon" />
           {{ $t("conditionEditor.watchedFields.typePath") }}
         </button>
         <button
@@ -81,7 +68,7 @@ const {
           class="btn btn-ghost btn-sm"
           @click="emit('open-picker')"
         >
-          <FontAwesomeIcon :icon="['fas', 'diagram-project']" class="btn-icon" />
+          <FontAwesomeIcon :icon="['fas', 'diagram-project']" class="icon" />
           {{ $t("conditionEditor.watchedFields.pickFromSource") }}
         </button>
       </div>
@@ -112,7 +99,7 @@ const {
           :placeholder="$t('conditionEditor.watchedFields.inputPlaceholder')"
           @keydown.enter.prevent="commitAdd"
           @keydown.escape="cancelAdd"
-        >
+        />
         <button
           type="button"
           class="chip-input-done"
@@ -166,9 +153,8 @@ const {
   align-items: center;
   flex-shrink: 0;
 }
-.btn-icon {
+.icon {
   font-size: var(--text-sm);
-  opacity: 0.85;
 }
 
 .rule-label {
@@ -227,7 +213,9 @@ const {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  transition: border-color 0.15s, background-color 0.15s;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
 }
 .chip:hover {
   border-color: var(--color-border-strong);
@@ -247,7 +235,9 @@ const {
   padding: 0 2px;
   cursor: pointer;
   opacity: 0.5;
-  transition: opacity 0.15s, color 0.15s;
+  transition:
+    opacity 0.15s,
+    color 0.15s;
 }
 .chip-x:hover {
   color: var(--color-danger);
@@ -291,7 +281,9 @@ const {
   color: var(--color-text-muted);
   padding: 0 var(--space-2);
   font-size: var(--text-md);
-  transition: background-color 0.12s, color 0.12s;
+  transition:
+    background-color 0.12s,
+    color 0.12s;
 }
 .chip-input-done:hover {
   background: var(--color-accent-soft);

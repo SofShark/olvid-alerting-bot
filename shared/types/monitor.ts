@@ -48,8 +48,6 @@ export type MonitorParams = {
   _lastPolledAt?: number;
 };
 
-
-
 /** Shape handed to the notifier and returned by /api/monitor/probe.
  *  Kept flat so Handlebars templates can reference `{{status}}`,
  *  `{{body}}`, `{{url}}`, `{{latencyMs}}` without ceremony. */

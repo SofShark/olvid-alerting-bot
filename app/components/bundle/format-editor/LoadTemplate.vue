@@ -82,7 +82,9 @@ const positionStyle = computed<Record<string, string>>(() => {
   overflow: hidden;
   font-family: inherit;
 }
-.template-section { padding: 4px 0 6px; }
+.template-section {
+  padding: 4px 0 6px;
+}
 .template-section + .template-section {
   border-top: 1px solid #2c2c30;
   margin-top: 2px;
@@ -124,7 +126,10 @@ const positionStyle = computed<Record<string, string>>(() => {
   color: #fff;
   border-left-color: var(--color-accent, #3b82f6);
 }
-.template-item-label { flex: 1; min-width: 0; }
+.template-item-label {
+  flex: 1;
+  min-width: 0;
+}
 
 .status-pip {
   width: 7px;
@@ -133,6 +138,10 @@ const positionStyle = computed<Record<string, string>>(() => {
   flex-shrink: 0;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
 }
-.pip-ok   { background: #22c55e; }
-.pip-fail { background: #ef4444; }
+.pip-ok {
+  background: #22c55e;
+}
+.pip-fail {
+  background: #ef4444;
+}
 </style>

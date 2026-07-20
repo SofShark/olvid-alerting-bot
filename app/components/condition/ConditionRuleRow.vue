@@ -96,7 +96,7 @@ const aggregationOptions = computed(() =>
           value: ($event.target as HTMLInputElement).value,
         })
       "
-    >
+    />
   </div>
 </template>
 
@@ -132,10 +132,13 @@ const aggregationOptions = computed(() =>
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  font-family: inherit;
-  font-size: var(--text-base);
+
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 .rule-input:hover {
   border-color: var(--color-border-strong);
@@ -147,6 +150,5 @@ const aggregationOptions = computed(() =>
 .rule-input {
   min-width: 120px;
   flex: 1 1 120px;
-  font-family: var(--font-mono);
 }
 </style>

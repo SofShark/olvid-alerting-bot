@@ -40,7 +40,9 @@ export const useConditionForm = (
   const operator = computed(() => current.value.operator);
   const literal = computed(() => current.value.value ?? "");
   const aggregation = computed(() => current.value.aggregation);
-  const needsValue = computed(() => OPERATORS_NEEDING_VALUE.has(operator.value));
+  const needsValue = computed(() =>
+    OPERATORS_NEEDING_VALUE.has(operator.value),
+  );
 
   /** Chips as the user typed them (may contain wildcards) expanded to
    *  the concrete leaf set they resolve to against the current snapshot.

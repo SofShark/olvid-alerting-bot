@@ -31,7 +31,7 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
     id: null,
     title: "",
     description: "",
-    input: "",
+    input: undefined,
     status: AlertStatus.Draft,
     token: "",
     // alertParams omitted — undefined for a fresh form. Populated by the

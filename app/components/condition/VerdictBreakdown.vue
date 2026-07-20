@@ -29,7 +29,11 @@ defineProps<{
 <template>
   <details v-if="verdicts.length > 0" class="verdict-breakdown">
     <summary class="verdict-breakdown-summary">
-      <FontAwesomeIcon :icon="['fas', 'chevron-right']" class="chev" aria-hidden="true" />
+      <FontAwesomeIcon
+        :icon="['fas', 'chevron-right']"
+        class="chev"
+        aria-hidden="true"
+      />
       <span class="summary-label">{{ title }}</span>
       <span class="summary-count">{{ verdicts.length }}</span>
     </summary>

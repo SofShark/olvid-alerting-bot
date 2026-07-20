@@ -8,31 +8,23 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres@postgres_db:5432/mi_base_datos?schema=public
+      - DATABASE_URL=file:/data/alerting.db
       - OLVID_DAEMON_URL=http://daemon:50051
       - OLVID_CLIENT_KEY=34f52581-a6b7-47d0-9201-e7437ac6aa64
     # SMTP_* (and any other secrets) come from the untracked .env at the
     # project root. `.env.example` documents the expected keys.
     env_file:
       - .env
+    # SQLite lives on the host — bind-mounted so the file survives container
+    # recreation. `./data/` is git-ignored; created on first boot by
+    # `prisma db push` (see Dockerfile CMD).
+    volumes:
+      - ./data:/data
     depends_on:
-      - postgres_db
       - daemon
     restart: unless-stopped
-  # 2. Tu base de datos original para las alertas
-  postgres_db:
-    image: postgres:15-alpine
-    container_name: nuxt_postgres_container
-    environment:
-      - POSTGRES_HOST_AUTH_METHOD=trust
-      - POSTGRES_DB=mi_base_datos
-      - POSTGRES_USER=postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
 
-  # 3. El Daemon de Olvid (El cerebro del bot)
+  # 2. El Daemon de Olvid (El cerebro del bot)
   daemon:
     image: olvid/bot-daemon:2.0.1
     environment:
@@ -52,7 +44,3 @@ services:
     stdin_open: true
     tty: true
     profiles: ["cli"]
-  #
-
-volumes:
-  postgres_data:

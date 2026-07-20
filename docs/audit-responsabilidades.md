@@ -19,18 +19,18 @@
 
 ### Scorecard por área
 
-| Área | Salud | Comentario |
-|---|---|---|
-| **Backend — services / dispatchers / formatters** | 🟢 alta | Strategy + Factory bien aplicados, repos puros, pipeline limpio |
-| **Frontera API (`server/api/*`)** | 🟠 media | `backend.ts` multi-verbo, cero validación, formas de error inconsistentes |
-| **Repositorios** | 🟢 alta | Una asimetría (`getByToken` sin serializar) empaña un patrón por lo demás sólido |
-| **Composables** | 🟠 media | ISP: `useAlertForm` expone helpers privados; `fetchAlerts` en 4 sitios |
-| **Componentes** | 🔴 baja | ConditionEditor 1142 líneas / 9+ responsabilidades; 3 duplicaciones críticas |
-| **Tipos + enums** | 🟢 alta | Patrón `as const` respetado; una FormattingStrategy fuera de `shared/types` |
-| **Datos + schema** | 🟠 media | Typo `formating` propagado a 30 refs incl. BD; `alertParams: Json` sin validación |
-| **Estructura / auto-imports** | 🟢 alta | Convenciones consistentes; `pathPrefix: false` sin colisiones actuales |
-| **Herramientas de calidad** | 🔴 baja | Sin `typecheck` ni `test` en npm scripts |
-| **i18n** | 🟠 media | ≥7 huecos con strings ingleses hardcoded |
+| Área                                              | Salud    | Comentario                                                                        |
+| ------------------------------------------------- | -------- | --------------------------------------------------------------------------------- |
+| **Backend — services / dispatchers / formatters** | 🟢 alta  | Strategy + Factory bien aplicados, repos puros, pipeline limpio                   |
+| **Frontera API (`server/api/*`)**                 | 🟠 media | `backend.ts` multi-verbo, cero validación, formas de error inconsistentes         |
+| **Repositorios**                                  | 🟢 alta  | Una asimetría (`getByToken` sin serializar) empaña un patrón por lo demás sólido  |
+| **Composables**                                   | 🟠 media | ISP: `useAlertForm` expone helpers privados; `fetchAlerts` en 4 sitios            |
+| **Componentes**                                   | 🔴 baja  | ConditionEditor 1142 líneas / 9+ responsabilidades; 3 duplicaciones críticas      |
+| **Tipos + enums**                                 | 🟢 alta  | Patrón `as const` respetado; una FormattingStrategy fuera de `shared/types`       |
+| **Datos + schema**                                | 🟠 media | Typo `formating` propagado a 30 refs incl. BD; `alertParams: Json` sin validación |
+| **Estructura / auto-imports**                     | 🟢 alta  | Convenciones consistentes; `pathPrefix: false` sin colisiones actuales            |
+| **Herramientas de calidad**                       | 🔴 baja  | Sin `typecheck` ni `test` en npm scripts                                          |
+| **i18n**                                          | 🟠 media | ≥7 huecos con strings ingleses hardcoded                                          |
 
 ### Top-5 hallazgos por impacto
 
@@ -79,42 +79,42 @@ Cada hallazgo se etiqueta con al menos uno de:
 
 ### 3.1 Backend
 
-| Módulo | Posee | Salud |
-|---|---|---|
-| `alertRepository` | CRUD + serialización BigInt↔string, coerción de discussion_list | 🟠 (asimetría en `getByToken`) |
-| `alertLogRepository` | Append de logs + tope 200 filas | 🟢 |
-| `alertService` | Reglas de status (draft/inactive/active), regla "no-activate-without-bundles" | 🟢 |
-| `notifierService` | Formatear + enviar a Olvid; delega formato al factory | 🟢 |
-| `pollingDispatcher` | Orquestación de un ciclo (elige strategy → ejecuta → persiste → loguea) | 🟢 |
-| `dispatcherFactory` | `Source → DispatchStrategy` (único switch OCP) | 🟢 |
-| `pollingStrategy` / `monitoringStrategy` | Cómo se produce el `fired` por fuente | 🟢 |
-| `formatterFactory` + `formatters/*` | `Formatting → cómo se renderiza el body` | 🟢 |
-| `pollingEngine` (`server/utils/engine.ts`) | fetch + parse + `test()` (que persiste last-payload) | 🟠 (comentario miente sobre side-effects) |
-| `heartbeat` (task) | Quién + cuándo — cron dueness | 🟠 (nombre engañoso; procesa Monitoring también) |
-| `olvidClient` | Cliente SDK Olvid (send, discussions, photo). Singleton a nivel módulo | 🟢 |
-| `backend.ts` handler | Los 5 métodos HTTP en un solo fichero | 🔴 |
-| `webhooks/[token].ts` | 7 responsabilidades: rutear, auth-por-token, parse, persist, notify, log, error-map | 🟠 |
+| Módulo                                     | Posee                                                                               | Salud                                            |
+| ------------------------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `alertRepository`                          | CRUD + serialización BigInt↔string, coerción de discussion_list                     | 🟠 (asimetría en `getByToken`)                   |
+| `alertLogRepository`                       | Append de logs + tope 200 filas                                                     | 🟢                                               |
+| `alertService`                             | Reglas de status (draft/inactive/active), regla "no-activate-without-bundles"       | 🟢                                               |
+| `notifierService`                          | Formatear + enviar a Olvid; delega formato al factory                               | 🟢                                               |
+| `pollingDispatcher`                        | Orquestación de un ciclo (elige strategy → ejecuta → persiste → loguea)             | 🟢                                               |
+| `dispatcherFactory`                        | `Source → DispatchStrategy` (único switch OCP)                                      | 🟢                                               |
+| `pollingStrategy` / `monitoringStrategy`   | Cómo se produce el `fired` por fuente                                               | 🟢                                               |
+| `formatterFactory` + `formatters/*`        | `Formatting → cómo se renderiza el body`                                            | 🟢                                               |
+| `pollingEngine` (`server/utils/engine.ts`) | fetch + parse + `test()` (que persiste last-payload)                                | 🟠 (comentario miente sobre side-effects)        |
+| `heartbeat` (task)                         | Quién + cuándo — cron dueness                                                       | 🟠 (nombre engañoso; procesa Monitoring también) |
+| `olvidClient`                              | Cliente SDK Olvid (send, discussions, photo). Singleton a nivel módulo              | 🟢                                               |
+| `backend.ts` handler                       | Los 5 métodos HTTP en un solo fichero                                               | 🔴                                               |
+| `webhooks/[token].ts`                      | 7 responsabilidades: rutear, auth-por-token, parse, persist, notify, log, error-map | 🟠                                               |
 
 ### 3.2 Frontend
 
-| Composable | Posee | Consumido por |
-|---|---|---|
-| `useAlerts` | Lista global + discussions + fetch | 4 sitios (default layout, AlertView, AlertWizard, pages/[id]) |
-| `useAlertForm` | Modelo del formulario, `fillFrom`, resolveDiscussions, helpers bundle | AlertView, AlertWizard, BundleEditDialog |
-| `useAlertActions` | Save/delete/setStatus | AlertView, AlertWizard |
-| `useWizardSteps` | Máquina de estados step + gates de avance | AlertWizard (único) |
-| `useSourceBinding` | v-model del source picker con seed de defaults | StepGeneral (único) |
-| `useDirtyGuard` | Dirty tracking + beforeunload | AlertWizard (único) |
-| `useAlertLogs` | Fetch logs + estado expandido | AlertLogs (único) |
-| `useConditionSummary` | Frase resumen de condition | AlertConditionSummary (único) |
-| `useStatusMatchLabel` | Frase resumen de StatusMatch | AlertInputSummary |
-| `useScheduleLabel` | Cron string → texto humano | AlertInputSummary, ScheduleEditor |
-| `useFormatLabel` | i18n del enum Formatting | BundleEditDialog |
-| `useBundleStatus` | Estado de un bundle (ready/no-dest/no-script) | BundleEditDialog, AlertBundleRow |
-| `useTreeNode` | Reconoce forma del valor + compone path | JsonTreeNode, XmlTreeNode |
-| `useSidebar` | Estado colapso sidebar | AlertSidebar (único) |
-| `useCursorInsert` | Insertar en textarea en el caret | PayloadToolbar |
-| `useFormatEditor{Payload,Polling,Preview}` | Estado del editor de formato de bundle | FormatEditor |
+| Composable                                 | Posee                                                                 | Consumido por                                                 |
+| ------------------------------------------ | --------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `useAlerts`                                | Lista global + discussions + fetch                                    | 4 sitios (default layout, AlertView, AlertWizard, pages/[id]) |
+| `useAlertForm`                             | Modelo del formulario, `fillFrom`, resolveDiscussions, helpers bundle | AlertView, AlertWizard, BundleEditDialog                      |
+| `useAlertActions`                          | Save/delete/setStatus                                                 | AlertView, AlertWizard                                        |
+| `useWizardSteps`                           | Máquina de estados step + gates de avance                             | AlertWizard (único)                                           |
+| `useSourceBinding`                         | v-model del source picker con seed de defaults                        | StepGeneral (único)                                           |
+| `useDirtyGuard`                            | Dirty tracking + beforeunload                                         | AlertWizard (único)                                           |
+| `useAlertLogs`                             | Fetch logs + estado expandido                                         | AlertLogs (único)                                             |
+| `useConditionSummary`                      | Frase resumen de condition                                            | AlertConditionSummary (único)                                 |
+| `useStatusMatchLabel`                      | Frase resumen de StatusMatch                                          | AlertInputSummary                                             |
+| `useScheduleLabel`                         | Cron string → texto humano                                            | AlertInputSummary, ScheduleEditor                             |
+| `useFormatLabel`                           | i18n del enum Formatting                                              | BundleEditDialog                                              |
+| `useBundleStatus`                          | Estado de un bundle (ready/no-dest/no-script)                         | BundleEditDialog, AlertBundleRow                              |
+| `useTreeNode`                              | Reconoce forma del valor + compone path                               | JsonTreeNode, XmlTreeNode                                     |
+| `useSidebar`                               | Estado colapso sidebar                                                | AlertSidebar (único)                                          |
+| `useCursorInsert`                          | Insertar en textarea en el caret                                      | PayloadToolbar                                                |
+| `useFormatEditor{Payload,Polling,Preview}` | Estado del editor de formato de bundle                                | FormatEditor                                                  |
 
 ### 3.3 Huecos y responsabilidades duplicadas
 
@@ -130,6 +130,7 @@ Cada hallazgo se etiqueta con al menos uno de:
 ## 4. Hallazgos — Backend
 
 ### B-1 · `backend.ts` es un monolito multi-verbo · 🟠
+
 - **File**: [`server/api/backend.ts`](server/api/backend.ts) L2–96 (fichero entero).
 - **Evidencia**:
   ```ts
@@ -146,6 +147,7 @@ Cada hallazgo se etiqueta con al menos uno de:
 - **Remedio**: dividir en 5 ficheros por método.
 
 ### B-2 · Manejo de errores inconsistente · 🔴
+
 - **Files**: 18 ocurrencias de `catch (error: any)` en 8 ficheros del backend — contradice la convención del proyecto (`useUnknownInCatchVariables: true` + helper `getErrorMessage`).
 - **Formas de error mezcladas**:
   - `backend.ts`: `throw createError({ statusCode: 500, statusMessage: error.message })`.
@@ -156,6 +158,7 @@ Cada hallazgo se etiqueta con al menos uno de:
 - **Remedio**: pasar todos a `catch (error: unknown)` + `getErrorMessage(error, fallback)`; decidir contrato único (throw createError con statusCode semántico vs return `{ok:false, error}`).
 
 ### B-3 · `getByToken` no serializa (asimetría LSP) · 🔴
+
 - **File**: [`server/repositories/alertRepository.ts:128–133`](server/repositories/alertRepository.ts).
 - **Evidencia**:
   ```ts
@@ -171,30 +174,35 @@ Cada hallazgo se etiqueta con al menos uno de:
 - **Remedio**: envolver el `findUnique` en `serializeAlert(...)` y actualizar callers.
 
 ### B-4 · Fallback duplicado (dead code) · 🟢
+
 - **File**: [`server/utils/engine.ts:69`](server/utils/engine.ts).
 - **Evidencia**: `const params = (alert?.alertParams ?? alert?.alertParams ?? {}) as any;` — el mismo campo dos veces como fallback.
 - **Principio**: DRY / dead code.
 - **Remedio**: simplificar a `(alert?.alertParams ?? {}) as PollingParams | MonitorParams`.
 
 ### B-5 · Comentario "side-effect-free" que miente · 🟠
+
 - **File**: [`server/utils/engine.ts`](server/utils/engine.ts) L1–2 vs L81–107.
-- **Evidencia**: la cabecera dice *"side-effect-free with respect to alert state (no bundle firing, no baseline persistence)"* pero `test()` llama `alertPayloadRepository.upsertLastAlertPayload(...)` y `upsertLastFailedPayload(...)`.
+- **Evidencia**: la cabecera dice _"side-effect-free with respect to alert state (no bundle firing, no baseline persistence)"_ pero `test()` llama `alertPayloadRepository.upsertLastAlertPayload(...)` y `upsertLastFailedPayload(...)`.
 - **Principio**: stale comment (Fowler).
 - **Remedio**: actualizar el comment para reflejar que `test()` sí persiste last-payload (para audit trail).
 
 ### B-6 · Campo `baselineValue` reutilizado para veredictos · 🟠
+
 - **Files**: [`server/utils/types.ts:26`](server/utils/types.ts), [`server/utils/conditions/evaluator.ts:23`](server/utils/conditions/evaluator.ts).
 - **Evidencia**: el shape `EvalResult` define `baselineValue?: any` pero el evaluator devuelve `verdicts` (array de veredictos) en ese campo.
 - **Principio**: field repurposing / primitive obsession.
 - **Remedio**: renombrar a `verdicts` (o `perFieldBreakdown`), tipar como `Verdict[]`.
 
 ### B-7 · `webhooks/[token].ts` — 7 responsabilidades · 🟠
+
 - **File**: [`server/api/webhooks/[token].ts`](server/api/webhooks/[token].ts) L33–129 (129 líneas totales).
 - **Responsabilidades**: routing → auth-por-token → parse body → persistir failure → notifier → log success/warning/error → error-mapping HTTP.
 - **Principio**: SRP + god function.
 - **Remedio**: extraer `verifyToken(token)`, `parseBody(event)`, `shouldNotify(alert)`, `handleError(alert, e)` — el handler queda como orquestador de 20 líneas.
 
 ### B-8 · JSON parser deshabilitado (dead code) · 🟢
+
 - **File**: [`server/utils/parsers/index.ts:11`](server/utils/parsers/index.ts).
 - **Evidencia**: `// [jsonParser.format]: jsonParser,` (comentado). Aun así el enum `PollingFormat.JSON` existe en `shared/types/polling.ts` — se puede seleccionar en el wizard.
 - **Impacto**: una alerta polling con `format: JSON` falla con "No parser available for format JSON".
@@ -202,17 +210,20 @@ Cada hallazgo se etiqueta con al menos uno de:
 - **Remedio**: o implementar JSON parser, o quitar el valor del enum.
 
 ### B-9 · Nombre de tarea Nitro engañoso · 🟢
+
 - **File**: [`server/tasks/polling/heartbeat.ts:26`](server/tasks/polling/heartbeat.ts) + [`nuxt.config.ts`](nuxt.config.ts) scheduledTasks.
 - **Evidencia**: task se llama `polling:heartbeat` pero desde M1c dispatcha también Monitoring.
 - **Principio**: nomenclatura.
 - **Remedio**: renombrar a `scheduled:heartbeat` (o `sources:heartbeat`) y actualizar la clave en `nuxt.config.ts`.
 
 ### B-10 · `_lastHash` referenciado pero nunca escrito ni leído · 🟢
+
 - **File**: [`shared/types/polling.ts:55`](shared/types/polling.ts).
 - **Evidencia**: el campo existe en `PollingParams._lastHash?: string` pero `grep -r "_lastHash"` solo lo encuentra en su declaración y en `useSourceBinding` (donde se preserva por si acaso). Nadie escribe ni lee.
 - **Remedio**: eliminar el campo del tipo si no hay plan de implementación.
 
 ### B-11 · Cero validación de entrada en handlers · 🔴
+
 - **Files**: [`server/api/backend.ts`](server/api/backend.ts), [`server/api/poll/test.post.ts`](server/api/poll/test.post.ts), [`server/api/poll/retrieve.post.ts`](server/api/poll/retrieve.post.ts), [`server/api/webhooks/[token].ts`](server/api/webhooks/[token].ts).
 - **Evidencia**:
   ```ts
@@ -224,21 +235,25 @@ Cada hallazgo se etiqueta con al menos uno de:
 - **Remedio**: introducir Zod (o Valibot) para validar la forma de `AlertModel` en creación / edición. Rechazar con 400 + detalle en `error.data.issues`.
 
 ### B-12 · Referencias comentadas a `triggerEngine` (dead code) · 🟢
+
 - **File**: [`server/api/backend.ts`](server/api/backend.ts) L25, L44–45, L67–68, L85 — 7 líneas comentadas mencionando un `triggerEngine.register/unregister` que ya no existe.
 - **Remedio**: eliminar; el refactor a `pollingDispatcher` + heartbeat lo hizo obsoleto.
 
 ### B-13 · Log incorrecto en HTML parser · 🟢
+
 - **File**: [`server/utils/parsers/html.ts`](server/utils/parsers/html.ts) ~L100.
 - **Evidencia**: mensaje de error dice `"[xmlParser] parse failed"` — copiado del xml.ts.
 - **Remedio**: cambiar a `"[htmlParser] parse failed"`.
 
 ### B-14 · Payload de Monitoring diverge del de Polling · 🟢
+
 - **File**: [`server/services/dispatchers/monitoringStrategy.ts:72–76`](server/services/dispatchers/monitoringStrategy.ts).
 - **Evidencia**: Polling entrega el payload parseado al notifier; Monitoring entrega `{status, url}`. Los templates Handlebars deben conocer la fuente para saber qué esperar.
 - **Principio**: leaky abstraction menor.
 - **Remedio**: documentar contrato de payload por Source en `docs/`, o normalizar (envelope común `{source, data}`).
 
 ### B-15 · Códigos HTTP siempre 500 · 🟢
+
 - **Files**: todos los handlers en `server/api/`.
 - **Evidencia**: `throw createError({ statusCode: 500, ... })` para cualquier error, incluidos validation errors (deberían ser 400) y not-found (404).
 - **Remedio**: mapear semánticamente cuando se implemente B-11 (Zod → 400, no-found → 404, resto → 500).
@@ -249,15 +264,15 @@ Cada hallazgo se etiqueta con al menos uno de:
 
 Contratos que atraviesan la frontera cliente↔servidor:
 
-| Aspecto | Estado | Referencia |
-|---|---|---|
-| Validación de entrada | ❌ ausente | B-11 |
-| Forma de error unificada | ❌ inconsistente | B-2 |
-| Status HTTP semánticos | ❌ todo 500 | B-15 |
-| Serialización BigInt | ⚠️ asimétrica | B-3 |
-| Rutas por método (Nitro conv.) | ❌ monolito | B-1 |
-| Tipos compartidos client↔server | ✅ `#shared/types` funciona bien | — |
-| Auto-imports servidor | ✅ | `nuxt.config.ts` |
+| Aspecto                         | Estado                           | Referencia       |
+| ------------------------------- | -------------------------------- | ---------------- |
+| Validación de entrada           | ❌ ausente                       | B-11             |
+| Forma de error unificada        | ❌ inconsistente                 | B-2              |
+| Status HTTP semánticos          | ❌ todo 500                      | B-15             |
+| Serialización BigInt            | ⚠️ asimétrica                    | B-3              |
+| Rutas por método (Nitro conv.)  | ❌ monolito                      | B-1              |
+| Tipos compartidos client↔server | ✅ `#shared/types` funciona bien | —                |
+| Auto-imports servidor           | ✅                               | `nuxt.config.ts` |
 
 **Riesgo compuesto**: sin validación + errores 500 opacos, un payload malformado del cliente degrada silenciosamente en el service. Es la primera cosa que un pentest o un usuario curioso encuentra.
 
@@ -267,22 +282,23 @@ Contratos que atraviesan la frontera cliente↔servidor:
 
 ### Inventario de componentes (>200 líneas)
 
-| Componente | Líneas | Rol principal | Riesgo |
-|---|---|---|---|
-| `ConditionEditor.vue` | **1142** | Trigger polling: paths + operator + agg + preview | 🔴 |
-| `TestPoll.vue` | 524 | Modal de test-poll con veredictos | 🟠 |
-| `StatusMatchEditor.vue` | 463 | Trigger monitoring: codes/range/not-ok + trigger mode | 🟠 |
-| `BundleEditDialog.vue` | 409 | Modal fusión: title + destinations + format + preview | 🟠 |
-| `DiscussionSelector.vue` | 376 | Dropdown estilo WhatsApp con avatares | 🟠 |
-| `AlertSidebar.vue` | 326 | Lista de alertas + filtro | 🟠 |
-| `ScheduleEditor.vue` | 292 | Editor cron basic/advanced | 🟢 |
-| `FormatEditor.vue` | 265 | Editor de plantilla Handlebars | 🟢 |
-| `JsonTreeNodeExp.vue` | 263 | Tree JSON expandible | 🟢 |
-| `JsonTreeNode.vue` | 256 | Tree JSON (post-rediseño natural) | 🟢 |
-| `AlertWizard.vue` | 256 | Orquestador wizard 3 pasos | 🟠 |
-| `AlertView.vue` | 254 | Vista de detalle (view mode) | 🟢 |
+| Componente               | Líneas   | Rol principal                                         | Riesgo |
+| ------------------------ | -------- | ----------------------------------------------------- | ------ |
+| `ConditionEditor.vue`    | **1142** | Trigger polling: paths + operator + agg + preview     | 🔴     |
+| `TestPoll.vue`           | 524      | Modal de test-poll con veredictos                     | 🟠     |
+| `StatusMatchEditor.vue`  | 463      | Trigger monitoring: codes/range/not-ok + trigger mode | 🟠     |
+| `BundleEditDialog.vue`   | 409      | Modal fusión: title + destinations + format + preview | 🟠     |
+| `DiscussionSelector.vue` | 376      | Dropdown estilo WhatsApp con avatares                 | 🟠     |
+| `AlertSidebar.vue`       | 326      | Lista de alertas + filtro                             | 🟠     |
+| `ScheduleEditor.vue`     | 292      | Editor cron basic/advanced                            | 🟢     |
+| `FormatEditor.vue`       | 265      | Editor de plantilla Handlebars                        | 🟢     |
+| `JsonTreeNodeExp.vue`    | 263      | Tree JSON expandible                                  | 🟢     |
+| `JsonTreeNode.vue`       | 256      | Tree JSON (post-rediseño natural)                     | 🟢     |
+| `AlertWizard.vue`        | 256      | Orquestador wizard 3 pasos                            | 🟠     |
+| `AlertView.vue`          | 254      | Vista de detalle (view mode)                          | 🟢     |
 
 ### F-1 · `ConditionEditor.vue` — 1142 líneas / 9+ responsabilidades · 🔴
+
 - **File**: [`app/components/condition/ConditionEditor.vue`](app/components/condition/ConditionEditor.vue).
 - **Responsabilidades**:
   1. Kind picker (None/Rule).
@@ -298,6 +314,7 @@ Contratos que atraviesan la frontera cliente↔servidor:
 - **Remedio**: extraer `useConditionForm` composable (state + patches) + `ConditionKindPicker`, `WatchedFieldsChips`, `ConditionOperatorRow`, `ConditionVerdictSummary` como sub-componentes. Refactor grande (>1 día), impacto muy alto en mantenibilidad.
 
 ### F-2 · `TRIGGER_MODE_OPTIONS` duplicado + labels hardcoded · 🔴
+
 - **Files**:
   - [`app/components/alert/wizard/steps/StepTrigger.vue`](app/components/alert/wizard/steps/StepTrigger.vue) L58–78 — array con label + hint hardcoded.
   - [`app/components/monitoring/StatusMatchEditor.vue`](app/components/monitoring/StatusMatchEditor.vue) L113–133 — array casi idéntico con hints ligeramente distintos.
@@ -307,6 +324,7 @@ Contratos que atraviesan la frontera cliente↔servidor:
 - **Remedio**: extraer a `useTriggerModeOptions()` composable + claves `wizard.triggerMode.labels.*` y `.hints.*` en i18n.
 
 ### F-3 · `initials(title)` duplicado con implementaciones distintas · 🟠
+
 - **Files**:
   - [`app/components/alert/AlertSidebar.vue`](app/components/alert/AlertSidebar.vue) L34–37 — primeros 3 chars.
   - [`app/components/bundle/DiscussionSelector.vue`](app/components/bundle/DiscussionSelector.vue) L88–92 — iniciales por palabra (hasta 2).
@@ -315,6 +333,7 @@ Contratos que atraviesan la frontera cliente↔servidor:
 - **Remedio**: extraer a `~/utils/initials.ts`; decidir un solo algoritmo o parametrizar (`strategy: "prefix" | "words"`).
 
 ### F-4 · `labelFor(source)` con i18n-fallback duplicado · 🟠
+
 - **Files**:
   - [`app/components/input-source/InputSourceSelector.vue`](app/components/input-source/InputSourceSelector.vue) — helper local.
   - [`app/components/alert/wizard/steps/StepGeneral.vue`](app/components/alert/wizard/steps/StepGeneral.vue) — `computed sourceLabel`, misma lógica.
@@ -324,35 +343,39 @@ Contratos que atraviesan la frontera cliente↔servidor:
 
 Tabla completa:
 
-| String | File:line | Sugerencia clave |
-|---|---|---|
-| `"Every time" / "Once" / "Once + on recovery"` | StepTrigger:65-77, StatusMatchEditor:120-132, AlertInputSummary:76-81 | `wizard.triggerMode.labels.*` |
-| Todos los hints de trigger mode | StepTrigger/StatusMatchEditor | `wizard.triggerMode.hints.*` |
-| `"Must be an HTTP code between 100 and 599."` | StatusMatchEditor:77 | `monitorEditor.match.codesValidation.range` |
-| `"Already added."` | StatusMatchEditor:81 | `monitorEditor.match.codesValidation.duplicate` |
-| `"Status logs"` | AlertLogs.vue:45 | `editor.view.dividers.statusLogs` |
-| `"No polls recorded yet."` | AlertLogs.vue:48 | `editor.logs.empty` |
-| `"Configuration"` | AlertInputSummary.vue:98 | `editor.view.blocks.configuration` |
-| `"Edit bundle"` | AlertBundleRow.vue:71 | `bundleRow.editTitle` (ya existe en i18n, no se usa) |
-| `"No destinations" / "Custom format set but no script" / "Ready"` | useBundleStatus.ts:19-29 | `bundleStatus.*` (composable marca `// Pure — no i18n yet`) |
+| String                                                            | File:line                                                             | Sugerencia clave                                            |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `"Every time" / "Once" / "Once + on recovery"`                    | StepTrigger:65-77, StatusMatchEditor:120-132, AlertInputSummary:76-81 | `wizard.triggerMode.labels.*`                               |
+| Todos los hints de trigger mode                                   | StepTrigger/StatusMatchEditor                                         | `wizard.triggerMode.hints.*`                                |
+| `"Must be an HTTP code between 100 and 599."`                     | StatusMatchEditor:77                                                  | `monitorEditor.match.codesValidation.range`                 |
+| `"Already added."`                                                | StatusMatchEditor:81                                                  | `monitorEditor.match.codesValidation.duplicate`             |
+| `"Status logs"`                                                   | AlertLogs.vue:45                                                      | `editor.view.dividers.statusLogs`                           |
+| `"No polls recorded yet."`                                        | AlertLogs.vue:48                                                      | `editor.logs.empty`                                         |
+| `"Configuration"`                                                 | AlertInputSummary.vue:98                                              | `editor.view.blocks.configuration`                          |
+| `"Edit bundle"`                                                   | AlertBundleRow.vue:71                                                 | `bundleRow.editTitle` (ya existe en i18n, no se usa)        |
+| `"No destinations" / "Custom format set but no script" / "Ready"` | useBundleStatus.ts:19-29                                              | `bundleStatus.*` (composable marca `// Pure — no i18n yet`) |
 
 ### F-10 · Click-outside repetido en 4 componentes · 🟠
+
 - **Files**: `InputSourceSelector.vue`, `DiscussionSelector.vue`, `ui/Select.vue`, `ui/LanguageToggle.vue`.
 - **Evidencia**: mismo patrón `addEventListener("click") + containerRef.contains(target)` copiado.
 - **Remedio**: `useClickOutside(refEl, callback)` composable. ~4h de refactor, ~40 líneas ahorradas.
 
 ### F-11 · `fetchAlerts()` invocado desde 4 sitios (refetch storm) · 🟠
+
 - **Files**: `default.layout`, `AlertView.vue`, `AlertWizard.vue`, `pages/alerts/[id].vue`.
 - **Evidencia**: cada mount o navegación dispara refetch. Sin caché ni deduplicación.
 - **Remedio**: usar `useState` de Nuxt con TTL o `useAsyncData` para SWR. Alternativamente aceptarlo si el volumen es bajo.
 
 ### F-12 · Prop drilling redundante en `BundleEditDialog` · 🟠
+
 - **File**: [`app/components/bundle/BundleEditDialog.vue`](app/components/bundle/BundleEditDialog.vue) L30–43.
 - **Evidencia**: recibe `alertContext` (contiene `input`), `alertParams` (derivable de `alertContext`), `inputSource` (== `alertContext.input`). Tres props para el mismo eje de información.
 - **Principio**: ISP.
 - **Remedio**: consolidar a `alertContext` únicamente y derivar el resto internamente.
 
 ### F-13 · `useWizardSteps` exporta aliases transicionales · 🟢
+
 - **File**: [`app/composables/useWizardSteps.ts`](app/composables/useWizardSteps.ts) L160–161.
 - **Evidencia**:
   ```ts
@@ -363,18 +386,22 @@ Tabla completa:
 - **Remedio**: `grep` los consumers de los nombres viejos, migrar, eliminar aliases.
 
 ### F-14 · `JsonTreeNode` vs `JsonTreeNodeExp` (código muerto) · 🟢
+
 - **Files**: `app/components/payload/JsonTreeNode.vue`, `JsonTreeNodeExp.vue`.
 - **Evidencia**: `PayloadPanel.vue:112–127` usa `JsonTreeNodeExp` con `JsonTreeNode` comentado a lado. `ConditionEditor.vue` usa solo `XmlTreeNode` para todos los formatos.
 - **Remedio**: si `JsonTreeNode` no está en uso, eliminarlo. Si es fallback, documentarlo.
 
 ### F-15 · `useBundleStatus` español-only marcada como TODO · 🟢
+
 - **File**: [`app/composables/useBundleStatus.ts`](app/composables/useBundleStatus.ts) L19–29.
 - **Evidencia**: labels hardcoded + comment `// Pure — no i18n yet`.
 - **Remedio**: cablear vía `useI18n()`.
 
 ### F-16 · CSS: tokens vs hex mezclados · 🟢
+
 - **Files**: `AlertLogs.vue`, `AlertBundleRow.vue`, `LoadTemplate.vue`, `DiscussionSelector.vue`.
 - **Evidencia**:
+
   ```css
   /* Buen patrón — token con fallback: */
   background: color-mix(in srgb, var(--color-danger, #ef4444) 12%, transparent);
@@ -383,51 +410,61 @@ Tabla completa:
   background: #1e1e22;
   border: 1px solid #3f3f46;
   ```
+
 - **Remedio**: mover los hex del editor de código a tokens (`--color-code-bg`, `--color-code-border`) — así soportan `prefers-color-scheme`.
 
 ### F-17 · Componentes de árbol XML/JSON — click zones y selección · 🟢
+
 - **Files**: `XmlTreeNode.vue`, `JsonTreeNode.vue`.
-- **Estado**: recién rediseñados en esta sesión. Usan `useTreeNode` composable compartido. Emit de paths correctos con `.#text` y `.@_attr`. Selección visible por-attr y por-text. Documentado aquí como *"lo que estaba mal ya se arregló"*.
+- **Estado**: recién rediseñados en esta sesión. Usan `useTreeNode` composable compartido. Emit de paths correctos con `.#text` y `.@_attr`. Selección visible por-attr y por-text. Documentado aquí como _"lo que estaba mal ya se arregló"_.
 
 ---
 
 ## 7. Hallazgos — Tipos, enums e interfaces
 
 ### T-1 · Censo de `any` · 🟠
+
 **62 ocurrencias** de `: any` / `as any` a través de `shared/` + `server/` + `app/`.
 
 **Justificadas (JSON payload es genuinamente polimórfico)**:
+
 - `shared/types/condition.ts` — `observed: any; baseline?: any` en Verdict.
 - `shared/condition/pathExpand.ts` — walker genérico.
 - `shared/polling/message.ts` — formateo agnóstico.
 
 **Perezosas (evitables)**:
+
 - `app/composables/useAlertForm.ts` — `(a as any).alertParams`, `b.discussion_list as any`. Ya hay accessors tipados (`getPollingParams`, `getMonitorParams`).
 - `app/components/alert/AlertWizard.vue` L99 — `const ap: any = { ...(form.value.alertParams ?? {}) }`. Pollutes dirty-check.
 - `server/services/notifierService.ts` — `alert: any, bundle: any, payload: any` en signatures.
 - `server/services/alertService.ts` — `data: any` en `createAlert / updateAlert`. Justo la frontera donde debería haber validación (B-11).
 
 ### T-2 · Patrón `const X = {...} as const` — consistencia ✅ · 🟢
+
 Todos los enums (Source, AlertStatus, Formatting, PollingFormat, TriggerMode, ConditionKind, ConditionOperator, ConditionAggregation, LogStatus) siguen el patrón. **Zero drift**. Ningún `enum` de TS a la vista.
 
 ### T-3 · Inconsistencias de naming
 
 #### T-3.1 · Typo `formating` propagado a 30 refs en 14 ficheros · 🔴
+
 - **Origin**: `prisma/schema.prisma` L38 `formating String` — la columna DB está mal escrita.
 - **Propagación**: `Bundle.formating` en el modelo → `BundleModel.formating` en el tipo → 30 usos en composables + componentes + repos + services + templates.
 - **Coste de arreglar**: migración SQL renaming column + regen Prisma client + find/replace en 30 sitios.
 - **Recomendación**: pagar el coste ahora que aún es viable, o documentar como deuda-conocida en `docs/` y aceptarlo.
 
 #### T-3.2 · Prop `alertaInicial` en español · 🟢
+
 - **File**: [`app/components/alert/AlertWizard.vue`](app/components/alert/AlertWizard.vue) L29.
 - **Evidencia**: `alertaInicial?: AlertModel | null` — resto del código es inglés.
 - **Remedio**: renombrar a `initialAlert`. Cambio trivial.
 
 #### T-3.3 · Fichero `statusLog.ts` contiene tipo `AlertLog` · 🟢
+
 - **File**: `shared/types/statusLog.ts` exporta `AlertLog`.
 - **Remedio**: renombrar a `alertLog.ts` (o mantener por historia; anotar).
 
 #### T-3.4 · Columna `discussion_list` snake_case en un mar camelCase · 🟢
+
 - **File**: `prisma/schema.prisma` L37.
 - **Resto**: `alertId`, `createdAt`, `custom_script` (también snake), `alertParams`. Mezcla dentro del propio schema.
 - **Remedio**: migración a `discussionList` si se hace la limpieza de `formating`.
@@ -436,12 +473,12 @@ Todos los enums (Source, AlertStatus, Formatting, PollingFormat, TriggerMode, Co
 
 Cuatro interfaces Strategy en el proyecto:
 
-| Interface | Ubicación | Justificación |
-|---|---|---|
-| `DispatchStrategy` | ✅ `shared/types/dispatchStrategy.ts` | Compartida por dispatcher + tests futuros |
-| `OperatorStrategy` | ✅ `shared/types/operatorStrategy.ts` | Compartida por evaluator (client+server) |
-| `AggregatorStrategy` | ✅ `shared/types/aggregatorStrategy.ts` | Ídem |
-| `FormattingStrategy` | ⚠️ `server/services/formatters/formattingStrategy.ts` | **Fuera de `shared/types` — asimetría** |
+| Interface            | Ubicación                                             | Justificación                             |
+| -------------------- | ----------------------------------------------------- | ----------------------------------------- |
+| `DispatchStrategy`   | ✅ `shared/types/dispatchStrategy.ts`                 | Compartida por dispatcher + tests futuros |
+| `OperatorStrategy`   | ✅ `shared/types/operatorStrategy.ts`                 | Compartida por evaluator (client+server)  |
+| `AggregatorStrategy` | ✅ `shared/types/aggregatorStrategy.ts`               | Ídem                                      |
+| `FormattingStrategy` | ⚠️ `server/services/formatters/formattingStrategy.ts` | **Fuera de `shared/types` — asimetría**   |
 
 **T-4.1 · `FormattingStrategy` fuera de `shared/types` · 🟢**  
 Justificable si es server-only, pero rompe la simetría del catálogo Strategy. Migrar a `shared/types/formattingStrategy.ts` para consistencia; el server lo importa igual.
@@ -468,6 +505,7 @@ Justificable si es server-only, pero rompe la simetría del catálogo Strategy. 
 Los campos `_lastFired`, `_lastStatus`, `_baseline`, `_lastPolledAt`, `_lastHash` viven **dentro** de `PollingParams` / `MonitorParams` — el mismo shape que edita el usuario en el wizard.
 
 **Riesgos**:
+
 - **Dirty-check pollution**: `useDirtyGuard` hace `JSON.stringify(form)` y compara. Cada poll muta runtime fields → el form aparece "dirty" sin que el usuario haya tocado nada.
 - **UI debe ignorarlos**: sin garantía de tipo. Un `v-model` sobre `alertParams` los expondría.
 - **Persistencia acoplada**: la misma columna JSON almacena config editable + estado runtime.
@@ -489,6 +527,7 @@ Los campos `_lastFired`, `_lastStatus`, `_baseline`, `_lastPolledAt`, `_lastHash
 ### T-8.1 · Auto-imports con `pathPrefix: false` · 🟢
 
 `nuxt.config.ts` mapea:
+
 ```ts
 { path: "~/components/ui", pathPrefix: false },
 { path: "~/components/alert", pathPrefix: false },
@@ -512,7 +551,7 @@ El matcher HTTP-status vive en `shared/polling/`. Confuso. **Remedio**: mover a 
 ### T-8.3 · Frontera `shared/polling` vs `shared/condition` · 🟢
 
 `shared/polling/`: message.ts, scheduler.ts, matcher.ts.  
-`shared/condition/`: conditionEvaluator.ts, migrate.ts, pathExpand.ts, operators/*, aggregators/*.
+`shared/condition/`: conditionEvaluator.ts, migrate.ts, pathExpand.ts, operators/_, aggregators/_.
 
 Nombres OK pero la línea es fina. `message.ts` mezcla polling+monitoring (via el notifier). **Aceptable** como está.
 
@@ -526,24 +565,26 @@ Nombres OK pero la línea es fina. `message.ts` mezcla polling+monitoring (via e
 
 ### T-10 · `package.json` scripts — falta typecheck y test · 🔴
 
-| Script | Existe |
-|---|---|
-| `dev` | ✅ |
-| `build` | ✅ |
-| `generate` | ✅ |
-| `preview` | ✅ |
-| `lint` / `lint:fix` | ✅ |
-| `prettier` / `prettier:check` | ✅ |
-| **`typecheck`** | ❌ |
-| **`test`** | ❌ |
+| Script                        | Existe |
+| ----------------------------- | ------ |
+| `dev`                         | ✅     |
+| `build`                       | ✅     |
+| `generate`                    | ✅     |
+| `preview`                     | ✅     |
+| `lint` / `lint:fix`           | ✅     |
+| `prettier` / `prettier:check` | ✅     |
+| **`typecheck`**               | ❌     |
+| **`test`**                    | ❌     |
 
 `tsconfig.json` tiene `strict: true` + `useUnknownInCatchVariables: true` — la configuración está bien; solo falta el script que lo ejecute.
 
 **Remedio**:
+
 ```json
 "typecheck": "nuxi typecheck",
 "test": "vitest"
 ```
+
 Y en CI: `npm run lint && npm run typecheck && npm run test`.
 
 ---
@@ -568,20 +609,20 @@ Materia de examen — estos son ejemplos concretos de aplicación correcta:
 
 Ordenado por (impacto × facilidad). El "coste" es horas gruesas, el "impacto" cualitativo.
 
-| # | Hallazgo | Categoría | Coste | Impacto | Depende de |
-|---|---|---|---|---|---|
-| 1 | **F-2** · Extraer `TRIGGER_MODE_OPTIONS` + i18n | DRY + i18n | 2h | Alto | — |
-| 2 | **B-4** · Quitar fallback duplicado en engine.ts | Dead code | 5min | Bajo pero fácil | — |
-| 3 | **B-3** · `getByToken` con `serializeAlert` | LSP | 30min | Alto | — |
-| 4 | **T-10** · Añadir scripts `typecheck` y `test` | Higiene | 30min | Alto | — |
-| 5 | **F-5..F-9** · Batch de claves i18n hardcoded | i18n | 3h | Medio | — |
-| 6 | **F-10** · `useClickOutside()` composable | DRY | 4h | Medio | — |
-| 7 | **B-2** · Migrar `catch (error: any)` → `unknown + getErrorMessage` | Convención | 2h | Medio | — |
-| 8 | **B-11** · Validación Zod en handlers | Seguridad | 6h | Alto | — |
-| 9 | **B-15** · Códigos HTTP semánticos | API | 1h | Bajo | B-11 |
-| 10 | **F-1** · Descomposición ConditionEditor en 5 sub-componentes | SRP | 2 días | Muy alto | — |
-| 11 | **T-6** · Separar `PollingConfig` de `PollingRuntime` | Coupling | 6h | Medio | (schema) |
-| 12 | **T-3.1** · Rename `formating` → `formatting` (si se paga la migración) | Naming | 4h | Bajo pero visible | migración BD |
+| #   | Hallazgo                                                                | Categoría  | Coste  | Impacto           | Depende de   |
+| --- | ----------------------------------------------------------------------- | ---------- | ------ | ----------------- | ------------ |
+| 1   | **F-2** · Extraer `TRIGGER_MODE_OPTIONS` + i18n                         | DRY + i18n | 2h     | Alto              | —            |
+| 2   | **B-4** · Quitar fallback duplicado en engine.ts                        | Dead code  | 5min   | Bajo pero fácil   | —            |
+| 3   | **B-3** · `getByToken` con `serializeAlert`                             | LSP        | 30min  | Alto              | —            |
+| 4   | **T-10** · Añadir scripts `typecheck` y `test`                          | Higiene    | 30min  | Alto              | —            |
+| 5   | **F-5..F-9** · Batch de claves i18n hardcoded                           | i18n       | 3h     | Medio             | —            |
+| 6   | **F-10** · `useClickOutside()` composable                               | DRY        | 4h     | Medio             | —            |
+| 7   | **B-2** · Migrar `catch (error: any)` → `unknown + getErrorMessage`     | Convención | 2h     | Medio             | —            |
+| 8   | **B-11** · Validación Zod en handlers                                   | Seguridad  | 6h     | Alto              | —            |
+| 9   | **B-15** · Códigos HTTP semánticos                                      | API        | 1h     | Bajo              | B-11         |
+| 10  | **F-1** · Descomposición ConditionEditor en 5 sub-componentes           | SRP        | 2 días | Muy alto          | —            |
+| 11  | **T-6** · Separar `PollingConfig` de `PollingRuntime`                   | Coupling   | 6h     | Medio             | (schema)     |
+| 12  | **T-3.1** · Rename `formating` → `formatting` (si se paga la migración) | Naming     | 4h     | Bajo pero visible | migración BD |
 
 **Camino corto recomendado (1-2 días de trabajo)**: 1, 2, 3, 4, 5, 7 — cierra ~80% del ruido cosmético + añade quality gates + un fix LSP concreto. Deja el refactor grande (10) para una sesión dedicada.
 
@@ -589,20 +630,20 @@ Ordenado por (impacto × facilidad). El "coste" es horas gruesas, el "impacto" c
 
 ## 11. Anexo — Anclaje al temario de TDS
 
-Mapeo de categorías de hallazgo al temario de *Tecnologías de Desarrollo Software* para que el documento sirva como material de estudio:
+Mapeo de categorías de hallazgo al temario de _Tecnologías de Desarrollo Software_ para que el documento sirva como material de estudio:
 
-| Hallazgos | Tema | Sección |
-|---|---|---|
-| B-1, B-7, F-1, F-11 | Tema 2 | SOLID §SRP — "una razón para cambiar" |
-| B-8, F-13, F-14, T-6 | Tema 5 | Patrones — reconocer código obsoleto vs vivo |
-| B-3 | Tema 2 | SOLID §LSP — sustituibilidad entre métodos del mismo repo |
-| B-11 | Tema 2 | GRASP Controller — la frontera debe filtrar |
-| F-2, F-3, F-4, F-10 | Tema 6 | Taller de patrones — DRY como precursor de Strategy |
-| T-1, T-5.1 | Tema 3 | POO — narrowing seguro vs `any` como escape |
-| T-2, T-5.2 | Tema 3 | Patrones idiomáticos TS — `as const` + discriminated unions |
-| T-4.1, T-4.2 | Tema 4 | Modelado de datos — placement y duplicación conceptual |
-| T-7 | Tema 4 | Representación de datos — schema como contrato |
+| Hallazgos             | Tema   | Sección                                                     |
+| --------------------- | ------ | ----------------------------------------------------------- |
+| B-1, B-7, F-1, F-11   | Tema 2 | SOLID §SRP — "una razón para cambiar"                       |
+| B-8, F-13, F-14, T-6  | Tema 5 | Patrones — reconocer código obsoleto vs vivo                |
+| B-3                   | Tema 2 | SOLID §LSP — sustituibilidad entre métodos del mismo repo   |
+| B-11                  | Tema 2 | GRASP Controller — la frontera debe filtrar                 |
+| F-2, F-3, F-4, F-10   | Tema 6 | Taller de patrones — DRY como precursor de Strategy         |
+| T-1, T-5.1            | Tema 3 | POO — narrowing seguro vs `any` como escape                 |
+| T-2, T-5.2            | Tema 3 | Patrones idiomáticos TS — `as const` + discriminated unions |
+| T-4.1, T-4.2          | Tema 4 | Modelado de datos — placement y duplicación conceptual      |
+| T-7                   | Tema 4 | Representación de datos — schema como contrato              |
 | §9 (todo el catálogo) | Tema 5 | Strategy + Factory + Repository + Registry — ejemplos vivos |
-| T-10 | Tema 1 | SDLC — quality gates |
+| T-10                  | Tema 1 | SDLC — quality gates                                        |
 
 Cada hallazgo cita el fichero exacto — cualquiera de ellos sirve como ejemplo para una respuesta de examen "cita una violación de X en un proyecto real".

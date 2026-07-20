@@ -19,21 +19,23 @@
 */
 
 type ErrorWithBody = {
-  data?: { message?: string; statusMessage?: string }
-  message?: string
-}
+  data?: { message?: string; statusMessage?: string };
+  message?: string;
+};
 
 /**
  * Pull the most user-friendly message out of an unknown caught error.
  * Probes (in order): `data.message`, `data.statusMessage`, `message`.
  * Falls back to the provided string when none of those is a string.
  */
-export const getErrorMessage = (e: unknown, fallback = ''): string => {
-  if (typeof e === 'string') return e
-  if (typeof e !== 'object' || e === null) return fallback
-  const err = e as ErrorWithBody
-  return err.data?.message ?? err.data?.statusMessage ?? err.message ?? fallback
-}
+export const getErrorMessage = (e: unknown, fallback = ""): string => {
+  if (typeof e === "string") return e;
+  if (typeof e !== "object" || e === null) return fallback;
+  const err = e as ErrorWithBody;
+  return (
+    err.data?.message ?? err.data?.statusMessage ?? err.message ?? fallback
+  );
+};
 
 /**
  * Pull the structured `.data` body off an ofetch-style error so it can be
@@ -41,6 +43,6 @@ export const getErrorMessage = (e: unknown, fallback = ''): string => {
  * value has no `.data` field — log the raw error in that case.
  */
 export const getErrorData = (e: unknown): unknown => {
-  if (typeof e !== 'object' || e === null || !('data' in e)) return undefined
-  return (e as ErrorWithBody).data
-}
+  if (typeof e !== "object" || e === null || !("data" in e)) return undefined;
+  return (e as ErrorWithBody).data;
+};

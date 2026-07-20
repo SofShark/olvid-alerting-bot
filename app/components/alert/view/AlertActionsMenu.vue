@@ -67,7 +67,10 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
       :aria-label="t('alertActions.moreActions')"
       @click="toggle"
     >
-      <FontAwesomeIcon :icon="['fas', 'ellipsis-vertical']" class="options-icon" />
+      <FontAwesomeIcon
+        :icon="['fas', 'ellipsis-vertical']"
+        class="options-icon"
+      />
     </button>
 
     <div v-if="open" class="options-dropdown" role="menu">
@@ -76,7 +79,10 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         type="button"
         class="options-item"
         role="menuitem"
-        @click="close(); $emit('test')"
+        @click="
+          close();
+          $emit('test');
+        "
       >
         {{ t("alertActions.testNow") }}
         <FontAwesomeIcon :icon="['fas', 'play']" />
@@ -86,7 +92,10 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         type="button"
         class="options-item"
         role="menuitem"
-        @click="close(); $emit('duplicate')"
+        @click="
+          close();
+          $emit('duplicate');
+        "
       >
         {{ t("alertActions.duplicate") }}
         <FontAwesomeIcon :icon="['fas', 'copy']" />
@@ -98,7 +107,10 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         type="button"
         class="options-item"
         role="menuitem"
-        @click="close(); $emit('manage-access')"
+        @click="
+          close();
+          $emit('manage-access');
+        "
       >
         {{ t("alertActions.manageAccess") }}
         <FontAwesomeIcon :icon="['fas', 'user-gear']" />
@@ -108,7 +120,10 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         type="button"
         class="options-item"
         role="menuitem"
-        @click="close(); $emit('move-to-project')"
+        @click="
+          close();
+          $emit('move-to-project');
+        "
       >
         {{ t("alertActions.moveToProject") }}
         <FontAwesomeIcon :icon="['fas', 'left-right']" />
@@ -120,7 +135,10 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         type="button"
         class="options-item danger"
         role="menuitem"
-        @click="close(); $emit('delete')"
+        @click="
+          close();
+          $emit('delete');
+        "
       >
         {{ t("button.delete") }}
         <FontAwesomeIcon :icon="['fas', 'trash-can']" />
@@ -168,7 +186,9 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   font-weight: 500;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 .options-item:hover {
   background: var(--color-bg-card-soft);

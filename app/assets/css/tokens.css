@@ -52,9 +52,6 @@
    *  (hue ~220°, very low chroma) that gives the palette a hint of
    *  identity without competing with the brand blue.
    *
-   *  Light theme overrides all of these to a slate ladder (see the
-   *  `[data-theme="light"]` block below).
-   *
    *  10 is the softest off-white; 95 is the deepest near-black.
    * ────────────────────────────────────────────────────────────── */
   --neutral-10: #f8fafc;
@@ -65,12 +62,11 @@
   --neutral-50: #64748b;
   --neutral-60: #475569;
   --neutral-70: #334155;
-  --neutral-80: #272c36;   /* menus, strong borders */
-  --neutral-83: #262a31;   /* alt: hover / bundle-card variant */
-  --neutral-85: #1f222b;   /* inputs, card-soft (wcard-head) */
-  --neutral-90: #15181e;   /* nav, cards, sidebar-head */
-   /* panels — same tone as nav on purpose */
-  --neutral-95: #0f1115;   /* app / page — deepest */
+  --neutral-80: #272c36; /* menus, strong borders */
+  --neutral-83: #262a31; /* alt: hover / bundle-card variant */
+  --neutral-85: #1f222b; /* inputs, card-soft (wcard-head) */
+  --neutral-90: #15181e; /* nav, cards, sidebar-head, panels — same tone as nav on purpose */
+  --neutral-95: #0f1115; /* app / page — deepest */
 
   --white: #ffffff;
   --black: #000000;
@@ -82,12 +78,14 @@
 
   /* Surfaces */
   --color-bg-app: var(--neutral-95);
-  --color-bg-input: var(--black);     /* slightly lifted so slots read
+  --color-bg-input: var(
+    --black
+  ); /* slightly lifted so slots read
                                               both on app bg AND inside cards */
   --color-bg-nav: var(--neutral-85);
   --color-bg-sidebar-head: var(--neutral-85);
   --color-bg-panel: var(--neutral-90);
- 
+
   --color-bg-card: var(--neutral-85);
   --color-bundle-card: var(--neutral-80);
   --color-bg-card-soft: var(--neutral-80);
@@ -101,11 +99,11 @@
   --color-text-muted: var(--neutral-40);
   --color-text-dim: var(--neutral-60);
   --color-text-faint: var(--neutral-70);
-  
-  --color-text-webhook: #80e0e4;         /* informational sky blue */
+
+  --color-text-webhook: #80e0e4; /* informational sky blue */
 
   /* Borders */
-  --color-border-subtle: var(--neutral-80);   /* matches `bg-card-soft` */
+  --color-border-subtle: var(--neutral-80); /* matches `bg-card-soft` */
   --color-border-default: var(--neutral-85);
   --color-border-strong: var(--neutral-70);
 
@@ -113,9 +111,9 @@
    * "colored surface" trio used by chips, info boxes, focus rings. */
   --color-accent: var(--blue-60);
   --color-accent-hover: var(--blue-70);
-  --color-accent-soft: #182236;           /* dark-blue tinted surface */
+  --color-accent-soft: #182236; /* dark-blue tinted surface */
   --color-accent-border: var(--blue-80);
-  --color-accent-text: var(--blue-30);    /* legible on --accent-soft */
+  --color-accent-text: var(--blue-30); /* legible on --accent-soft */
 
   /* Code blocks (special-purpose, kept out of the elevation scale so
    * they always look like an embedded IDE surface) */
@@ -173,11 +171,11 @@
    * The mono stack prefers modern coding fonts if the OS has them; if
    * you install "JetBrains Mono" or "Fira Code" they'll take over. */
   --font-sans:
-    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
+    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
   --font-mono:
-    "JetBrains Mono", "Fira Code", ui-monospace, "SFMono-Regular",
-    "Consolas", "Courier New", monospace;
+    "JetBrains Mono", "Fira Code", ui-monospace, "SFMono-Regular", "Consolas",
+    "Courier New", monospace;
 
   /* Font sizes — small by design (tech-tool density). `lg` is the new
    * reading step used by preview bodies and long-form fields. */
@@ -198,13 +196,12 @@
   --font-weight-bold: 700;
 
   /* Line heights — three ratios cover every case. */
-  --line-tight: 1.25;    /* headings, single-line labels */
-  --line-normal: 1.4;    /* ui text */
-  --line-reading: 1.55;  /* body prose */
+  --line-tight: 1.25; /* headings, single-line labels */
+  --line-normal: 1.4; /* ui text */
+  --line-reading: 1.55; /* body prose */
 
   /* Shadows — quiet by default; overlays stack heavier. */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.25),
-                 0 1px 2px rgba(0, 0, 0, 0.15);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15);
   --shadow-overlay: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
@@ -215,27 +212,18 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Primitives — light theme uses the SLATE ladder (a whisper of
-   * blue, hue ~215°) so the page reads a touch colder than the
-   * pure-grey dark. The rest of the aliases below just map onto
-   * these local overrides. */
-
-  
-
-  
-
   /* Surfaces — the panel steps DOWN from white to a soft slate so
    * white cards elevate visibly against it. Same elevation direction
    * as dark theme (panel darker than card). Inputs stay white and
    * rely on their border to define the slot. */
-  --color-bg-app: var(--neutral-20);          /* soft slate page */
-  --color-bg-input: var(--white);             /* border defines the slot */
-  --color-bg-nav: var(--neutral-30);          /* nav pops from the page */
-  --color-bg-panel: var(--neutral-10);        /* off-white so cards lift */
-  --color-bg-sidebar-head: var(--neutral-30);
+  --color-bg-app: var(--neutral-20); /* soft slate page */
+  --color-bg-input: var(--white); /* border defines the slot */
+  --color-bg-nav: var(--neutral-25); /* nav pops from the page */
+  --color-bg-panel: var(--neutral-10); /* off-white so cards lift */
+  --color-bg-sidebar-head: var(--neutral-25);
   --color-bg-card: var(--white);
   --color-bundle-card: var(--white);
-  --color-bg-card-soft: var(--neutral-25);    /* wcard-head, hover strips */
+  --color-bg-card-soft: var(--neutral-25); /* wcard-head, hover strips */
   --color-bg-menu: var(--white);
 
   /* Text */

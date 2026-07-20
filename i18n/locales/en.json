@@ -100,6 +100,7 @@
     },
 
     "fieldLabels": {
+      "generalInfo": "General Info",
       "title": "Title",
       "description": "Description",
       "inputSource": "Input Source",
@@ -198,7 +199,7 @@
       "discussionsEmpty": "— none —"
     },
 
-    "schedule":{
+    "schedule": {
       "interval": {
         "everyDay": "every {n} day",
         "everyDays": "every {n} days",
@@ -210,7 +211,7 @@
         "dailyAt": "daily at {time}",
         "empty": "—"
       },
-      "mode":{
+      "mode": {
         "basic": "basic",
         "advanced": "advanced"
       }
@@ -274,7 +275,7 @@
       "discardWarning": "⚠ Discard unsaved changes to this bundle?",
       "keepEditingButton": "Keep editing",
       "discardButton": "Discard",
-      "untitled":"Untitled"
+      "untitled": "Untitled"
     },
 
     "errors": {
@@ -318,7 +319,7 @@
     },
     "watchedFields": {
       "label": "Watched fields",
-      "hint": "Type a path, or use {dotdot} as a wildcard (e.g. {example} matches every day's max). Or open the picker to choose visually.",
+      "hint": "Type a path, or use .. as a wildcard (e.g. ..user.name mathes every 'name' value on any 'user' on the file). Or open the picker to choose visually.",
       "hintCode": "..",
       "hintExample": "dia..temperatura.maxima",
       "emptyChips": "— no watched fields yet —",
