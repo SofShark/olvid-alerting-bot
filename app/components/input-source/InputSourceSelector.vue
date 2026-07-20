@@ -16,14 +16,16 @@ const labelFor = (s: string): string => {
 
 const props = withDefaults(
   defineProps<{
-    modelValue: string;
+    modelValue: Source | undefined;
     locked?: boolean;
   }>(),
   {
     locked: false,
   },
 );
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits<{
+  "update:modelValue": [value: Source | undefined];
+}>();
 
 const sources = Object.values(Source);
 const searchQuery = ref("");
@@ -40,8 +42,8 @@ const filtered = computed(() => {
   );
 });
 
-const select = (s: string) => {
-  emit("update:modelValue", s === undefined ? "" : s);
+const select = (s: Source) => {
+  emit("update:modelValue", s);
   searchQuery.value = "";
   isDropdownOpen.value = false;
 };
@@ -49,7 +51,7 @@ const select = (s: string) => {
 const clear = async () => {
   isDropdownOpen.value = true;
   await nextTick();
-  emit("update:modelValue", "");
+  emit("update:modelValue", undefined);
 };
 
 const onClickOutside = (e: MouseEvent) => {

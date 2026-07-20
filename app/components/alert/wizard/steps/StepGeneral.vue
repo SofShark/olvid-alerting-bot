@@ -34,6 +34,10 @@ const sourceLabel = computed(() => {
   const translated = t(key);
   return translated === key ? form.value.input : translated;
 });
+
+function setAlertParams(value: PollingParams | MonitorParams) {
+  form.value.alertParams = value;
+}
 </script>
 
 <template>
@@ -85,7 +89,7 @@ const sourceLabel = computed(() => {
       <TriggerParamsEditor
         :trigger-type="form.input"
         :model-value="form.alertParams ?? {}"
-        @update:model-value="form.alertParams = $event as PollingParams"
+        @update:model-value="setAlertParams($event as PollingParams)"
       />
     </div>
 
@@ -93,7 +97,7 @@ const sourceLabel = computed(() => {
     <div v-if="isMonitoring" class="field">
       <MonitorParamsEditor
         :model-value="(form.alertParams ?? {}) as Partial<MonitorParams>"
-        @update:model-value="form.alertParams = $event as MonitorParams"
+        @update:model-value="setAlertParams($event as MonitorParams)"
       />
     </div>
 
