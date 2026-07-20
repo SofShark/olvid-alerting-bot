@@ -40,6 +40,9 @@ const sourceLabel = computed(() => {
   <div class="step-general">
     <!-- Title / description / source are the "what is this alert?" fields -->
     <div class="wcard">
+      <div class="wcard-head">
+      {{ $t("wizard.fieldLabels.generalInfo") }}
+      </div>
       <div class="wcard-body">
         <div class="wcard-row">
           <label class="wcard-label">
@@ -111,6 +114,7 @@ const sourceLabel = computed(() => {
 </template>
 
 <style scoped>
+
 .step-general {
   display: flex;
   flex-direction: column;

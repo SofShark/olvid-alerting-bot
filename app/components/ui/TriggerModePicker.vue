@@ -36,9 +36,9 @@ const activeHint = computed(() => hintFor(model.value));
   <div class="trigger-mode">
     <div class="btn-pill-group">
       <button
-        type="button"
-        v-for="opt in options"
+        v-for="opt in options" 
         :key="opt.value"
+        type="button"       
         class="btn-pill"
         :class="{ active: model === opt.value }"
         @click="model = opt.value"

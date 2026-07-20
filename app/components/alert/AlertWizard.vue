@@ -256,7 +256,7 @@ const onSaveDraftAndLeave = async () => {
 .wizard-topbar {
   display: flex;
   align-items: center;
-  gap: 45px;
+  gap: var(--space-8);
   padding: var(--space-2) var(--space-8);
   border-bottom: 1px solid var(--color-border-subtle);
   flex-shrink: 0;
@@ -279,7 +279,7 @@ const onSaveDraftAndLeave = async () => {
 .wizard-content > * {
   /* Keep line lengths readable on wide screens without capping too
    * hard on narrow ones. */
-  max-width: 880px;
+  max-width: 800px;
   margin: 0 auto;
 }
 </style>

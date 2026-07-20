@@ -55,8 +55,7 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
         </span>
         <!-- Hint has two code-styled snippets — kept as one translatable
              string via i18n-t children. -->
-        <p class="rule-hint">
-        </p>
+        <p class="rule-hint"/>
       </div>
 
       <div class="watched-actions">

@@ -18,7 +18,7 @@ withDefaults(
     /** aria-label + title attr for the close button. */
     closeLabel?: string;
   }>(),
-  { variant: "plain", closeLabel: "Close" },
+  { title: "", variant: "plain", closeLabel: "Close" },
 );
 
 defineEmits<{ (e: "close"): void }>();

@@ -100,6 +100,7 @@
     },
 
     "fieldLabels": {
+      "generalInfo": "General Info",
       "title": "Title",
       "description": "Description",
       "inputSource": "Input Source",

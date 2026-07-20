@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { AlertStatus } from "#shared/types/alert";
 
 const route = ref(useRoute());
 const { alerts, alertsLoading, fetchAlerts } = useAlerts();
