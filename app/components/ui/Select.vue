@@ -80,11 +80,9 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
       @click="toggle"
     >
       <span class="select-label">{{ displayLabel }}</span>
-      <span
-        class="select-chevron"
-        :class="{ open: isOpen }"
-        aria-hidden="true"
-      >▾</span>
+      <span class="select-chevron" :class="{ open: isOpen }" aria-hidden="true"
+        >▾</span
+      >
     </button>
 
     <div v-if="isOpen && !disabled" class="select-dropdown" role="listbox">

@@ -1,5 +1,5 @@
 // Source of truth for the alert's soruce: where does the trigger come from?
-// `Source` is the literal value stored in `AlertTable.input` and in `AlertModel.input`. 
+// `Source` is the literal value stored in `AlertTable.input` and in `AlertModel.input`.
 
 export const Source = {
   Polling: "Polling Source", // shown as "Data Polling" in the UI

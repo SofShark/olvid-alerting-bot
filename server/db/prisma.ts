@@ -37,8 +37,14 @@ if (!raw.startsWith("file:")) {
   );
 }
 const rawPath = raw.replace(/^file:/, "");
-const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const absolutePath = isAbsolute(rawPath) ? rawPath : resolve(projectRoot, rawPath);
+const projectRoot = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+);
+const absolutePath = isAbsolute(rawPath)
+  ? rawPath
+  : resolve(projectRoot, rawPath);
 
 // better-sqlite3 doesn't create parent directories. Ensure they exist —
 // harmless if already present, essential for the Docker `/data` bind

@@ -9,7 +9,7 @@ export type MailAvatarPalette = {
   fg: string;
 };
 
-/** Small, curated set of low-saturation pastels. 
+/** Small, curated set of low-saturation pastels.
  *  Values are inline (not CSS vars) because CSS vars would require a
  *  DOM context; these are consumed inline in scoped styles too. */
 
@@ -17,7 +17,7 @@ export type MailAvatarPalette = {
 const PASTEL_PALETTE: readonly MailAvatarPalette[] = [
   { bg: "#dde7dd", fg: "#3f5a45" }, // sage
   { bg: "#dae7e0", fg: "#3f5648" }, // moss
-  { bg: "#dfeaea", fg: "#3d5757" }, // seafoam  
+  { bg: "#dfeaea", fg: "#3d5757" }, // seafoam
   { bg: "#dbe4f0", fg: "#3b4a63" }, // slate blue
   { bg: "#dbdbf0", fg: "#3b3f63" }, // violet
   { bg: "#e5dcee", fg: "#503f66" }, // lavender
@@ -25,7 +25,6 @@ const PASTEL_PALETTE: readonly MailAvatarPalette[] = [
   { bg: "#eedced", fg: "#6b3c67" }, // clay
   { bg: "#eee0dc", fg: "#6b493c" }, // clay
   { bg: "#ede1cd", fg: "#6a5527" }, // sand
-  
 ];
 
 function hash(input: string): number {

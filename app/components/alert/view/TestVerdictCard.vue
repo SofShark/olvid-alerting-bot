@@ -19,10 +19,7 @@ defineProps<{
 </script>
 
 <template>
-  <div
-    class="verdict-card"
-    :class="outcome.fired ? 'fired' : 'not-fired'"
-  >
+  <div class="verdict-card" :class="outcome.fired ? 'fired' : 'not-fired'">
     <div class="verdict-row">
       <span class="verdict-badge">
         <span class="verdict-dot" aria-hidden="true" />

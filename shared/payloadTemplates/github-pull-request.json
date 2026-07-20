@@ -82,13 +82,25 @@
       "sha": "f95f852bd8fca8fcc58a9a2d6c842781e32a215e"
     },
     "_links": {
-      "self":            { "href": "https://api.github.com/repos/sofia-maeso/alerting-bot/pulls/42" },
-      "html":            { "href": "https://github.com/sofia-maeso/alerting-bot/pull/42" },
-      "issue":           { "href": "https://api.github.com/repos/sofia-maeso/alerting-bot/issues/42" },
-      "comments":        { "href": "https://api.github.com/repos/sofia-maeso/alerting-bot/issues/42/comments" },
-      "review_comments": { "href": "https://api.github.com/repos/sofia-maeso/alerting-bot/pulls/42/comments" },
-      "commits":         { "href": "https://api.github.com/repos/sofia-maeso/alerting-bot/pulls/42/commits" },
-      "statuses":        { "href": "https://api.github.com/repos/sofia-maeso/alerting-bot/statuses/ec26c3e57ca3a959ca5aad62de7213c562f8c821" }
+      "self": {
+        "href": "https://api.github.com/repos/sofia-maeso/alerting-bot/pulls/42"
+      },
+      "html": { "href": "https://github.com/sofia-maeso/alerting-bot/pull/42" },
+      "issue": {
+        "href": "https://api.github.com/repos/sofia-maeso/alerting-bot/issues/42"
+      },
+      "comments": {
+        "href": "https://api.github.com/repos/sofia-maeso/alerting-bot/issues/42/comments"
+      },
+      "review_comments": {
+        "href": "https://api.github.com/repos/sofia-maeso/alerting-bot/pulls/42/comments"
+      },
+      "commits": {
+        "href": "https://api.github.com/repos/sofia-maeso/alerting-bot/pulls/42/commits"
+      },
+      "statuses": {
+        "href": "https://api.github.com/repos/sofia-maeso/alerting-bot/statuses/ec26c3e57ca3a959ca5aad62de7213c562f8c821"
+      }
     },
     "author_association": "OWNER",
     "auto_merge": null,

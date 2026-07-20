@@ -102,7 +102,7 @@ function onLineClick() {
        `parent.0`, `parent.1`, … -->
   <template v-if="isArray">
     <XmlTreeNode
-      v-for="(item, i) in (nodeValue as unknown[])"
+      v-for="(item, i) in nodeValue as unknown[]"
       :key="i"
       :node-name="nodeName"
       :node-value="item"
@@ -116,45 +116,38 @@ function onLineClick() {
   <!-- Primitive value inline: `<name>value</name>`. -->
 
   <template v-else-if="!isBranch">
-
     <div class="element opening" :style="indent(depth)">
-        <span class="punct">&lt;</span
-        ><span class="tag">{{ nodeName }}</span
-        ><span
-          v-for="[k, v] in parts.attrs"
-          :key="k"
-          class="attr"
-          :class="{ selected: isSelected(attrPath(k)) }"
-          :title="attrPath(k)"
-          @click.stop="emit('select', attrPath(k))"
-          >&nbsp;<span class="attr-name">{{ k }}</span
-          ><span class="punct">="</span
-          ><span class="attr-value">{{ v }}</span
-          ><span class="punct">"</span></span
-        ><span class="punct">&gt;</span>
-    </div>      
-      
-    <div
-        class="text-line"
-        :class="{ selected: isSelected(textPath) }"
-        :style="indent(depth + 1)"
-        :depth="depth + 1"
-        :title="textPath"
-        @click="emit('select', textPath)"
-      >
-        <span class="text">{{ nodeValue }}</span>
-  </div>
-
-    
-    <div class="element closing" :style="indent(depth)">
-          <span class="punct">&lt;/</span
-          ><span class="tag">{{ nodeName }}</span
-          ><span class="punct">&gt;</span>
+      <span class="punct">&lt;</span><span class="tag">{{ nodeName }}</span
+      ><span
+        v-for="[k, v] in parts.attrs"
+        :key="k"
+        class="attr"
+        :class="{ selected: isSelected(attrPath(k)) }"
+        :title="attrPath(k)"
+        @click.stop="emit('select', attrPath(k))"
+        >&nbsp;<span class="attr-name">{{ k }}</span
+        ><span class="punct">="</span><span class="attr-value">{{ v }}</span
+        ><span class="punct">"</span></span
+      ><span class="punct">&gt;</span>
     </div>
 
+    <div
+      class="text-line"
+      :class="{ selected: isSelected(textPath) }"
+      :style="indent(depth + 1)"
+      :depth="depth + 1"
+      :title="textPath"
+      @click="emit('select', textPath)"
+    >
+      <span class="text">{{ nodeValue }}</span>
+    </div>
+
+    <div class="element closing" :style="indent(depth)">
+      <span class="punct">&lt;/</span><span class="tag">{{ nodeName }}</span
+      ><span class="punct">&gt;</span>
+    </div>
   </template>
-  
-  
+
   <!-- Object — dispatch by classification. -->
   <template v-else>
     <!-- Text only, no attrs, no children — line acts as the text leaf. -->
@@ -188,8 +181,7 @@ function onLineClick() {
       class="element inline"
       :style="indent(depth)"
     >
-      <span class="punct">&lt;</span
-      ><span class="tag">{{ nodeName }}</span
+      <span class="punct">&lt;</span><span class="tag">{{ nodeName }}</span
       ><span
         v-for="[k, v] in parts.attrs"
         :key="k"
@@ -198,8 +190,7 @@ function onLineClick() {
         :title="attrPath(k)"
         @click.stop="emit('select', attrPath(k))"
         >&nbsp;<span class="attr-name">{{ k }}</span
-        ><span class="punct">="</span
-        ><span class="attr-value">{{ v }}</span
+        ><span class="punct">="</span><span class="attr-value">{{ v }}</span
         ><span class="punct">"</span></span
       ><span class="punct">&gt;</span
       ><span
@@ -209,19 +200,13 @@ function onLineClick() {
         :depth="depth + 1"
         @click.stop="emit('select', textPath)"
         >{{ parts.text }}</span
-      ><span class="punct">&lt;/</span
-      ><span class="tag">{{ nodeName }}</span
+      ><span class="punct">&lt;/</span><span class="tag">{{ nodeName }}</span
       ><span class="punct">&gt;</span>
     </div>
 
     <!-- Attrs only, no text, no children — self-closing tag. -->
-    <div
-      v-else-if="!hasChildren"
-      class="element inline"
-      :style="indent(depth)"
-    >
-      <span class="punct">&lt;</span
-      ><span class="tag">{{ nodeName }}</span
+    <div v-else-if="!hasChildren" class="element inline" :style="indent(depth)">
+      <span class="punct">&lt;</span><span class="tag">{{ nodeName }}</span
       ><span
         v-for="[k, v] in parts.attrs"
         :key="k"
@@ -230,8 +215,7 @@ function onLineClick() {
         :title="attrPath(k)"
         @click.stop="emit('select', attrPath(k))"
         >&nbsp;<span class="attr-name">{{ k }}</span
-        ><span class="punct">="</span
-        ><span class="attr-value">{{ v }}</span
+        ><span class="punct">="</span><span class="attr-value">{{ v }}</span
         ><span class="punct">"</span></span
       ><span class="punct">/&gt;</span>
     </div>
@@ -241,8 +225,7 @@ function onLineClick() {
          children, then closing tag. -->
     <template v-else>
       <div class="element opening" :style="indent(depth)">
-        <span class="punct">&lt;</span
-        ><span class="tag">{{ nodeName }}</span
+        <span class="punct">&lt;</span><span class="tag">{{ nodeName }}</span
         ><span
           v-for="[k, v] in parts.attrs"
           :key="k"
@@ -251,8 +234,7 @@ function onLineClick() {
           :title="attrPath(k)"
           @click.stop="emit('select', attrPath(k))"
           >&nbsp;<span class="attr-name">{{ k }}</span
-          ><span class="punct">="</span
-          ><span class="attr-value">{{ v }}</span
+          ><span class="punct">="</span><span class="attr-value">{{ v }}</span
           ><span class="punct">"</span></span
         ><span class="punct">&gt;</span>
       </div>
@@ -281,8 +263,7 @@ function onLineClick() {
       />
 
       <div class="element closing" :style="indent(depth)">
-        <span class="punct">&lt;/</span
-        ><span class="tag">{{ nodeName }}</span
+        <span class="punct">&lt;/</span><span class="tag">{{ nodeName }}</span
         ><span class="punct">&gt;</span>
       </div>
     </template>

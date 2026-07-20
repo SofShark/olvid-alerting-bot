@@ -30,7 +30,7 @@ const selectedId = computed(() => {
               src="../assets/olvid_name_logo.png"
               alt="Olvid"
               class="olvid-logo-img"
-            >
+            />
             {{ $t("topNav.title") }}
           </span>
         </div>

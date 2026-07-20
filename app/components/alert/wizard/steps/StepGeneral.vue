@@ -25,9 +25,9 @@ const isWebhook = computed(() => form.value.input === Source.Webhook);
 
 // Localised label for the source hint line (matches what the selector shows).
 const { t } = useI18n();
-const inputSourceHint = computed(()=>{
-  return t("wizard.communicationHint") + t("wizard.communicationHintSuffix")
-})
+const inputSourceHint = computed(() => {
+  return t("wizard.communicationHint") + t("wizard.communicationHintSuffix");
+});
 const sourceLabel = computed(() => {
   if (!form.value.input) return "";
   const key = `inputSourceSelector.labels.${form.value.input}`;
@@ -41,7 +41,7 @@ const sourceLabel = computed(() => {
     <!-- Title / description / source are the "what is this alert?" fields -->
     <div class="wcard">
       <div class="wcard-head">
-      {{ $t("wizard.fieldLabels.generalInfo") }}
+        {{ $t("wizard.fieldLabels.generalInfo") }}
       </div>
       <div class="wcard-body">
         <div class="wcard-row">
@@ -54,7 +54,7 @@ const sourceLabel = computed(() => {
             type="text"
             class="field-input"
             :placeholder="$t('common.untitledAlert')"
-          >
+          />
         </div>
 
         <div class="wcard-row">
@@ -66,14 +66,14 @@ const sourceLabel = computed(() => {
             type="text"
             class="field-input"
             :placeholder="$t('common.descriptionPlaceholder')"
-          >
+          />
         </div>
 
         <div class="wcard-row">
           <label class="wcard-label">
             {{ $t("wizard.fieldLabels.inputSource") }}
             <span class="field-required">*</span>
-            <HelpTooltip :message="inputSourceHint"/>
+            <HelpTooltip :message="inputSourceHint" />
           </label>
           <InputSourceSelector v-model="selectedSource" />
         </div>
@@ -114,7 +114,6 @@ const sourceLabel = computed(() => {
 </template>
 
 <style scoped>
-
 .step-general {
   display: flex;
   flex-direction: column;

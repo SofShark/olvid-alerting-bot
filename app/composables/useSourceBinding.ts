@@ -99,7 +99,7 @@ export const useSourceBinding = (
             : {}),
         };
       } else {
-        // Webhook or unknown — no params. Restored value ignored 
+        // Webhook or unknown — no params. Restored value ignored
         // (Webhook has none).
         form.value.alertParams = undefined;
       }

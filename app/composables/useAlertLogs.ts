@@ -26,7 +26,7 @@ export const useAlertLogs = (alertId: Ref<number | null | undefined>) => {
     }
     isLoading.value = true;
     try {
-      logs.value = (await $fetch<AlertLog[]>(`/api/alerts/${id}/logs`))
+      logs.value = await $fetch<AlertLog[]>(`/api/alerts/${id}/logs`);
     } catch (e) {
       console.error("[useAlertLogs] fetch failed:", e);
     } finally {

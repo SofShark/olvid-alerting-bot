@@ -199,7 +199,7 @@
       "discussionsEmpty": "— none —"
     },
 
-    "schedule":{
+    "schedule": {
       "interval": {
         "everyDay": "every {n} day",
         "everyDays": "every {n} days",
@@ -211,7 +211,7 @@
         "dailyAt": "daily at {time}",
         "empty": "—"
       },
-      "mode":{
+      "mode": {
         "basic": "basic",
         "advanced": "advanced"
       }
@@ -275,7 +275,7 @@
       "discardWarning": "⚠ Discard unsaved changes to this bundle?",
       "keepEditingButton": "Keep editing",
       "discardButton": "Discard",
-      "untitled":"Untitled"
+      "untitled": "Untitled"
     },
 
     "errors": {

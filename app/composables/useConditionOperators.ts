@@ -15,14 +15,34 @@ import { ConditionOperator } from "#shared/types/condition";
 export const useConditionOperators = () => {
   const { t } = useI18n();
 
-  const options = computed<Array<{ value: ConditionOperator; label: string }>>(() => [
-    { value: ConditionOperator.Changed, label: t("conditionEditor.operator.changed") },
-    { value: ConditionOperator.Equals, label: t("conditionEditor.operator.equals") },
-    { value: ConditionOperator.GreaterThan, label: t("conditionEditor.operator.greaterThan") },
-    { value: ConditionOperator.LessThan, label: t("conditionEditor.operator.lessThan") },
-    { value: ConditionOperator.Contains, label: t("conditionEditor.operator.contains") },
-    { value: ConditionOperator.RegExp, label: t("conditionEditor.operator.regExp") },
-  ]);
+  const options = computed<Array<{ value: ConditionOperator; label: string }>>(
+    () => [
+      {
+        value: ConditionOperator.Changed,
+        label: t("conditionEditor.operator.changed"),
+      },
+      {
+        value: ConditionOperator.Equals,
+        label: t("conditionEditor.operator.equals"),
+      },
+      {
+        value: ConditionOperator.GreaterThan,
+        label: t("conditionEditor.operator.greaterThan"),
+      },
+      {
+        value: ConditionOperator.LessThan,
+        label: t("conditionEditor.operator.lessThan"),
+      },
+      {
+        value: ConditionOperator.Contains,
+        label: t("conditionEditor.operator.contains"),
+      },
+      {
+        value: ConditionOperator.RegExp,
+        label: t("conditionEditor.operator.regExp"),
+      },
+    ],
+  );
 
   return { options };
 };

@@ -50,9 +50,7 @@ const isSelected = (d: DiscussionModel) => selectedIds.value.has(d.id);
 
 const filtered = computed(() => {
   const q = searchQuery.value.toLowerCase();
-  return props.available.filter(
-    (d) => !q || d.title.toLowerCase().includes(q),
-  );
+  return props.available.filter((d) => !q || d.title.toLowerCase().includes(q));
 });
 
 /** Boolean membership: in the list → remove; not in it → add. The
@@ -113,7 +111,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
             :alt="d.title"
             class="strip-avatar"
             @error="onPhotoError(d.id)"
-          >
+          />
           <div v-else class="strip-avatar strip-avatar-fallback">
             {{ initials(d.title) }}
           </div>
@@ -151,7 +149,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         :disabled="isLoading"
         class="search-input"
         @focus="isDropdownOpen = true"
-      >
+      />
       <div v-if="isDropdownOpen" class="dropdown">
         <div
           v-for="d in filtered"
@@ -166,7 +164,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
             :alt="d.title"
             class="item-avatar"
             @error="onPhotoError(d.id)"
-          >
+          />
           <div v-else class="item-avatar item-avatar-fallback">
             {{ initials(d.title) }}
           </div>
@@ -177,7 +175,6 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
           <span v-else class="item-check" aria-hidden="true">
             <FontAwesomeIcon :icon="['far', 'circle']" />
           </span>
-          
         </div>
         <div v-if="filtered.length === 0" class="dropdown-empty">
           {{
@@ -256,7 +253,9 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   align-items: center;
   justify-content: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 .strip-remove:hover {
   background: var(--color-danger, #ef4444);

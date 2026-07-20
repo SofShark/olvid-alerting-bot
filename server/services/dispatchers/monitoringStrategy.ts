@@ -17,7 +17,10 @@
 // bloating the notifier payload or the persisted last-alert-payload
 // row. See MONITOR_BODY_PREVIEW_MAX below for the exact limit.
 
-import type { DispatchStrategy, DispatchResult } from "#shared/types/dispatchStrategy";
+import type {
+  DispatchStrategy,
+  DispatchResult,
+} from "#shared/types/dispatchStrategy";
 import type { AlertModel } from "#shared/types/alert";
 import { getMonitorParams } from "#shared/types/alert";
 import type { PollingCondition } from "#shared/types/condition";
@@ -46,7 +49,6 @@ const SYNTHETIC_RULE: PollingCondition = {
  *  what the user sees at design time matches what runtime notifiers
  *  receive at fire time. */
 export const MONITOR_BODY_PREVIEW_MAX = 100;
-
 
 export const monitoringStrategy: DispatchStrategy = {
   async execute(alert: AlertModel): Promise<DispatchResult> {
@@ -97,27 +99,27 @@ export const monitoringStrategy: DispatchStrategy = {
       fired,
       params._lastFired,
     );
-    
+
     // 4) Notify. Flat payload for Handlebars — see MonitorProbePayload.
     if (decision.fire) {
       const payload: MonitorProbePayload = {
-      status: res.status,
-      statusText: res.statusText,
-      ok: res.ok,
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
 
-      url: res.url,
-      body: bodyPreview,
+        url: res.url,
+        body: bodyPreview,
 
-      latencyMs,
+        latencyMs,
 
-      redirected: res.redirected,
-      type: res.type,
+        redirected: res.redirected,
+        type: res.type,
 
-      contentType: res.headers.get("content-type"),
-      contentLength: res.headers.get("content-length")
-        ? Number(res.headers.get("content-length"))
-        : null,
-    };
+        contentType: res.headers.get("content-type"),
+        contentLength: res.headers.get("content-length")
+          ? Number(res.headers.get("content-length"))
+          : null,
+      };
 
       await notifierService.processAlert(alert, payload, decision.kind);
     }

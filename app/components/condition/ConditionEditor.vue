@@ -76,10 +76,7 @@ const { t } = useI18n();
 
 <template>
   <div class="cond-editor">
-    <ConditionKindPicker
-      :model-value="kind"
-      @update:model-value="setKind"
-    />
+    <ConditionKindPicker :model-value="kind" @update:model-value="setKind" />
 
     <div v-if="kind === ConditionKind.Rule" class="wcard">
       <div class="wcard-head">

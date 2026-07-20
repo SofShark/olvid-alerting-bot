@@ -1,4 +1,3 @@
-
 export default defineEventHandler(async (event) => {
   const method = event.node.req.method;
 

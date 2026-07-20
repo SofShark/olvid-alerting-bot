@@ -7,7 +7,7 @@
 // Each level has its own repo file:
 //   · alertRepository        (this file)        → AlertTable
 //   · alertBundleRepository  (sibling)          → Bundle
-//   . alertPayloadRepository  (sibling)         
+//   . alertPayloadRepository  (sibling)
 //   · alertOutputRepository  (grand-sibling)    → BundleOutput
 //
 // This file OWNS AlertTable writes and orchestrates the child writes via

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-
 const route = ref(useRoute());
 const { alerts, alertsLoading, fetchAlerts } = useAlerts();
 

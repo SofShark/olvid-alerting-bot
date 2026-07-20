@@ -26,7 +26,7 @@ const { t } = useI18n();
       @click="$emit('update:modelValue', BundleOutputType.Olvid)"
     >
       <span class="tile-media" aria-hidden="true">
-        <OlvidLogo/>
+        <OlvidLogo />
       </span>
 
       <span class="tile-label">
@@ -51,7 +51,6 @@ const { t } = useI18n();
 </template>
 
 <style scoped>
-
 /* ---------- Shared media container ---------- */
 
 .tile-media {
@@ -65,13 +64,11 @@ const { t } = useI18n();
   justify-content: center;
 
   .btn-pill.active & {
-    color:var(--color-accent)
+    color: var(--color-accent);
   }
 
-  .btn-pill:hover:not(.active) &{
-    color:var(--color-accent)
+  .btn-pill:hover:not(.active) & {
+    color: var(--color-accent);
   }
 }
-
-
 </style>

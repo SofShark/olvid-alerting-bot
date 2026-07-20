@@ -1,7 +1,7 @@
 <script setup lang="ts"></script>
 
 <template>
-  <div class="placeholder" style="align-items: center;">
+  <div class="placeholder" style="align-items: center">
     <div class="placeholder-inner">
       <div class="ph-icon">🔔</div>
       <p>{{ $t("index.placeholder") }}</p>
@@ -17,7 +17,6 @@
 </template>
 
 <style scoped>
-
 .placeholder {
   margin: var(--space-3);
   height: 100%;
@@ -32,7 +31,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
- 
+
   color: var(--color-text-faint);
 }
 .ph-icon {

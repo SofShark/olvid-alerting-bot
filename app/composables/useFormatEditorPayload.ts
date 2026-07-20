@@ -22,9 +22,7 @@ import {
  * script") lives in one file instead of being split across composable +
  * container.
  */
-export const useFormatEditorPayload = (
-  getAlertId: () => number | null,
-) => {
+export const useFormatEditorPayload = (getAlertId: () => number | null) => {
   const jsonPayload = ref("{}");
   const lastPayloadLoading = ref(false);
   const lastPayloadMissing = ref(false);
@@ -49,7 +47,11 @@ export const useFormatEditorPayload = (
   const formatJson = () => {
     try {
       if (!jsonPayload.value.trim()) return;
-      jsonPayload.value = JSON.stringify(JSON.parse(jsonPayload.value), null, 2);
+      jsonPayload.value = JSON.stringify(
+        JSON.parse(jsonPayload.value),
+        null,
+        2,
+      );
     } catch {
       alert("Invalid JSON: Cannot prettify.");
     }

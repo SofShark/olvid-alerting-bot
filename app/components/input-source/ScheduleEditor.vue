@@ -139,7 +139,6 @@ const onAdvancedInput = (raw: string) => {
     advancedError.value = (e as Error).message || "Invalid cron expression";
   }
 };
-
 </script>
 
 <template>
@@ -147,24 +146,28 @@ const onAdvancedInput = (raw: string) => {
     <!-- BASIC: minute / hour / daily controls. -->
     <div v-if="mode === 'basic'" class="interval-row">
       <template v-if="!isDaily">
-        <span class="field-hint">{{ $t("alertParamsEditor.interval.every") }}</span>
+        <span class="field-hint">{{
+          $t("alertParamsEditor.interval.every")
+        }}</span>
         <input
           type="number"
           :value="basicValue"
           min="1"
           class="field-input interval-number"
           @input="onValueInput(($event.target as HTMLInputElement).value)"
-        >
+        />
       </template>
 
       <template v-else>
-        <span class="interval-label">{{ $t("alertParamsEditor.interval.at") }}</span>
+        <span class="interval-label">{{
+          $t("alertParamsEditor.interval.at")
+        }}</span>
         <input
           type="time"
           :value="dailyAt"
           class="field-input interval-time"
           @input="onDailyAtInput(($event.target as HTMLInputElement).value)"
-        >
+        />
       </template>
 
       <Select
@@ -187,12 +190,11 @@ const onAdvancedInput = (raw: string) => {
         autocomplete="off"
         placeholder="* * * * *"
         @input="onAdvancedInput(($event.target as HTMLInputElement).value)"
-      >
+      />
       <div class="cron-legend" aria-hidden="true">
-        <span>minute</span><span class="sep">·</span>
-        <span>hour</span><span class="sep">·</span>
-        <span>day-of-month</span><span class="sep">·</span>
-        <span>month</span><span class="sep">·</span>
+        <span>minute</span><span class="sep">·</span> <span>hour</span
+        ><span class="sep">·</span> <span>day-of-month</span
+        ><span class="sep">·</span> <span>month</span><span class="sep">·</span>
         <span>day-of-week</span>
       </div>
       <p v-if="advancedError" class="cron-error">⚠ {{ advancedError }}</p>
@@ -248,8 +250,7 @@ const onAdvancedInput = (raw: string) => {
 }
 .cron-input.is-invalid {
   border-color: var(--color-danger);
-  box-shadow: 0 0 0 2px
-    color-mix(in srgb, var(--color-danger) 18%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-danger) 18%, transparent);
 }
 .cron-legend {
   display: flex;
@@ -261,11 +262,12 @@ const onAdvancedInput = (raw: string) => {
   letter-spacing: 0.3px;
   padding-left: var(--space-1);
 }
-.cron-legend .sep { opacity: 0.5; }
+.cron-legend .sep {
+  opacity: 0.5;
+}
 .cron-error {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--color-danger-text);
 }
-
 </style>

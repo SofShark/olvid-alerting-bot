@@ -98,11 +98,7 @@ export const conditionEvaluator = {
    * @param baseline      Optional previous-poll snapshot for `changed` comparisons.
    *                      Omit for previews; required server-side for accurate Changed evaluation.
    */
-  evaluate(
-    rawCondition: any,
-    payload: any,
-    baseline?: any,
-  ): EvaluationResult {
+  evaluate(rawCondition: any, payload: any, baseline?: any): EvaluationResult {
     const condition = migrateCondition(rawCondition);
 
     // No-condition case — fires every poll cycle by definition.
@@ -257,7 +253,13 @@ export const conditionEvaluator = {
         o.observed,
         o.baseline,
       );
-      return { path: o.path, fired, observed: o.observed, baseline: o.baseline, detail };
+      return {
+        path: o.path,
+        fired,
+        observed: o.observed,
+        baseline: o.baseline,
+        detail,
+      };
     });
 
     // "All of N" = every concrete (post-expansion) path must fire — the

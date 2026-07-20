@@ -5,10 +5,10 @@
 // (`scheduler`) groups the public methods. Types and constants stay as
 // named exports since they're data, not service methods.
 //
-// Why cron: one field models every cadence the alert can have 
+// Why cron: one field models every cadence the alert can have
 //
 // The wizard exposes the three friendly modes that cover the common cases (every N minutes, every N
-// hours, daily at HH:MM) and serialises them through `modeToCron`. The reverse, `cronToMode`, classifies a 
+// hours, daily at HH:MM) and serialises them through `modeToCron`. The reverse, `cronToMode`, classifies a
 // stored cron back into one of those patterns. Anything outside those three patterns reads back as
 // 'custom' — display-only, no editor for it (yet).
 //

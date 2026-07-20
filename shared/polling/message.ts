@@ -64,7 +64,7 @@ export function buildPollingDefaultMessage(
   const result = conditionEvaluator.evaluate(cond, payload, baseline);
 
   // `**title**` is Olvid's bold marker; mailClient strips it before send
-  // so mail readers see plain title. 
+  // so mail readers see plain title.
   const header = `📡 **${title}**`;
 
   if (result.kind === ConditionKind.None) {

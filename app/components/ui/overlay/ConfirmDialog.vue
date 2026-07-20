@@ -47,7 +47,7 @@ defineEmits<{
 
 <template>
   <Modal :open="open" :size="size" @close="$emit('cancel')">
-    <h4 >{{ title }}</h4>
+    <h4>{{ title }}</h4>
     <p v-if="message">{{ message }}</p>
 
     <div class="overlay-actions">
@@ -77,7 +77,6 @@ defineEmits<{
 </template>
 
 <style scoped>
-
 .dialog-extra {
   display: flex;
   gap: var(--space-3);

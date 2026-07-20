@@ -60,7 +60,13 @@ const showKey = () => !props.isRoot && !props.isArrayItem;
     <!-- OBJECT / ARRAY -->
     <template v-if="isBranch">
       <div class="line" :style="{ paddingLeft: `${depth * 18}px` }">
-        <span class="chevron" :class="{ collapsed: !expanded }" @click="expanded = !expanded">  ▼   </span>
+        <span
+          class="chevron"
+          :class="{ collapsed: !expanded }"
+          @click="expanded = !expanded"
+        >
+          ▼
+        </span>
 
         <template v-if="showKey()">
           <span class="key" @click="emit('select', path)"
@@ -140,7 +146,7 @@ const showKey = () => !props.isRoot && !props.isArrayItem;
   cursor: pointer;
 }
 
-.chevron.collapsed{
+.chevron.collapsed {
   transform: rotate(-90deg);
 }
 

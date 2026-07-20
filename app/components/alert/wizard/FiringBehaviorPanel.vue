@@ -41,11 +41,17 @@ const datapointsM = ref(1);
 // N cannot exceed M — clamp on input so the sentence never reads
 // "3 of 2".
 function onNInput(e: Event) {
-  const v = Math.max(1, Math.min(10, Number((e.target as HTMLInputElement).value) || 1));
+  const v = Math.max(
+    1,
+    Math.min(10, Number((e.target as HTMLInputElement).value) || 1),
+  );
   datapointsN.value = Math.min(v, datapointsM.value);
 }
 function onMInput(e: Event) {
-  const v = Math.max(1, Math.min(10, Number((e.target as HTMLInputElement).value) || 1));
+  const v = Math.max(
+    1,
+    Math.min(10, Number((e.target as HTMLInputElement).value) || 1),
+  );
   datapointsM.value = v;
   if (datapointsN.value > v) datapointsN.value = v;
 }
@@ -57,7 +63,9 @@ function onMInput(e: Event) {
     <div class="wcard-body">
       <!-- Trigger mode row -->
       <div v-if="showTriggerMode" class="wcard-row">
-        <span class="wcard-label">{{ $t("wizard.firingBehavior.triggerModeLabel") }}</span>
+        <span class="wcard-label">{{
+          $t("wizard.firingBehavior.triggerModeLabel")
+        }}</span>
         <TriggerModePicker v-model="model" :variant="variant" />
       </div>
 
@@ -66,7 +74,9 @@ function onMInput(e: Event) {
            sentence via named slots {n} and {m}, so translators can
            reorder the placeholders as needed without breaking the UI. -->
       <div class="wcard-row">
-        <span class="wcard-label">{{ $t("wizard.firingBehavior.datapointsLabel") }}</span>
+        <span class="wcard-label">{{
+          $t("wizard.firingBehavior.datapointsLabel")
+        }}</span>
         <div class="datapoints">
           <i18n-t
             keypath="wizard.firingBehavior.datapointsSentence"
@@ -81,7 +91,7 @@ function onMInput(e: Event) {
                 class="dp-input"
                 :value="datapointsN"
                 @input="onNInput"
-              >
+              />
             </template>
             <template #m>
               <input
@@ -91,10 +101,12 @@ function onMInput(e: Event) {
                 class="dp-input"
                 :value="datapointsM"
                 @input="onMInput"
-              >
+              />
             </template>
           </i18n-t>
-          <p class="datapoints-hint">{{ $t("wizard.firingBehavior.datapointsHint") }}</p>
+          <p class="datapoints-hint">
+            {{ $t("wizard.firingBehavior.datapointsHint") }}
+          </p>
         </div>
       </div>
     </div>

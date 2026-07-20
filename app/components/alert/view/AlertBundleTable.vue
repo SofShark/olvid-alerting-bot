@@ -17,7 +17,9 @@ defineEmits<{ (e: "edit-bundle", index: number): void }>();
   <div class="data-block">
     <h4 class="section-eyebrow">
       Bundles
-      <span v-if="bundles.length > 0" class="eyebrow-count">{{ bundles.length }}</span>
+      <span v-if="bundles.length > 0" class="eyebrow-count">{{
+        bundles.length
+      }}</span>
     </h4>
 
     <div v-if="bundles.length === 0" class="bundles-hint">

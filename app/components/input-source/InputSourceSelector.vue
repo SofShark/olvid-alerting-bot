@@ -36,8 +36,7 @@ const filtered = computed(() => {
   // Match against both raw enum value AND translated label so users can
   // type "Data Polling" and still find Source.Polling.
   return sources.filter(
-    (s) =>
-      s.toLowerCase().includes(q) || labelFor(s).toLowerCase().includes(q),
+    (s) => s.toLowerCase().includes(q) || labelFor(s).toLowerCase().includes(q),
   );
 });
 
@@ -69,14 +68,9 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         <span class="check">✔</span>
         <strong>{{ labelFor(modelValue) }}</strong>
       </div>
-      <button
-        type="button"
-        class="btn-change"
-        @click.stop="clear"
-      >
+      <button type="button" class="btn-change" @click.stop="clear">
         {{ $t("inputSourceSelector.changeButton") }}
       </button>
-      
     </div>
     <div v-else ref="containerRef" class="search-wrap">
       <input
@@ -85,7 +79,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         :placeholder="$t('inputSourceSelector.searchPlaceholder')"
         class="search-input"
         @focus="isDropdownOpen = true"
-      >
+      />
       <div v-if="isDropdownOpen" class="dropdown">
         <div
           v-for="s in filtered"

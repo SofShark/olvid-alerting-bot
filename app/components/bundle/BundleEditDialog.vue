@@ -95,9 +95,7 @@ const normalizeToKind = (b: BundleModel): BundleModel => {
   const firstKind = b.outputs[0]?.type;
   if (!firstKind) return b;
   const filtered = b.outputs.filter((o) => o.type === firstKind);
-  return filtered.length === b.outputs.length
-    ? b
-    : { ...b, outputs: filtered };
+  return filtered.length === b.outputs.length ? b : { ...b, outputs: filtered };
 };
 
 const draft = ref<BundleModel | null>(null);
@@ -128,9 +126,7 @@ watch(
       outputsByKind.value = {};
       return;
     }
-    const seed = b
-      ? { ...b, outputs: [...b.outputs] }
-      : blankBundle();
+    const seed = b ? { ...b, outputs: [...b.outputs] } : blankBundle();
     draft.value = normalizeFormat(normalizeToKind(seed));
     activeKind.value = draft.value.outputs[0]?.type ?? null;
     // Seed the stash from whatever kind the bundle opened with. Other
@@ -152,7 +148,9 @@ const isCreate = computed(() => props.index === null);
 const modalTitle = computed(() =>
   isCreate.value
     ? t("editor.bundleModal.newTitle")
-    : t("editor.bundleModal.title", { n: bundleName.value || t("editor.bundleModal.untitled") }),
+    : t("editor.bundleModal.title", {
+        n: bundleName.value || t("editor.bundleModal.untitled"),
+      }),
 );
 
 // ── Draft field bindings ──────────────────────────────────────────────────
@@ -291,7 +289,12 @@ const onSave = () => {
 </script>
 
 <template>
-  <Modal :open="open" size="full" :close-on-backdrop="false" @close="requestClose">
+  <Modal
+    :open="open"
+    size="full"
+    :close-on-backdrop="false"
+    @close="requestClose"
+  >
     <div class="bundle-edit-modal">
       <FormatEditor
         v-if="isEditorOpen && draft"
@@ -319,7 +322,7 @@ const onSave = () => {
             type="text"
             class="field-input"
             :placeholder="`Bundle ${(index ?? alertContext.bundles.length) + 1}`"
-          >
+          />
         </div>
 
         <!-- Channel picker — one bundle, one kind. -->
@@ -357,9 +360,7 @@ const onSave = () => {
 
         <!-- Format + optional custom-script editor + preview. -->
         <div class="field">
-          <label class="field-label">{{
-            $t("bundleRow.fields.format")
-          }}</label>
+          <label class="field-label">{{ $t("bundleRow.fields.format") }}</label>
           <div class="format-row">
             <Select
               v-model="formating"

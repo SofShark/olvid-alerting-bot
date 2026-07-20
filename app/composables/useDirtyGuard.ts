@@ -35,8 +35,8 @@ export const useDirtyGuard = <T>(formRef: Ref<T>) => {
     bypass.value = true;
   };
 
-  // onBeforeRouteLeave fires when the route definition changes; 
-  // onBeforeRouteUpdate when the same definition is reused with different params/query. 
+  // onBeforeRouteLeave fires when the route definition changes;
+  // onBeforeRouteUpdate when the same definition is reused with different params/query.
   // Both must be intercepted to cover sidebar nav and intra-list switching.
   const guardNavigation = (to: RouteLocationNormalized) => {
     if (bypass.value) {

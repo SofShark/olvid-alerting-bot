@@ -51,7 +51,6 @@ const initials = (title: string): string => {
         :aria-expanded="!collapsed"
         @click="toggle"
       >
-    
         <FontAwesomeIcon
           class="chev-icon"
           :icon="['fas', 'chevron-left']"
@@ -190,7 +189,7 @@ const initials = (title: string): string => {
     position: relative;
     justify-content: center;
     border-radius: 0;
-    padding: 0; 
+    padding: 0;
   }
 }
 

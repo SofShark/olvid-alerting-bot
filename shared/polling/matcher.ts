@@ -54,7 +54,9 @@ export function isStatusMatchValid(match: StatusMatch | undefined): boolean {
   if (!match) return false;
   switch (match.kind) {
     case "codes":
-      return match.codes.length > 0 && match.codes.every((c) => c >= 100 && c <= 599);
+      return (
+        match.codes.length > 0 && match.codes.every((c) => c >= 100 && c <= 599)
+      );
     case "range":
       return match.range in RANGE_BOUNDS;
     case "not-ok":

@@ -28,13 +28,10 @@ import {
   faUserGear,
   faLeftRight,
   faPlay,
-  faEnvelope
+  faEnvelope,
 } from "@fortawesome/free-solid-svg-icons";
 
-import { 
-  faCircle, 
-
-} from "@fortawesome/free-regular-svg-icons";
+import { faCircle } from "@fortawesome/free-regular-svg-icons";
 
 import { faGithub } from "@fortawesome/free-brands-svg-icons";
 
@@ -76,7 +73,7 @@ const icons: IconDefinition[] = [
   faUserGear,
   faLeftRight,
   faPlay,
-  faEnvelope
+  faEnvelope,
 ];
 
 library.add(...icons);

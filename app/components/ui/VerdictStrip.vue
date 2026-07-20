@@ -45,7 +45,11 @@ defineProps<{
 }
 .verdict-strip.ok {
   background: color-mix(in srgb, var(--color-success, #22c55e) 8%, transparent);
-  border-color: color-mix(in srgb, var(--color-success, #22c55e) 30%, transparent);
+  border-color: color-mix(
+    in srgb,
+    var(--color-success, #22c55e) 30%,
+    transparent
+  );
   color: var(--color-text-primary);
 }
 .verdict-strip.ko {

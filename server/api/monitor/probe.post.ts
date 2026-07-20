@@ -6,9 +6,7 @@
 // No condition evaluation, no persistence — pure side-effect-free probe.
 // 4xx / 5xx are LEGITIMATE outcomes here, same as in the dispatcher.
 
-import {
-  MONITOR_BODY_PREVIEW_MAX,
-} from "~~/server/services/dispatchers/monitoringStrategy";
+import { MONITOR_BODY_PREVIEW_MAX } from "~~/server/services/dispatchers/monitoringStrategy";
 import type { MonitorProbePayload } from "#shared/types/monitor";
 import { getErrorMessage } from "~/utils/errors";
 
@@ -36,9 +34,8 @@ export default defineEventHandler(async (event): Promise<ProbeResponse> => {
 
     return {
       ok: true,
-      
-      probe:{
 
+      probe: {
         status: res.status,
         statusText: res.statusText,
         ok: res.ok,
@@ -55,7 +52,7 @@ export default defineEventHandler(async (event): Promise<ProbeResponse> => {
         contentLength: res.headers.get("content-length")
           ? Number(res.headers.get("content-length"))
           : null,
-      }
+      },
     };
   } catch (error: unknown) {
     return { ok: false, error: getErrorMessage(error, "Fetch failed") };

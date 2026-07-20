@@ -38,7 +38,7 @@ const {
   (v) => emit("add-path", v),
 );
 
-const {t} = useI18n();
+const { t } = useI18n();
 const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
 </script>
 
@@ -55,15 +55,11 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
         </span>
         <!-- Hint has two code-styled snippets — kept as one translatable
              string via i18n-t children. -->
-        <p class="rule-hint"/>
+        <p class="rule-hint" />
       </div>
 
       <div class="watched-actions">
-        <button
-          type="button"
-          class="btn btn-ghost btn-sm"
-          @click="startAdding"
-        >
+        <button type="button" class="btn btn-ghost btn-sm" @click="startAdding">
           <FontAwesomeIcon :icon="['fas', 'pencil']" class="icon" />
           {{ $t("conditionEditor.watchedFields.typePath") }}
         </button>
@@ -103,7 +99,7 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
           :placeholder="$t('conditionEditor.watchedFields.inputPlaceholder')"
           @keydown.enter.prevent="commitAdd"
           @keydown.escape="cancelAdd"
-        >
+        />
         <button
           type="button"
           class="chip-input-done"
@@ -217,7 +213,9 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  transition: border-color 0.15s, background-color 0.15s;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
 }
 .chip:hover {
   border-color: var(--color-border-strong);
@@ -237,7 +235,9 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
   padding: 0 2px;
   cursor: pointer;
   opacity: 0.5;
-  transition: opacity 0.15s, color 0.15s;
+  transition:
+    opacity 0.15s,
+    color 0.15s;
 }
 .chip-x:hover {
   color: var(--color-danger);
@@ -281,7 +281,9 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
   color: var(--color-text-muted);
   padding: 0 var(--space-2);
   font-size: var(--text-md);
-  transition: background-color 0.12s, color 0.12s;
+  transition:
+    background-color 0.12s,
+    color 0.12s;
 }
 .chip-input-done:hover {
   background: var(--color-accent-soft);

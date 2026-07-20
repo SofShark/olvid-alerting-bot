@@ -16,29 +16,23 @@ defineEmits<{ (e: "update:modelValue", v: ConditionKind): void }>();
 
 <template>
   <div class="btn-pill-group">
-    <button 
-      type="button" 
-      class="btn-pill" 
-      :class="{ active: modelValue === ConditionKind.None }" 
+    <button
+      type="button"
+      class="btn-pill"
+      :class="{ active: modelValue === ConditionKind.None }"
       @click="$emit('update:modelValue', ConditionKind.None)"
     >
-      <input
-        type="radio"
-        :checked="modelValue === ConditionKind.None"
-      >
+      <input type="radio" :checked="modelValue === ConditionKind.None" />
       <span>{{ $t("conditionEditor.mode.none") }}</span>
     </button>
-    <button 
-      type="button" 
-      class="btn-pill" 
+    <button
+      type="button"
+      class="btn-pill"
       :class="{ active: modelValue === ConditionKind.Rule }"
       @click="$emit('update:modelValue', ConditionKind.Rule)"
     >
-      <input
-        type="radio"
-        :checked="modelValue === ConditionKind.Rule"
-      >
+      <input type="radio" :checked="modelValue === ConditionKind.Rule" />
       <span>{{ $t("conditionEditor.mode.rule") }}</span>
-  </button>
+    </button>
   </div>
 </template>

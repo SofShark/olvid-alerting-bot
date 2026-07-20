@@ -47,7 +47,7 @@ watch(
     <p>{{ t("testIntroDialog.body") }}</p>
 
     <label class="dont-show-again">
-      <input v-model="dontShowAgain" type="checkbox">
+      <input v-model="dontShowAgain" type="checkbox" />
       <span>{{ t("testIntroDialog.dontShowAgain") }}</span>
     </label>
 

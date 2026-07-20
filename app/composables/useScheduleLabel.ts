@@ -1,7 +1,7 @@
 import { scheduler } from "#shared/polling/scheduler";
 
 /**
- * Turns a cron expression into a localised human-friendly string. 
+ * Turns a cron expression into a localised human-friendly string.
  * Falls back to "Custom: <cron>" for advanced expressions.
  *
  * Used by AlertInputSummary (view-mode "Polling" row) and any other surface

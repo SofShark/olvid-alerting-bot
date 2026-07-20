@@ -48,10 +48,11 @@ export const useFormatEditorPolling = (
     pollingLoading.value = true;
     pollingError.value = "";
     try {
-      const res = await $fetch<{ ok: boolean; parsed?: unknown; error?: string }>(
-        "/api/poll/retrieve",
-        { method: "POST", body: { url, format } },
-      );
+      const res = await $fetch<{
+        ok: boolean;
+        parsed?: unknown;
+        error?: string;
+      }>("/api/poll/retrieve", { method: "POST", body: { url, format } });
       if (!res.ok) {
         pollingError.value =
           res.error ?? t("formatEditor.errors.failedToRetrieveSource");

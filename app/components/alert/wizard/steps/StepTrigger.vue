@@ -58,7 +58,9 @@ const showFiringBehavior = computed(() => {
 const showTriggerMode = computed(() => {
   if (isMonitoring.value) return true;
   const c = condition.value;
-  return c?.kind === ConditionKind.Rule && c.operator !== ConditionOperator.Changed;
+  return (
+    c?.kind === ConditionKind.Rule && c.operator !== ConditionOperator.Changed
+  );
 });
 
 // v-model target for FiringBehaviorPanel's trigger mode — reads/writes

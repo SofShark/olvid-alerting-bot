@@ -10,9 +10,7 @@ import type { StatusMatch } from "#shared/types/monitor";
 export const useStatusMatchLabel = () => {
   const { t } = useI18n();
 
-  const statusMatchLabel = (
-    match: StatusMatch | undefined | null,
-  ): string => {
+  const statusMatchLabel = (match: StatusMatch | undefined | null): string => {
     if (!match) return "—";
     switch (match.kind) {
       case "codes":

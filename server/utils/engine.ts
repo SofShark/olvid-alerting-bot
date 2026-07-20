@@ -50,7 +50,7 @@ export const pollingEngine = {
       return { ok: !error, url, format, raw, parsed, error };
     } catch (e: any) {
       console.error(
-        "[pollingEngine] parse threw despite internal try/catch:", 
+        "[pollingEngine] parse threw despite internal try/catch:",
         e,
       );
       return {
@@ -66,7 +66,7 @@ export const pollingEngine = {
   async test(alert: any): Promise<RunResult> {
     // alertParams is the new name (post-refactor); fall back to alertParams
     // for any in-flight legacy alert that hasn't been re-saved yet.
-    const params = (alert?.alertParams ?? {}) as PollingParams; 
+    const params = (alert?.alertParams ?? {}) as PollingParams;
     const url = params.url;
     const format = params.format;
     const r = await this.retrieve(url, format);
@@ -99,7 +99,10 @@ export const pollingEngine = {
       // TODO Last alert payload isn't currently being handled for non-webhook
       if (r.parsed !== undefined) {
         try {
-          await alertPayloadRepository.upsertLastAlertPayload(alert.id, r.parsed);
+          await alertPayloadRepository.upsertLastAlertPayload(
+            alert.id,
+            r.parsed,
+          );
         } catch (e: any) {
           console.error(
             "[pollingEngine] failed to persist last payload:",

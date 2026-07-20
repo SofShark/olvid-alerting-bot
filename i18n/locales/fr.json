@@ -199,7 +199,7 @@
       "discussionsEmpty": "— aucune —"
     },
 
-    "schedule":{
+    "schedule": {
       "interval": {
         "everyDay": "tous les {n} jour",
         "everyDays": "tous les {n} jours",
@@ -211,14 +211,11 @@
         "dailyAt": "tous les jours à {time}",
         "empty": "—"
       },
-      "mode":{
-          "basic": "basique",
-          "advanced": "avancé"
+      "mode": {
+        "basic": "basique",
+        "advanced": "avancé"
       }
-        
-    }
-    ,
-
+    },
     "condition": {
       "summaryNone": "Se déclenche à chaque cycle de polling (aucune condition).",
       "summaryRule": "Se déclenche quand {subject} {phrase}.",

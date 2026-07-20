@@ -97,7 +97,10 @@ export const useConditionVerdict = (
       };
     }
     if (!retrieved) {
-      return { ok: false, label: t("conditionEditor.summary.waitingForSource") };
+      return {
+        ok: false,
+        label: t("conditionEditor.summary.waitingForSource"),
+      };
     }
 
     const vs = verdicts.value;
@@ -107,7 +110,10 @@ export const useConditionVerdict = (
     if (isNumericAgg.value) {
       const v = vs[0];
       if (!v) {
-        return { ok: false, label: t("conditionEditor.summary.waitingForSource") };
+        return {
+          ok: false,
+          label: t("conditionEditor.summary.waitingForSource"),
+        };
       }
       return {
         ok: v.fired,

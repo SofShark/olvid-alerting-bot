@@ -28,7 +28,7 @@ const form = defineModel<AlertModel>({ required: true });
 // here (via useSourceBinding), so this is safe.
 const params = computed<MonitorParams>(
   () => form.value.alertParams as MonitorParams,
-); 
+);
 
 // ── Match kind ────────────────────────────────────────────────────────────
 
@@ -39,7 +39,9 @@ const KINDS: Array<{ value: MatchKind; labelKey: string }> = [
   { value: "not-ok", labelKey: "monitorEditor.match.kind.notOk" },
 ];
 
-const currentKind = computed<MatchKind>(() => params.value.match?.kind ?? "not-ok");
+const currentKind = computed<MatchKind>(
+  () => params.value.match?.kind ?? "not-ok",
+);
 
 // Switching kind: preserve fields where they still make sense; otherwise
 // seed a sensible default so the match is always well-formed.
@@ -169,9 +171,8 @@ const summaryLabel = computed(() => {
               type="radio"
               :value="k.value"
               :checked="currentKind === k.value"
-            >
+            />
             <span>{{ $t(k.labelKey) }}</span>
-      
           </button>
         </div>
 
@@ -185,7 +186,9 @@ const summaryLabel = computed(() => {
                 class="chip-x"
                 :title="`Remove ${c}`"
                 @click="removeCode(c)"
-              >✕</button>
+              >
+                ✕
+              </button>
             </span>
             <span v-if="codes.length === 0" class="chips-empty">
               {{ $t("monitorEditor.match.codesEmpty") }}
@@ -202,7 +205,7 @@ const summaryLabel = computed(() => {
               class="field-input"
               :class="{ 'has-error': codesError }"
               @keydown.enter.prevent="addCode"
-            >
+            />
             <button
               type="button"
               class="btn btn-primary btn-sm"
@@ -237,7 +240,6 @@ const summaryLabel = computed(() => {
         <VerdictStrip :ok="isValid" :label="summaryLabel" />
       </div>
     </div>
-
   </div>
 </template>
 

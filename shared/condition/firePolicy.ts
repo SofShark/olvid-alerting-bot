@@ -56,17 +56,13 @@ export const firePolicy = {
       return { fire: true, kind: "alert" };
     }
     if (condition.operator === ConditionOperator.Changed) {
-      return isCurrentlyTrue
-        ? { fire: true, kind: "alert" }
-        : { fire: false };
+      return isCurrentlyTrue ? { fire: true, kind: "alert" } : { fire: false };
     }
 
     const mode = triggerMode ?? TriggerMode.EveryTime;
 
     if (mode === TriggerMode.EveryTime) {
-      return isCurrentlyTrue
-        ? { fire: true, kind: "alert" }
-        : { fire: false };
+      return isCurrentlyTrue ? { fire: true, kind: "alert" } : { fire: false };
     }
 
     // Rising edge (false → true) — alert fires for OneShot and WithRecovery.

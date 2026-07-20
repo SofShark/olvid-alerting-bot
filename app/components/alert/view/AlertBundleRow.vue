@@ -86,10 +86,9 @@ const destSummary = computed(() => {
       <span class="row-meta">
         <span class="meta-format">{{ formatLabel(bundle.formating) }}</span>
         <span class="meta-sep" aria-hidden="true">·</span>
-        <span
-          class="meta-dest"
-          :class="{ 'meta-warn': destCount === 0 }"
-        >{{ destSummary }}</span>
+        <span class="meta-dest" :class="{ 'meta-warn': destCount === 0 }">{{
+          destSummary
+        }}</span>
         <template v-if="hasWarning && destCount > 0">
           <span class="meta-sep" aria-hidden="true">·</span>
           <span class="meta-warn">{{ status.label }}</span>
@@ -129,7 +128,9 @@ const destSummary = computed(() => {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  transition: background-color .15s, border-color .15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
 }
 .bundle-row:hover {
   background: var(--color-bg-card-soft);
@@ -142,7 +143,7 @@ const destSummary = computed(() => {
   gap: 2px;
   min-width: 0;
 }
-.row-title { 
+.row-title {
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--color-text-primary);
@@ -159,10 +160,19 @@ const destSummary = computed(() => {
   color: var(--color-text-dim);
   min-width: 0;
 }
-.meta-format { color: var(--color-text-secondary); }
-.meta-dest   { font-variant-numeric: tabular-nums; }
-.meta-sep    { color: var(--color-text-faint); }
-.meta-warn   { color: var(--color-warning-text); font-weight: 500; }
+.meta-format {
+  color: var(--color-text-secondary);
+}
+.meta-dest {
+  font-variant-numeric: tabular-nums;
+}
+.meta-sep {
+  color: var(--color-text-faint);
+}
+.meta-warn {
+  color: var(--color-warning-text);
+  font-weight: 500;
+}
 
 .row-actions {
   display: inline-flex;
@@ -180,7 +190,9 @@ const destSummary = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background-color .15s, color .15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 .row-edit:hover {
   background: var(--color-border-subtle);

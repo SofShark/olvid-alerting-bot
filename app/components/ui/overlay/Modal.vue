@@ -61,10 +61,12 @@ const FOCUSABLE_SELECTOR = [
 const getFocusable = (): HTMLElement[] => {
   const box = boxRef.value;
   if (!box) return [];
-  return Array.from(box.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
-    // offsetParent === null filters out display:none / hidden ancestors;
-    // it's not perfect (misses visibility:hidden) but good enough here.
-    .filter((el) => el.offsetParent !== null || el === document.activeElement);
+  return (
+    Array.from(box.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
+      // offsetParent === null filters out display:none / hidden ancestors;
+      // it's not perfect (misses visibility:hidden) but good enough here.
+      .filter((el) => el.offsetParent !== null || el === document.activeElement)
+  );
 };
 
 const onBackdrop = () => {

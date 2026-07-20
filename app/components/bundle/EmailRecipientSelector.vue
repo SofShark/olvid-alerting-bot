@@ -137,7 +137,7 @@ const initial = (address: string): string => {
         @keydown="onKeydown"
         @input="onInput"
         @blur="commit"
-      >
+      />
       <p v-if="error" class="error-msg">{{ error }}</p>
     </div>
   </div>
@@ -210,7 +210,9 @@ const initial = (address: string): string => {
   align-items: center;
   justify-content: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 .strip-remove:hover {
   background: var(--color-danger, #ef4444);
@@ -253,7 +255,8 @@ const initial = (address: string): string => {
   border-color: var(--color-danger, #ef4444);
 }
 .text-input.has-error:focus {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger, #ef4444) 20%, transparent);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--color-danger, #ef4444) 20%, transparent);
 }
 .text-input::placeholder {
   color: var(--color-border-default);

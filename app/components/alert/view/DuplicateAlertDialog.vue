@@ -74,7 +74,7 @@ function onConfirm() {
         class="field-input"
         :placeholder="t('duplicateModal.titlePlaceholder')"
         @keydown.enter.prevent="onConfirm"
-      >
+      />
     </div>
 
     <div class="overlay-actions">

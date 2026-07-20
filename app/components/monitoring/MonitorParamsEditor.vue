@@ -32,44 +32,41 @@ const scheduleMode = ref<"basic" | "advanced">("basic");
 
 <template>
   <div class="wcard">
-  <div class="wcard-head">
-    {{ $t("wizard.fieldLabels.monitorConfiguration") }}
-  </div>
-  <div class="wcard-body">
-    <!-- URL -->
-    <div class="wcard-row">
-      <label class="wcard-label">
-        {{ $t("monitorEditor.url.label") }}
-        <span class="field-required">*</span>
-      </label>
-      <input
-        type="url"
-        :value="p.url ?? ''"
-        :placeholder="$t('monitorEditor.url.placeholder')"
-        class="field-input"
-        @input="set('url', ($event.target as HTMLInputElement).value)"
-      >
-      <span class="field-hint">{{ $t("monitorEditor.url.hint") }}</span>
+    <div class="wcard-head">
+      {{ $t("wizard.fieldLabels.monitorConfiguration") }}
     </div>
+    <div class="wcard-body">
+      <!-- URL -->
+      <div class="wcard-row">
+        <label class="wcard-label">
+          {{ $t("monitorEditor.url.label") }}
+          <span class="field-required">*</span>
+        </label>
+        <input
+          type="url"
+          :value="p.url ?? ''"
+          :placeholder="$t('monitorEditor.url.placeholder')"
+          class="field-input"
+          @input="set('url', ($event.target as HTMLInputElement).value)"
+        />
+        <span class="field-hint">{{ $t("monitorEditor.url.hint") }}</span>
+      </div>
 
-    <!-- Schedule — same widget as polling; label + mode toggle on one row. -->
-    <div class="wcard-row">
-      
+      <!-- Schedule — same widget as polling; label + mode toggle on one row. -->
+      <div class="wcard-row">
         <label class="wcard-label">
           {{ $t("monitorEditor.interval.label") }}
           <span class="field-required">*</span>
           <ScheduleModeToggle v-model="scheduleMode" />
         </label>
-        
-     
-      <ScheduleEditor
-        :model-value="p.schedule ?? ''"
-        :mode="scheduleMode"
-        @update:model-value="set('schedule', $event)"
-        @update:mode="scheduleMode = $event"
-      />
+
+        <ScheduleEditor
+          :model-value="p.schedule ?? ''"
+          :mode="scheduleMode"
+          @update:model-value="set('schedule', $event)"
+          @update:mode="scheduleMode = $event"
+        />
+      </div>
     </div>
   </div>
-  </div>
 </template>
-

@@ -44,13 +44,13 @@ export type TriggerMode = (typeof TriggerMode)[keyof typeof TriggerMode];
 export type PollingParams = {
   url: string;
   format: PollingFormat;
-  
-  //Cron expression describing the polling cadence. 
+
+  //Cron expression describing the polling cadence.
   schedule: string;
   condition: PollingCondition;
-  // When the alert should re-fire. default = EveryTime 
+  // When the alert should re-fire. default = EveryTime
   triggerMode?: TriggerMode;
-  
+
   // Runtime engine state — not user-edited ─────────────────────────────
   _lastHash?: string;
   _baseline?: unknown;
