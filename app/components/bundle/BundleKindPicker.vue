@@ -42,7 +42,7 @@ const { t } = useI18n();
       @click="$emit('update:modelValue', BundleOutputType.Mail)"
     >
       <span class="tile-media" aria-hidden="true">
-        <FontAwesomeIcon :icon="['fas', 'envelope']" />
+        <LucideMail :stroke-width="3"/>
       </span>
 
       <span>{{ t("bundleKind.mail") }}</span>

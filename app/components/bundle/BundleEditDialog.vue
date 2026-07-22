@@ -43,7 +43,7 @@ const props = defineProps<{
   index: number | null; //     null              ⇒ create mode
   alertContext: AlertModel;
   alertParams?: AlertParams;
-  inputSource: string;
+  inputSource?: string;
   availableDiscussions: DiscussionModel[];
   discussionsLoading: boolean;
   saving?: boolean;
@@ -374,7 +374,7 @@ const onSave = () => {
               class="btn btn-secondary btn-sm"
               @click="isEditorOpen = true"
             >
-              <FontAwesomeIcon :icon="['fas', 'pencil']" />
+               <LucidePencil />
               {{ $t("bundleRow.scriptButton") }}
             </button>
           </div>

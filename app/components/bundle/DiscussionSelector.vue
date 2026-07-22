@@ -170,10 +170,10 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
           </div>
           <span class="item-title">{{ d.title }}</span>
           <span v-if="isSelected(d)" class="item-check" aria-hidden="true">
-            <FontAwesomeIcon :icon="['fas', 'circle-check']" />
+            <LucideCircleCheck />
           </span>
           <span v-else class="item-check" aria-hidden="true">
-            <FontAwesomeIcon :icon="['far', 'circle']" />
+            <LucideCircle />
           </span>
         </div>
         <div v-if="filtered.length === 0" class="dropdown-empty">

@@ -1,8 +1,1 @@
-# .dockerignore
-/.nuxt
-/.output
-/node_modules
-#.env
-dist
-.gitignore
-README.md
+.dockerignore

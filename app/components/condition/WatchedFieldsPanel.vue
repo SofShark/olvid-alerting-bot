@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { LucideSquareMousePointer } from '@lucide/vue';
+
 /*
   Watched-fields section of the polling ConditionEditor:
 
@@ -60,7 +62,7 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
 
       <div class="watched-actions">
         <button type="button" class="btn btn-ghost btn-sm" @click="startAdding">
-          <FontAwesomeIcon :icon="['fas', 'pencil']" class="icon" />
+          <LucidePencil class="icon" />
           {{ $t("conditionEditor.watchedFields.typePath") }}
         </button>
         <button
@@ -68,7 +70,7 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
           class="btn btn-ghost btn-sm"
           @click="emit('open-picker')"
         >
-          <FontAwesomeIcon :icon="['fas', 'diagram-project']" class="icon" />
+          <LucideSquareMousePointer class="icon" />
           {{ $t("conditionEditor.watchedFields.pickFromSource") }}
         </button>
       </div>

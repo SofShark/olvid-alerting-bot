@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { ref } from "vue";
 
 const props = defineProps<{ url: string }>();
@@ -33,7 +32,7 @@ const copyWebhook = () => {
     >
       <span v-if="copied"> ✓ </span>
       <span v-else>
-        <FontAwesomeIcon class="clipboard-icon" :icon="['fas', 'copy']" />
+        <LucideCopy class="clipboard-icon" />
       </span>
     </button>
   </div>

@@ -72,10 +72,9 @@ export default defineNuxtConfig({
     },
   },
 
-  modules: ["@nuxt/ui", "@nuxtjs/i18n", "@nuxt/eslint"],
+  modules: ["@nuxtjs/i18n", "@nuxt/eslint"],
   i18n: {
-    bundle: {
-      optimizeTranslationDirective: false,
+    bundle: { 
     },
     locales: [
       { code: "en", name: "English", file: "en.json", language: "en-US" },

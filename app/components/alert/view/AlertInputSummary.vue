@@ -19,7 +19,7 @@ import { ConditionKind, ConditionOperator } from "#shared/types/condition";
 
 const props = defineProps<{
   inputTitle: string; //TODO deprecated
-  source: string;
+  source?: string;
   alertParams?: AlertParams;
   webhookUrl?: string;
 }>();

@@ -14,3 +14,13 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* Lucide icons — ship at 24×24 by default. Scale to the surrounding text
+ * so they blend into buttons/labels the way FontAwesome used to (which
+ * defaulted to 1em). Override per instance with `width`/`height` or the
+ * `:size` prop when you need something specific. */
+svg.lucide {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em; /* nudge to align with text baseline */
+}

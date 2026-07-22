@@ -67,10 +67,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
       :aria-label="t('alertActions.moreActions')"
       @click="toggle"
     >
-      <FontAwesomeIcon
-        :icon="['fas', 'ellipsis-vertical']"
-        class="options-icon"
-      />
+      <LucideEllipsisVertical class="options-icon" />
     </button>
 
     <div v-if="open" class="options-dropdown" role="menu">
@@ -85,7 +82,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         "
       >
         {{ t("alertActions.testNow") }}
-        <FontAwesomeIcon :icon="['fas', 'play']" />
+        <LucidePlay />
       </button>
 
       <button
@@ -98,7 +95,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         "
       >
         {{ t("alertActions.duplicate") }}
-        <FontAwesomeIcon :icon="['fas', 'copy']" />
+        <LucideCopy />
       </button>
 
       <!-- Placeholder actions for features not yet wired. They emit so a
@@ -113,7 +110,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         "
       >
         {{ t("alertActions.manageAccess") }}
-        <FontAwesomeIcon :icon="['fas', 'user-gear']" />
+        <LucideUserCog />  
       </button>
 
       <button
@@ -126,7 +123,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         "
       >
         {{ t("alertActions.moveToProject") }}
-        <FontAwesomeIcon :icon="['fas', 'left-right']" />
+        <LucideArrowLeftRight />  
       </button>
 
       <div class="options-separator" />
@@ -141,7 +138,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         "
       >
         {{ t("button.delete") }}
-        <FontAwesomeIcon :icon="['fas', 'trash-can']" />
+        <LucideTrash2 />  
       </button>
     </div>
   </div>

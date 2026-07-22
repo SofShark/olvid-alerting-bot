@@ -23,11 +23,17 @@ defineProps<{
 
 <template>
   <div class="verdict-strip" :class="ok ? 'ok' : 'ko'" role="status">
-    <FontAwesomeIcon
-      :icon="['fas', ok ? 'circle-check' : 'circle-info']"
+    <LucideCircleCheck
+      v-if="ok"
       class="verdict-icon"
       aria-hidden="true"
     />
+    <LucideInfo
+      v-else
+      class="verdict-icon"
+      aria-hidden="true"
+    />
+
     <span class="verdict-label">{{ label }}</span>
   </div>
 </template>

@@ -51,11 +51,11 @@ const initials = (title: string): string => {
         :aria-expanded="!collapsed"
         @click="toggle"
       >
-        <FontAwesomeIcon
+        <LucideChevronLeft
           class="chev-icon"
-          :icon="['fas', 'chevron-left']"
           aria-hidden="true"
         />
+
       </button>
     </div>
 

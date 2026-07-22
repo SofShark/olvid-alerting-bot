@@ -103,7 +103,7 @@ const destSummary = computed(() => {
         title="Edit bundle"
         @click="$emit('edit', index)"
       >
-        <FontAwesomeIcon :icon="['fas', 'pencil']" />
+        <LucidePencil :stroke-weight="2.5"/>
       </button>
       <button
         v-if="removable"

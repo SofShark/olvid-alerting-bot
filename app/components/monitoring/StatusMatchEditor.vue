@@ -72,9 +72,7 @@ const codes = computed<number[]>(() =>
 );
 
 function addCode() {
-  const raw = codesInput.value.trim();
-  if (!raw) return;
-  const n = Number(raw);
+  const n = Number(codesInput.value);
   if (!Number.isInteger(n) || n < 100 || n > 599) {
     codesError.value = "Must be an HTTP code between 100 and 599.";
     return;
@@ -209,14 +207,12 @@ const summaryLabel = computed(() => {
             <button
               type="button"
               class="btn btn-primary btn-sm"
-              :disabled="!codesInput.trim()"
               @click="addCode"
             >
               {{ $t("monitorEditor.match.addCode") }}
             </button>
           </div>
           <div v-if="codesError" class="input-error">{{ codesError }}</div>
-          <p class="hint">{{ $t("monitorEditor.match.codesHint") }}</p>
         </div>
 
         <!-- Range editor -->
