@@ -15,6 +15,7 @@
 
 import {
   Pencil,
+  SquarePen,
   Trash2,
   ChevronLeft,
   ChevronRight,
@@ -28,8 +29,6 @@ import {
   ArrowLeftRight,
   Play,
   Mail,
-  LucideSquareMousePointer,
-  LucideMoon,
   SquareMousePointer,
   Moon,
   Sun,
@@ -38,6 +37,7 @@ import {
 
 const icons = {
   LucidePencil: Pencil,
+  LucideSquarePen: SquarePen,
   LucideTrash2: Trash2,
   LucideChevronLeft: ChevronLeft,
   LucideChevronRight: ChevronRight,

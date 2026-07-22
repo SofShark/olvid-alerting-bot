@@ -82,7 +82,7 @@ const copyWebhook = () => {
     transform 0.1s;
 }
 .btn-copy:hover {
-  background: var(--color-border-code);
+  background: var(--neutral-80);
 }
 .btn-copy:active {
   transform: scale(0.88);

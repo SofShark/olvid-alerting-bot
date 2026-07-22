@@ -48,7 +48,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
     <div ref="containerRef" class="lang-wrap">
       <button
         type="button"
-        class="lang-toggle"
+        class="nav-toggle"
         :class="{ open: isOpen }"
         :title="$t('topNav.languageToggle') + ': ' + currentLocale.name"
         :aria-haspopup="true"
@@ -90,51 +90,6 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 /* Trigger button — matches ThemeToggle visually (same border, height,
  * hover, focus tokens). Width is auto so the language name fits; the
  * fixed-square ThemeToggle approach doesn't apply here. */
-.lang-toggle {
-  background: transparent;
-  border: 1px solid var(--color-border-default);
-  color: var(--color-text-muted);
-  height: 34px;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-md);
-  font-family: inherit;
-  line-height: 1;
-  transition:
-    background-color 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-}
-.lang-toggle:hover,
-.lang-toggle.open {
-  background: var(--color-bg-panel);
-  border-color: var(--color-border-strong);
-  color: var(--color-text-primary);
-}
-.lang-toggle:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-.globe {
-  font-size: var(--text-lg);
-  line-height: 1;
-}
-.lang-name {
-  font-weight: 500;
-}
-.chevron {
-  font-size: var(--text-md);
-  color: var(--color-text-dim);
-  transition: transform 0.15s ease;
-}
-.chevron.open {
-  transform: rotate(180deg);
-}
 
 /* Dropdown panel — same elevation tokens as the modal Select dropdown
  * elsewhere in the app, so it reads as part of the same UI vocabulary. */

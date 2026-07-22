@@ -103,7 +103,7 @@ const destSummary = computed(() => {
         title="Edit bundle"
         @click="$emit('edit', index)"
       >
-        <LucidePencil :stroke-weight="2.5"/>
+        <LucideSquarePen :stroke-width="2.5" />
       </button>
       <button
         v-if="removable"
@@ -182,7 +182,7 @@ const destSummary = computed(() => {
 .row-edit {
   background: transparent;
   border: none;
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
   width: 28px;
   height: 28px;
   border-radius: var(--radius-sm);

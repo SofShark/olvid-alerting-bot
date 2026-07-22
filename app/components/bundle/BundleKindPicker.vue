@@ -42,7 +42,7 @@ const { t } = useI18n();
       @click="$emit('update:modelValue', BundleOutputType.Mail)"
     >
       <span class="tile-media" aria-hidden="true">
-        <LucideMail :stroke-width="3"/>
+        <LucideMail  :stroke-width="2"/>
       </span>
 
       <span>{{ t("bundleKind.mail") }}</span>

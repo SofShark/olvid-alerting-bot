@@ -31,12 +31,12 @@ const isDark = computed(()=>{
   <ClientOnly>
     <button
       type="button"
-      class="theme-toggle"
+      class="nav-toggle"
       :title="$t('topNav.themeToggle')"
       @click="toggle"
     >
       <!--:aria-label="`Switch to ${current === 'dark' ? 'light' : 'dark'} mode`"-->
-      <LucideMoon v-if="isDark"/>
+      <LucideMoon v-if="isDark" size="14px"/>
       <LucideSun v-else/> 
       
     </button>
@@ -44,31 +44,5 @@ const isDark = computed(()=>{
 </template>
 
 <style scoped>
-.theme-toggle {
-  background: transparent;
-  border: 1px solid var(--color-border-default);
-  color: var(--color-text-muted);
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  line-height: 1;
-  transition:
-    background-color 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-}
-.theme-toggle:hover {
-  background: var(--color-bg-panel);
-  border-color: var(--color-border-strong);
-  color: var(--color-text-primary);
-}
-.theme-toggle:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
+
 </style>
