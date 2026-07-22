@@ -29,7 +29,11 @@ import {
   Play,
   Mail,
   LucideSquareMousePointer,
+  LucideMoon,
   SquareMousePointer,
+  Moon,
+  Sun,
+  Globe,
 } from "@lucide/vue";
 
 const icons = {
@@ -48,6 +52,9 @@ const icons = {
   LucidePlay: Play,
   LucideMail: Mail,
   LucideSquareMousePointer: SquareMousePointer,
+  LucideMoon: Moon,
+  LucideSun: Sun,
+  LucideGlobe: Globe
 };
 
 export default defineNuxtPlugin((nuxtApp) => {

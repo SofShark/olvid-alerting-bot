@@ -51,10 +51,7 @@ const initials = (title: string): string => {
         :aria-expanded="!collapsed"
         @click="toggle"
       >
-        <LucideChevronLeft
-          class="chev-icon"
-          aria-hidden="true"
-        />
+        <LucideChevronLeft class="chev-icon" stroke-width="5" aria-hidden="true" />
 
       </button>
     </div>
@@ -135,11 +132,15 @@ const initials = (title: string): string => {
   overflow: hidden;
 }
 
-/* Chevron for collapse button */
+/* Chevron itself. Overrides the global `svg.lucide { width:1em }` from
+ * reset.css so the icon isn't sized to the surrounding text. `stroke-width`
+ * is set here (CSS wins over the SVG attribute) — bump if you want bolder. */
 .chev-icon {
-  font-size: 10px;
+  width: 20px;
+  height: 20px;
+  stroke-width: 5;
   line-height: 1;
-  transition: transform 0.18s ease;
+  transition: transform 0.2gis ease;
 }
 
 .sidebar.collapsed .chev-icon {

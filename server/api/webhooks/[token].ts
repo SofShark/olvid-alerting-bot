@@ -1,25 +1,22 @@
+import { LogStatus } from "#imports";
 import { AlertStatus } from "#shared/types/alert";
 import { getErrorMessage } from "~/utils/errors";
 
 /**
  * Webhook receiver. One log row per incoming request:
  *   - success  : notifier accepted the payload and dispatched the alert
- *   - warning  : the request arrived but the alert isn't Active — payload
- *                is dropped without notifying
+ *   - warning  : the request arrived but the alert isn't Active
  *   - error    : body parse failed OR the notifier threw
- *
- * The log-write is best-effort (wrapped in try/catch) so a repository
- * outage never turns into a 500 that GitHub / GitLab would retry.
  */
 
 async function safeLog(
   alertId: number,
-  kind: "success" | "warning" | "error",
+  kind: LogStatus,
   msg: string | null = null,
 ) {
   try {
-    if (kind === "success") await alertLogRepository.logSuccess(alertId);
-    else if (kind === "warning")
+    if (kind === LogStatus.Success) await alertLogRepository.logSuccess(alertId);
+    else if (kind === LogStatus.Warning)
       await alertLogRepository.logWarning(alertId, msg ?? "");
     else await alertLogRepository.logError(alertId, msg ?? "");
   } catch (e) {
@@ -39,6 +36,7 @@ export default defineEventHandler(async (event) => {
       statusMessage: "Woops, you're not a webhook are you?",
     });
   }
+
   const token = getRouterParam(event, "token");
 
   if (!token) {
@@ -74,9 +72,10 @@ export default defineEventHandler(async (event) => {
       error: msg,
       stage: "parse",
     });
-    await safeLog(alert.id, "error", `Invalid body: ${msg}`);
+    await safeLog(alert.id, LogStatus.Error, `Invalid body: ${msg}`);
     throw createError({ statusCode: 400, statusMessage: "Invalid body" });
   }
+
   console.log(
     `📥 [Webhook] Token ${token} — alert #${alert.id} with ${alert.bundles.length} bundle(s)`,
   );
@@ -87,7 +86,7 @@ export default defineEventHandler(async (event) => {
   if (alert.status !== AlertStatus.Active) {
     await safeLog(
       alert.id,
-      "warning",
+      LogStatus.Warning,
       `Alert is ${alert.status} — webhook received but not dispatched`,
     );
     return { status: "ignored", message: `Alert is ${alert.status}` };
@@ -99,7 +98,7 @@ export default defineEventHandler(async (event) => {
     // id, so two webhook alerts with the same source no longer overwrite each
     // other's history.
     await alertPayloadRepository.upsertLastAlertPayload(alert.id, payload);
-    await safeLog(alert.id, "success");
+    await safeLog(alert.id, LogStatus.Success);
   } catch (error: any) {
     const msg = error?.message ?? "Unknown error during processAlert";
     console.error("❌ [Webhook] Unexpected error:", msg);
@@ -118,7 +117,7 @@ export default defineEventHandler(async (event) => {
         persistErr?.message,
       );
     }
-    await safeLog(alert.id, "error", msg);
+    await safeLog(alert.id, LogStatus.Error, msg);
     throw createError({
       statusCode: 500,
       statusMessage: "Internal Server Error",

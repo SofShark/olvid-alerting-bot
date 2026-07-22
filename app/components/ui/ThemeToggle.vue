@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 
 // Reads / writes the `data-theme` attribute on <html>. The theme.client.ts
 // plugin already applied the persisted theme on boot, so this component only
@@ -22,6 +22,9 @@ function toggle() {
   }
   current.value = next;
 }
+const isDark = computed(()=>{
+  return current.value==="dark"
+})
 </script>
 
 <template>
@@ -33,7 +36,9 @@ function toggle() {
       @click="toggle"
     >
       <!--:aria-label="`Switch to ${current === 'dark' ? 'light' : 'dark'} mode`"-->
-      {{ current === "dark" ? "☀" : "☾" }}
+      <LucideMoon v-if="isDark"/>
+      <LucideSun v-else/> 
+      
     </button>
   </ClientOnly>
 </template>

@@ -20,7 +20,6 @@
 // effect on whether the alert stays armed.
 
 import MailPace from "@mailpace/mailpace.js";
-import { olvidMarkupToHtml, olvidMarkupToPlainText } from "#shared/olvidMarkup";
 
 const PASSWORD = process.env.SMTP_PASSWORD;
 const FROM = process.env.SMTP_FROM;
@@ -50,14 +49,11 @@ export const mailClient = {
   async send(
     addresses: string[],
     subject: string,
-    body: string,
+    htmlbody: string,
   ): Promise<boolean> {
     if (addresses.length === 0) return true;
     const c = getClient();
     if (!c) return false;
-
-    const htmlbody = olvidMarkupToHtml(body);
-    const textbody = olvidMarkupToPlainText(body);
 
     let allOk = true;
     for (const address of addresses) {
@@ -66,8 +62,7 @@ export const mailClient = {
           from: FROM!,
           to: address,
           subject,
-          htmlbody,
-          textbody,
+          htmlbody
         });
         console.log(`✅ [Mail] Message sent to: ${address}`);
       } catch (error: any) {

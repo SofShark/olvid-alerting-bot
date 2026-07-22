@@ -20,8 +20,6 @@ export default defineEventHandler(async (event) => {
       const body = await readBody(event);
       console.log("📥 [POST /api/backend] Creating alert:", body.title);
       const data = await alertService.createAlert(body);
-      // If the new alert is already active (e.g. saved as active), register it.
-      //if (data.status === AlertStatus.Active) triggerEngine.register(data)
       return { success: true, data };
     } catch (error: any) {
       console.error("❌ [POST /api/backend]", error);
@@ -39,9 +37,6 @@ export default defineEventHandler(async (event) => {
       console.log("📥 [PUT /api/backend] Updating alert #" + body.id);
       const id = Number(body.id);
       const data = await alertService.updateAlert(id, body);
-      // Re-register to pick up any changed alertParams / schedule.
-      //triggerEngine.unregister(id)
-      //if (data.status === AlertStatus.Active) triggerEngine.register(data)
       return { success: true, data };
     } catch (error: any) {
       console.error("❌ [PUT /api/backend]", error);
@@ -63,8 +58,6 @@ export default defineEventHandler(async (event) => {
       );
       const id = Number(body.id);
       const data = await alertService.setStatus(id, body.status);
-      //triggerEngine.unregister(id)
-      //if (data?.status === AlertStatus.Active) triggerEngine.register(data)
       return { success: true, data };
     } catch (error: any) {
       console.error("❌ [PATCH /api/backend]", error);
@@ -81,7 +74,6 @@ export default defineEventHandler(async (event) => {
       const body = await readBody(event);
       console.log("📥 [DELETE /api/backend] Deleting alert #" + body.id);
       const id = Number(body.id);
-      //triggerEngine.unregister(id)
       await alertRepository.delete(id);
       return { success: true };
     } catch (error: any) {
