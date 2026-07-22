@@ -140,7 +140,7 @@ const initials = (title: string): string => {
   height: 20px;
   stroke-width: 5;
   line-height: 1;
-  transition: transform 0.2gis ease;
+  transition: transform 0.2s ease;
 }
 
 .sidebar.collapsed .chev-icon {

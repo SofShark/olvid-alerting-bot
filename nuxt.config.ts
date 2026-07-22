@@ -74,8 +74,6 @@ export default defineNuxtConfig({
 
   modules: ["@nuxtjs/i18n", "@nuxt/eslint"],
   i18n: {
-    bundle: { 
-    },
     locales: [
       { code: "en", name: "English", file: "en.json", language: "en-US" },
       { code: "fr", name: "Français", file: "fr.json", language: "fr-FR" },

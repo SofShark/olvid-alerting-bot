@@ -10,37 +10,53 @@ services:
     environment:
       - DATABASE_URL=file:/data/alerting.db
       - OLVID_DAEMON_URL=http://daemon:50051
-      - OLVID_CLIENT_KEY=34f52581-a6b7-47d0-9201-e7437ac6aa64
     # SMTP_* (and any other secrets) come from the untracked .env at the
     # project root. `.env.example` documents the expected keys.
     env_file:
       - .env
-    # SQLite lives on the host — bind-mounted so the file survives container
-    # recreation. `./data/` is git-ignored; created on first boot by
-    # `prisma db push` (see Dockerfile CMD).
+    # SQLite lives on a named Docker volume — persists across `compose down`
+    # and container recreation, tidier than a bind-mount (no host path leak
+    # into this file). The DB file is at /data/alerting.db per DATABASE_URL.
+    #
+    # To inspect: `docker compose exec nuxt_app sh -c "sqlite3 /data/alerting.db"`
+    # To reset:   `docker compose down -v` (⚠ removes the volume too).
+    #
+    # Prefer a bind-mount instead? Replace with `- ./data:/data` here and
+    # drop the top-level `volumes:` block below.
     volumes:
-      - ./data:/data
+      - alerting_db:/data
     depends_on:
       - daemon
     restart: unless-stopped
+    deploy:                                     # honored by docker-compose v2+
+      resources:
+        limits: { cpus: "1.0", memory: 512M }
 
-  # 2. El Daemon de Olvid (El cerebro del bot)
+
+  # 2. Olvid Daemon (link to olvid environment)
   daemon:
     image: olvid/bot-daemon:2.0.1
-    environment:
-      - OLVID_ADMIN_CLIENT_KEY_CLI=8942311-9b8c-4e5a-9c3d-123456789abc
+    env_file:
+      - .env
     ports:
       - 50052:50051
     volumes:
       - ./data:/daemon/data
       - ./data/app_configuration.properties:/opt/conf/app_configuration.properties
-  # 4. CLI de Olvid (Herramienta para emparejar el bot con tu móvil)
+  # 4. 3. Olvid CLI. Used to pair the daemon with discussions and manage olvid Client
   cli:
     image: olvid/bot-python-runner:2.0.1
     entrypoint: "olvid-cli"
+    env_file:
+      - .env
     environment:
-      - OLVID_ADMIN_CLIENT_KEY=8942311-9b8c-4e5a-9c3d-123456789abc
       - OLVID_DAEMON_URL=http://daemon:50051
     stdin_open: true
     tty: true
     profiles: ["cli"]
+
+# Named volumes. Managed by Docker under /var/lib/docker/volumes on Linux
+# (or inside the WSL2 VM on Windows). Survives `docker compose down`;
+# only `docker compose down -v` removes it.
+volumes:
+  alerting_db:
