@@ -257,7 +257,7 @@ const onSaveDraftAndLeave = async () => {
   display: flex;
   align-items: center;
   gap: var(--space-8);
-  padding: var(--space-2) var(--space-8);
+  padding: 0 var(--space-8) var(--space-2) var(--space-8) ;
   border-bottom: 1px solid var(--color-border-subtle);
   flex-shrink: 0;
 }

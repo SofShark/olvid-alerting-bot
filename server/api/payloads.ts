@@ -11,6 +11,8 @@
 // directly from `#shared/payloadTemplates` via `getWebhookSample()`. No
 // HTTP roundtrip needed because the library is dev-defined static data.
 export default defineEventHandler(async (event) => {
+  await requireUserSession(event);
+
   const query = getQuery(event);
   const type = query.type as string;
 

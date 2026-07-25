@@ -1,8 +1,24 @@
 <script setup>
+import { LucideUser2 } from "@lucide/vue";
 import { onMounted, computed } from "vue";
 const route = useRoute();
 const { alerts, fetchAlerts, fetchDiscussions } = useAlerts();
 const { collapsed: sidebarCollapsed } = useSidebar();
+
+// `definePageMeta` is a compile-time helper that ONLY works inside a page —
+// putting it here logs a "no effect" warning at runtime. Middleware for
+// protected routes lives on each page's own <script setup> (see pages/index.vue).
+
+const { user, clear: clearSession } = useUserSession()
+
+async function logout () {
+  await clearSession()
+  await navigateTo('/login')
+}
+
+async function login () {
+  
+}
 
 // Language switching now lives inside <LanguageToggle/> — same chrome as
 // ThemeToggle, dropdown of available locales. Layout no longer needs to
@@ -21,7 +37,7 @@ const selectedId = computed(() => {
 </script>
 
 <template>
-  <div class="layout-dark">
+  <div class="layout">
     <header class="top-nav">
       <div class="nav-content">
         <div class="brand">
@@ -36,8 +52,16 @@ const selectedId = computed(() => {
         </div>
 
         <div class="nav-actions">
+                  
           <LanguageToggle />
+          <button 
+              class="nav-toggle"
+              v-if="user"
+              @click="logout">
+            <LucideUser :stroke-width="2"/>  Logout
+          </button>
           <ThemeToggle />
+          
         </div>
       </div>
     </header>
@@ -55,7 +79,6 @@ const selectedId = computed(() => {
 
         <div class="split-right">
           <slot :key="route.path" />
-          <!-- :key="route.path"-->
         </div>
       </div>
     </main>
@@ -68,7 +91,7 @@ const selectedId = computed(() => {
  * Internal scrolling happens INSIDE .split-left and .split-right, never
  * at the document level — this is what was causing the "+ New" button
  * to disappear off the bottom of the screen. */
-.layout-dark {
+.layout {
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -78,14 +101,12 @@ const selectedId = computed(() => {
 .top-nav {
   background-color: var(--color-bg-nav);
   border-bottom: 1px solid var(--color-border-subltle);
-  padding: 10px 0;
   flex-shrink: 0;
   z-index: 100;
 }
 .nav-content {
   width: 100%;
-  margin: 0 auto;
-  padding: 0 24px;
+  padding: 10px 24px 10px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -104,7 +125,6 @@ const selectedId = computed(() => {
   font-weight: 500;
 }
 .olvid-logo-img {
-  margin-left: 15px;
   width: 120px;
   height: auto;
   object-fit: contain;
@@ -150,6 +170,7 @@ const selectedId = computed(() => {
  * wizard) flexes to fill it exactly. NO scroll here — each routed
  * component owns its own internal scroll (AlertLogs, wizard-content). */
 .split-right {
+  padding: 10px;
   min-height: 0;
   height: 100%;
   display: flex;
@@ -173,9 +194,5 @@ const selectedId = computed(() => {
   border-radius: 0;
 }
 
-/* Main content area gets breathing room; internal scroll lives in the
- * routed component (AlertEditor / AlertWizard), not on this container. */
-.split-right {
-  padding: 0;
-}
+
 </style>

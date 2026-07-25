@@ -74,5 +74,5 @@ export const mailClient = {
       }
     }
     return allOk;
-  },
+  },  
 };

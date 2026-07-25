@@ -15,6 +15,8 @@ type ProbeResponse =
   | { ok: false; error: string };
 
 export default defineEventHandler(async (event): Promise<ProbeResponse> => {
+  await requireUserSession(event);
+
   const body = await readBody<{ url?: string }>(event);
   const url = (body?.url ?? "").trim();
   if (!url) {

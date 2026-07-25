@@ -343,9 +343,6 @@ const onSaveBundle = async ({
 </template>
 
 <style scoped>
-.panel-body {
-  padding-top: var(--space-4);
-}
 
 .split {
   display: grid;

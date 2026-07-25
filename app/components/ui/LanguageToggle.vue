@@ -55,7 +55,8 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         :aria-expanded="isOpen"
         @click="toggle"
       >
-        <span class="globe" aria-hidden="true"> <LucideGlobe/></span>
+        <span class="globe" aria-hidden="true"> 
+        <LucideGlobe/></span>
         <span class="lang-name">{{ currentLocale.name }}</span>
         <span class="chevron" :class="{ open: isOpen }" aria-hidden="true"
           >▾</span

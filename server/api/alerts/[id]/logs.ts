@@ -2,6 +2,8 @@
 // cap the writer enforces). Consumed by useAlertLogs on the client side.
 
 export default defineEventHandler(async (event) => {
+  await requireUserSession(event);
+
   const raw = getRouterParam(event, "id");
   const id = Number(raw);
   if (!id || Number.isNaN(id)) {

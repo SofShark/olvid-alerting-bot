@@ -1,6 +1,8 @@
 import { olvidClient } from "#server/clients/olvidClient";
 
 export default defineEventHandler(async (event) => {
+  await requireUserSession(event);
+
   const id = BigInt(getRouterParam(event, "id")!);
 
   const image = await olvidClient.getDiscussionPhoto(id);

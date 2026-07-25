@@ -121,7 +121,7 @@ defineEmits<{
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-8);
+  padding: var(--space-3) var(--space-8) 0 var(--space-8);
   border-top: 1px solid var(--color-border-subtle);
   background: var(--color-bg-app);
   flex-shrink: 0;

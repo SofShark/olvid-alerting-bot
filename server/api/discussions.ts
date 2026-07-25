@@ -5,6 +5,9 @@
 
 import type { DiscussionModel } from "#shared/types/discussion";
 
-export default defineEventHandler((): DiscussionModel[] => {
-  return olvidDiscussionRepository.listModels();
-});
+export default defineEventHandler(
+  async (event): Promise<DiscussionModel[]> => {
+    await requireUserSession(event);
+    return olvidDiscussionRepository.listModels();
+  },
+);

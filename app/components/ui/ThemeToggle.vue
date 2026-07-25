@@ -35,7 +35,6 @@ const isDark = computed(()=>{
       :title="$t('topNav.themeToggle')"
       @click="toggle"
     >
-      <!--:aria-label="`Switch to ${current === 'dark' ? 'light' : 'dark'} mode`"-->
       <LucideMoon v-if="isDark" size="14px"/>
       <LucideSun v-else/> 
       

@@ -9,6 +9,8 @@
 // problems (missing id, alert not found) throw a `createError`.
 
 export default defineEventHandler(async (event) => {
+  await requireUserSession(event);
+
   const idParam = getRouterParam(event, "id");
   const id = Number(idParam);
   if (!id || Number.isNaN(id)) {

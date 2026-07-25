@@ -103,8 +103,8 @@
   --color-text-webhook: #80e0e4; /* informational sky blue */
 
   /* Borders */
-  --color-border-subtle: var(--neutral-80); /* matches `bg-card-soft` */
-  --color-border-default: var(--neutral-85);
+  --color-border-subtle: var(--neutral-85); /* matches `bg-card-soft` */
+  --color-border-default: var(--neutral-80);
   --color-border-strong: var(--neutral-70);
 
   /* Accent — the actionable blue. `soft`/`border`/`text` form the

@@ -26,6 +26,10 @@ export const useAlerts = () => {
       const result = await alertService.getAll();
       alerts.value = Array.isArray(result) ? result : [];
     } catch (e) {
+      // Any failure (401 after logout, network drop, backend crash) wipes the
+      // cached list — otherwise the sidebar would keep showing stale entries
+      // that the user is no longer authorized to see.
+      alerts.value = [];
       console.error("Error loading alerts:", e);
     } finally {
       alertsLoading.value = false;
@@ -38,6 +42,9 @@ export const useAlerts = () => {
       availableDiscussions.value =
         (await alertService.getDiscussionList()) || [];
     } catch (e) {
+      // Same reasoning as fetchAlerts — clear on any failure so the audience
+      // picker doesn't offer stale Olvid contacts after a session ends.
+      availableDiscussions.value = [];
       console.error("Failed to load discussions:", e);
     } finally {
       discussionsLoading.value = false;

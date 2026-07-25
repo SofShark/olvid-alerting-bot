@@ -1,8 +1,13 @@
 export default defineEventHandler(async (event) => {
+  // Auth gate — throws 401 if the caller has no valid session cookie.
+  // Applies to every method on this endpoint (GET/POST/PUT/PATCH/DELETE).
+  await requireUserSession(event);
+
   const method = event.node.req.method;
 
   // 1. GET — all alerts with bundles
   if (method === "GET") {
+
     try {
       return await alertRepository.getAll();
     } catch (error: any) {

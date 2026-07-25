@@ -66,14 +66,30 @@ export default defineNuxtConfig({
       ],
     },
 
+    
     experimental: { tasks: true }, // Internal heartbeat that conditionally triggers the activation of scheduled alerts
     scheduledTasks: {
       "* * * * *": ["polling:heartbeat"],
     },
+    
   },
 
-  modules: ["@nuxtjs/i18n", "@nuxt/eslint"],
+  modules: ["@nuxtjs/i18n", "@nuxt/eslint", "nuxt-auth-utils"],
+  
+  runtimeConfig :{
+    session:{
+      password: '',
+      name: 'alert-session',
+      cookie:{
+        maxAge: 60 * 15 // 15 minutes
+      }
+    }
+  },
+  
   i18n: {
+    bundle:{
+      optimizeTranslationDirective: false
+    },
     locales: [
       { code: "en", name: "English", file: "en.json", language: "en-US" },
       { code: "fr", name: "Français", file: "fr.json", language: "fr-FR" },

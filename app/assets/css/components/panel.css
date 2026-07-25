@@ -10,7 +10,7 @@
    * `flex:1;min-height:0` lets .panel-body claim the leftover height
    * without spilling past the viewport — that's what keeps the panel
    * itself still while AlertLogs scrolls inside .panel-body. */
-  margin: var(--space-4);
+  margin: var(--space-2);
   position: relative;
   display: flex;
   flex-direction: column;

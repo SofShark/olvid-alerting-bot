@@ -7,6 +7,7 @@ import {
   bundleKind,
 } from "~/composables/useAlertForm";
 import { BundleOutputType } from "#shared/types/bundleOutput";
+import { LucideTrash2 } from "@lucide/vue";
 
 /*
   One row in the view-mode bundle table.
@@ -103,7 +104,7 @@ const destSummary = computed(() => {
         title="Edit bundle"
         @click="$emit('edit', index)"
       >
-        <LucideSquarePen :stroke-width="2.5" />
+        <LucideSquarePen :stroke-width="2"/>
       </button>
       <button
         v-if="removable"
@@ -112,7 +113,7 @@ const destSummary = computed(() => {
         title="Remove bundle"
         @click="$emit('remove', index)"
       >
-        ✕
+        <LucideTrash2/>
       </button>
     </div>
   </div>
@@ -182,9 +183,10 @@ const destSummary = computed(() => {
 .row-edit {
   background: transparent;
   border: none;
-  color: var(--color-text-muted);
-  width: 28px;
-  height: 28px;
+  color: var(--color-text-dim);
+  width: 30px;
+  height: 30px;
+  font-size: var(--text-l);
   border-radius: var(--radius-sm);
   cursor: pointer;
   display: inline-flex;

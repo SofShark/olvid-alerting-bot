@@ -127,7 +127,7 @@ const statusModel = computed({
   font-size: var(--text-md);
   font-weight: 400;
   font-style: italic;
-  color: var(--color-text-faint);
+  color: var(--color-text-dim);
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;

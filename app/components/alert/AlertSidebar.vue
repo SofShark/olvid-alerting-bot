@@ -51,7 +51,7 @@ const initials = (title: string): string => {
         :aria-expanded="!collapsed"
         @click="toggle"
       >
-        <LucideChevronLeft class="chev-icon" stroke-width="5" aria-hidden="true" />
+        <LucideChevronLeft class="chev-icon" aria-hidden="true" />
 
       </button>
     </div>
@@ -132,13 +132,33 @@ const initials = (title: string): string => {
   overflow: hidden;
 }
 
+/* Collapse toggle — scoped override of the global .btn-icon (which is a
+ * saturated accent circle). Here we want a quieter button that reacts
+ * subtly on hover instead of doing a full color inversion. */
+.sidebar-head .btn-icon {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-text-muted);
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.sidebar-head .btn-icon:hover {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-border);
+  color: var(--color-accent);
+}
+
 /* Chevron itself. Overrides the global `svg.lucide { width:1em }` from
- * reset.css so the icon isn't sized to the surrounding text. `stroke-width`
- * is set here (CSS wins over the SVG attribute) — bump if you want bolder. */
+ * reset.css and gives the icon room inside the 28-px button. Stroke ~2.25
+ * reads bold without looking like a wrench. */
 .chev-icon {
-  width: 20px;
-  height: 20px;
-  stroke-width: 5;
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.6;
   line-height: 1;
   transition: transform 0.2s ease;
 }

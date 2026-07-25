@@ -1,9 +1,17 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+definePageMeta({
+  middleware: ["auth"],
+});
+</script>
 
 <template>
   <div class="placeholder" style="align-items: center">
     <div class="placeholder-inner">
-      <div class="ph-icon">🔔</div>
+      <div class="ph-icon">
+        <!--🔔-->  
+        <LucideBell :stroke-width="2.5" fill="var(--color-accent)"/>
+      
+      </div>
       <p>{{ $t("index.placeholder") }}</p>
       <button
         type="button"
@@ -12,13 +20,14 @@
       >
         <span class="plus-icon">+</span> {{ $t("button.newAlert") }}
       </button>
+
+     
     </div>
   </div>
 </template>
 
 <style scoped>
 .placeholder {
-  margin: var(--space-3);
   height: 100%;
   display: flex;
   align-items: center;
@@ -35,7 +44,9 @@
   color: var(--color-text-faint);
 }
 .ph-icon {
-  font-size: 40px;
+  color: var(--color-accent);
+  fill: var(--color-accent);
+  font-size: 50px;
   margin-bottom: 12px;
 }
 .placeholder-inner p {

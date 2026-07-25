@@ -33,6 +33,8 @@ import {
   Moon,
   Sun,
   Globe,
+  User,
+  Bell,
 } from "@lucide/vue";
 
 const icons = {
@@ -54,7 +56,9 @@ const icons = {
   LucideSquareMousePointer: SquareMousePointer,
   LucideMoon: Moon,
   LucideSun: Sun,
-  LucideGlobe: Globe
+  LucideGlobe: Globe,
+  LucideUser: User,
+  LucideBell: Bell
 };
 
 export default defineNuxtPlugin((nuxtApp) => {
