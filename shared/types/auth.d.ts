@@ -1,16 +1,15 @@
-// Module augmentation for nuxt-auth-utils. The module ships `User` as an
-// intentionally empty interface — projects extend it here to declare the
-// shape of their session. Add fields as you persist them in
-// `setUserSession(...)` on the server side.
+// Module augmentation for nuxt-auth-utils. The module ships `User` as
+// an intentionally empty interface — we point it at our shared `User`
+// so `useUserSession().user` is fully typed on both client and server.
 //
 // Docs: https://github.com/atinux/nuxt-auth-utils#session-data
 
+import type { User as AppUser } from "./user";
+
 declare module "#auth-utils" {
-  interface User {
-    id: numberM
-    login: string;
-    name: string;
-    // e.g. id: number; email: string; role: "admin" | "member";
+  interface User extends AppUser {}
+  interface UserSession {
+    user: User;
   }
 }
 

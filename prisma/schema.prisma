@@ -10,6 +10,40 @@ datasource db {
 }
 
 
+// Auth — one User row per person able to log in. The first user created
+// on a fresh deploy goes through /setup and gets role="admin"; further
+// users are created by an admin via /users (invite-by-email flow) and
+// default to role="user". `passwordHash` is null until the user completes
+// their password setup (invite acceptance or first-run setup form).
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  passwordHash  String?
+  name          String?
+  role          String    @default("user") // "admin" | "user"
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tokens        VerificationToken[]
+}
+
+// Single-use tokens for invite / email verification / password reset.
+// We store sha256(rawToken) — the raw token exists only inside the email
+// we send. `usedAt` implements one-shot semantics; `expiresAt` bounds TTL.
+model VerificationToken {
+  id        Int       @id @default(autoincrement())
+  tokenHash String    @unique
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose   String    // "invite" | "email_verify" | "password_reset"
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, purpose])
+}
+
 model AlertTable {
   id                Int                @id @default(autoincrement())
   title             String

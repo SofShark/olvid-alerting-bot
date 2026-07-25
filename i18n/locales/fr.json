@@ -12,6 +12,7 @@
   "sidebar": {
     "title": "Liste d'alertes",
     "empty": "Aucune alerte pour le moment",
+    "loginPrompt": "Connectez-vous pour voir vos alertes",
     "searchPlaceholder": "Filtrer les alertes...",
     "statusLabel": {
       "active": "Active",

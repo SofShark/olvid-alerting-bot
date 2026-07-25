@@ -35,6 +35,7 @@ import {
   Globe,
   User,
   Bell,
+  LucideUserCog,
 } from "@lucide/vue";
 
 const icons = {
@@ -49,7 +50,6 @@ const icons = {
   LucideCircle: Circle,
   LucideCopy: Copy,
   LucideEllipsisVertical: EllipsisVertical,
-  LucideUserCog: UserCog,
   LucideArrowLeftRight: ArrowLeftRight,
   LucidePlay: Play,
   LucideMail: Mail,
@@ -58,7 +58,8 @@ const icons = {
   LucideSun: Sun,
   LucideGlobe: Globe,
   LucideUser: User,
-  LucideBell: Bell
+  LucideUserCog: UserCog,
+  LucideBell: Bell,
 };
 
 export default defineNuxtPlugin((nuxtApp) => {

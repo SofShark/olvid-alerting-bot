@@ -1,6 +1,5 @@
 <script setup>
-import { LucideUser2 } from "@lucide/vue";
-import { onMounted, computed } from "vue";
+import { onMounted, computed, watch } from "vue";
 const route = useRoute();
 const { alerts, fetchAlerts, fetchDiscussions } = useAlerts();
 const { collapsed: sidebarCollapsed } = useSidebar();
@@ -9,27 +8,38 @@ const { collapsed: sidebarCollapsed } = useSidebar();
 // putting it here logs a "no effect" warning at runtime. Middleware for
 // protected routes lives on each page's own <script setup> (see pages/index.vue).
 
-const { user, clear: clearSession } = useUserSession()
+const { user, clear: clearSession } = useUserSession();
 
-async function logout () {
-  await clearSession()
-  await navigateTo('/login')
+async function logout() {
+  await $fetch("/api/auth/logout", { method: "POST" });
+  await clearSession();
+  await navigateTo("/login");
 }
 
-async function login () {
-  
+async function goLogin() {
+  await navigateTo("/login");
 }
 
-// Language switching now lives inside <LanguageToggle/> — same chrome as
-// ThemeToggle, dropdown of available locales. Layout no longer needs to
-// know about i18n internals.
-
+// Only fetch data when we actually have a session — otherwise every
+// nav triggers a 401 that useAlerts silently swallows into empty
+// arrays.
 onMounted(() => {
-  fetchAlerts();
-  fetchDiscussions();
+  if (user.value) {
+    fetchAlerts();
+    fetchDiscussions();
+  }
+});
+// After login the layout is already mounted, so onMounted won't refire.
+// Watching `user` covers that: sign in → lists populate, sign out → they clear.
+watch(user, (u) => {
+  if (u) {
+    fetchAlerts();
+    fetchDiscussions();
+  } else {
+    alerts.value = [];
+  }
 });
 
-// Highlight the sidebar row that matches the current route.
 const selectedId = computed(() => {
   const id = route.params.id;
   return id ? Number(id) : null;
@@ -52,16 +62,25 @@ const selectedId = computed(() => {
         </div>
 
         <div class="nav-actions">
-                  
           <LanguageToggle />
-          <button 
-              class="nav-toggle"
-              v-if="user"
-              @click="logout">
-            <LucideUser :stroke-width="2"/>  Logout
+          <button
+            v-if="user && user.role === 'admin'"
+            
+            class="nav-toggle"
+            @click="navigateTo(`/users`)"
+          >
+            <LucideUserCog :stroke-width="2" />
+            Users
+
+          </button>
+                    
+          <button v-if="user" class="nav-toggle" @click="logout">
+            <LucideUser :stroke-width="2" /> Logout
+          </button>
+          <button v-else class="nav-toggle" @click="goLogin">
+            <LucideUser :stroke-width="2" /> Login
           </button>
           <ThemeToggle />
-          
         </div>
       </div>
     </header>
@@ -72,6 +91,7 @@ const selectedId = computed(() => {
           <AlertSidebar
             :alerts="alerts"
             :selected-id="selectedId"
+            :disabled="!user"
             @select="(a) => navigateTo('/alerts/' + a.id)"
             @new="navigateTo('/alerts/new')"
           />
@@ -181,18 +201,4 @@ const selectedId = computed(() => {
   flex: 1;
   min-height: 0;
 }
-
-/* Sidebar recedes to the app background so it doesn't collide with the
- * top nav's `bg-nav` (which is pure white in light mode). The sidebar
- * reads as chrome extending the page, not a floating card next to the
- * nav. Right border divides rail from content; the nav's bottom border
- * already caps the top. */
-.split-left :deep(.sidebar) {
-  background: var(--color-bg-app);
-  border: none;
-  border-right: 1px solid var(--color-border-subtle);
-  border-radius: 0;
-}
-
-
 </style>

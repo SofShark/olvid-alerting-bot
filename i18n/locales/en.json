@@ -12,6 +12,7 @@
   "sidebar": {
     "title": "Alert List",
     "empty": "No alerts yet",
+    "loginPrompt": "Log in to see your alerts",
     "searchPlaceholder": "Filter alerts...",
     "statusLabel": {
       "active": "Active",

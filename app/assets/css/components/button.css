@@ -82,7 +82,7 @@
   border-color: var(--color-danger-border);
 }
 .btn-danger-ghost:hover:not(:disabled) {
-  background: var(--color-danger-border);
+  background: var(--color-danger);
   color: var(--color-text-on-accent);
 }
 
@@ -131,8 +131,9 @@
     border-color 0.15s,
     color 0.15s;
 }
-.btn-pill input {
+.btn-pill input[type="radio"] {
   margin: 0;
+  accent-color: var(--color-accent); /* O usa una variable como var(--color-accent) si tu azul ya está definido ahí */
 }
 .btn-pill:hover {
   background: var(--color-bg-card-soft);

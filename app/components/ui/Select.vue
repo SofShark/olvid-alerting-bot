@@ -118,6 +118,9 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  height: 30px;
+  
   font-family: inherit;
   cursor: pointer;
   text-align: left;
@@ -133,7 +136,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 .select-trigger:focus-visible,
 .select-trigger.open {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--color-accent); 
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
 .select-trigger.disabled {
@@ -148,7 +151,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   box-sizing: border-box;
   padding: 9px var(--space-4);
   background: var(--color-bg-input);
-  font-size: var(--text-base);
+
 }
 /* sm — inline chip, but visually a sibling of .field-input: same
  * background and vertical rhythm so a Select and an <input> sitting
@@ -157,7 +160,6 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   padding: var(--space-3) var(--space-3);
   background: var(--color-bg-input);
   color: var(--color-text-primary);
-  font-size: var(--text-base);
   line-height: 1;
 }
 .size-sm .select-trigger:hover:not(.open):not(.disabled) {

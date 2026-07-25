@@ -66,24 +66,34 @@ export default defineNuxtConfig({
       ],
     },
 
-    
+    /*  
     experimental: { tasks: true }, // Internal heartbeat that conditionally triggers the activation of scheduled alerts
     scheduledTasks: {
       "* * * * *": ["polling:heartbeat"],
     },
+    */
     
   },
 
   modules: ["@nuxtjs/i18n", "@nuxt/eslint", "nuxt-auth-utils"],
   
-  runtimeConfig :{
-    session:{
+  runtimeConfig: {
+    // NUXT_SESSION_PASSWORD (≥32 chars) signs the session cookie; refusing
+    // to boot with an empty value is the correct behavior — the auth flow
+    // is unusable without it, so surface the misconfig loudly at start.
+    session: {
       password: '',
       name: 'alert-session',
-      cookie:{
-        maxAge: 60 * 15 // 15 minutes
-      }
-    }
+      cookie: {
+        maxAge: 60 * 60 * 8, // 8 hours
+      },
+    },
+    public: {
+      // Origin used to build absolute links in outgoing verification /
+      // invitation emails. If unset at runtime the auth endpoints fall
+      // back to the request's own host header.
+      baseUrl: '',
+    },
   },
   
   i18n: {
