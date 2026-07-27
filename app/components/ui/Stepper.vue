@@ -137,8 +137,8 @@ defineEmits<{ (e: "update:modelValue", v: number): void }>();
   border-color: #60a5fa;
   color: var(--color-text-on-accent);
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent),
-    0 2px 6px color-mix(in srgb, var(--color-accent) 35%, transparent);
+    0 0 1px 3px color-mix(in srgb, var(--color-accent) 18%, transparent),
+    0 2px 4px color-mix(in srgb, var(--color-accent) 35%, transparent);
 }
 .stepper-item[data-state="active"] .stepper-trigger {
   background: color-mix(in srgb, var(--color-accent) 8%, transparent);
@@ -206,5 +206,25 @@ defineEmits<{ (e: "update:modelValue", v: number): void }>();
     var(--color-accent-border),
     var(--color-accent)
   );
+}
+
+
+[data-theme="light"]{
+  /* Active — blue ring + bright label */
+.stepper-item[data-state="active"] .stepper-indicator {
+  background: linear-gradient(
+    135deg,
+    #5ba4f8,
+    #2b52d4
+  );
+  border-color: #9ccfff;
+  color: var(--color-text-on-accent);
+  box-shadow:
+    0 0 2px 3px color-mix(in srgb, white 18%, transparent),
+    0 0 1px 2px color-mix(in srgb, white 55%, transparent);
+}
+
+
+
 }
 </style>

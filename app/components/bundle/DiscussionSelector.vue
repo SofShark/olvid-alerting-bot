@@ -7,7 +7,7 @@ import type { DiscussionModel } from "#shared/types/discussion";
 
   Layout, top to bottom:
     1. Selected strip — one avatar per selected discussion, name in small
-       font under the photo, a little ✕ badge to remove.
+       font under the photo, a little <LucideX :stroke-width="2" /> badge to remove.
     2. Search input.
     3. Dropdown — every available discussion with its photo and a ✓ mark
        on the right when already selected. Clicking a row TOGGLES the
@@ -101,7 +101,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 
 <template>
   <div class="selector">
-    <!-- ── Selected strip — avatars with name + ✕ badge ────────────────── -->
+    <!-- ── Selected strip — avatars with name + <LucideX :stroke-width="2" /> badge ────────────────── -->
     <div v-if="modelValue.length > 0" class="selected-strip">
       <div v-for="d in modelValue" :key="d.id" class="strip-item">
         <div class="strip-avatar-wrap">
@@ -122,7 +122,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
             :title="`Remove ${d.title}`"
             @click="remove(d.id)"
           >
-            ✕
+            <LucideX :stroke-width="2" />
           </button>
         </div>
         <span class="strip-name" :title="d.title">{{ d.title }}</span>

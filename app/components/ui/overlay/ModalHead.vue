@@ -34,7 +34,7 @@ defineEmits<{ (e: "close"): void }>();
       :aria-label="closeLabel"
       @click="$emit('close')"
     >
-      ✕
+      <LucideX :stroke-width="2" />
     </button>
   </div>
 </template>

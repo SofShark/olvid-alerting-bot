@@ -4,7 +4,7 @@ import { paletteFor } from "~/utils/mailAvatarPalette";
 
 /*
   Free-form chip input for email recipients. Shares the visual grammar of
-  DiscussionSelector.vue's selected-strip (avatar circles + ✕ badge), but
+  DiscussionSelector.vue's selected-strip (avatar circles + <LucideX :stroke-width="2" /> badge), but
   there's no directory to search against — recipients are typed in.
 
   Interaction:
@@ -114,7 +114,7 @@ const initial = (address: string): string => {
             :title="`Remove ${address}`"
             @click="remove(address)"
           >
-            ✕
+            <LucideX :stroke-width="2" />
           </button>
         </div>
         <span class="strip-name" :title="address">{{ address }}</span>

@@ -116,7 +116,7 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
           :title="$t('conditionEditor.watchedFields.inputCancel')"
           @click="cancelAdd"
         >
-          ✕
+          <LucideX :stroke-width="2" />
         </button>
       </span>
     </div>

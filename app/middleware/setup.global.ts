@@ -1,10 +1,9 @@
 // First-run redirect. If the deploy has no admin yet, every route
-// except /setup itself funnels there so whoever gets there first
-// creates the initial admin account.
+// except /setup itself funnels there. Creating an initial admin account 
+// will require knowledge of the ADMIN_KEY from .env.
 //
 // Caching: only cache the terminal `false` (setup done) — that state
-// is one-way and stable. Never cache `true`, since a successful setup
-// mid-session would keep sending the just-created admin back to /setup.
+// is one-way and stable.
 
 let doneCached = false;
 let inflight: Promise<boolean> | null = null;

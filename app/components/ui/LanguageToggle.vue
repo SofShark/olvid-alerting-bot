@@ -98,7 +98,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
-  min-width: 160px;
+  width: 100%;
   background: var(--color-bg-panel);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-md);

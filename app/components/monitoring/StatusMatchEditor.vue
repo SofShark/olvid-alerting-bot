@@ -185,7 +185,7 @@ const summaryLabel = computed(() => {
                 :title="`Remove ${c}`"
                 @click="removeCode(c)"
               >
-                ✕
+                <LucideX :stroke-width="2" />
               </button>
             </span>
             <span v-if="codes.length === 0" class="chips-empty">

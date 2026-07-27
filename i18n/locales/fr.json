@@ -21,6 +21,23 @@
     }
   },
 
+  "user": { 
+    "pageTitle": "Utilisateurs",
+    "userRow" :{
+      "status": {
+        "active": "Actif",
+        "pending": "En attente"
+      },
+      "role" : {
+        "admin": "Admin",
+        "user" : "User"
+      }
+    },
+    "invitation" :{
+      "send": "Envoyer une invitation"
+    }
+  },
+
   "alertStatus": {
     "active": "Active",
     "inactive": "Inactive",
@@ -500,9 +517,7 @@
   },
 
   "inputSourceSelector": {
-    "lockedHint": "🔒 Ne peut pas être changée, des lots dépendent déjà de cette source",
-    "searchPlaceholder": "Rechercher une source (GitHub, Grafana, Sentry...)",
-    "noResults": "Aucun résultat",
+    "searchPlaceholder": "Choisisez une source",
     "changeButton": "Changer",
     "labels": {
       "Polling Source": "Data Polling",

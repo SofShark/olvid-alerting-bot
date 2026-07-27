@@ -83,19 +83,21 @@ export async function requireAdmin(event: H3Event) {
 
 type PrismaUserRow = {
   id: number;
-  email: string;
+  login: string;
+  email: string | null;
   name: string | null;
   role: string;
-  emailVerified: Date | null;
+  activatedAt: Date | null;
 };
 
 export function toClientUser(row: PrismaUserRow): User {
   return {
     id: row.id,
+    login: row.login,
     email: row.email,
     name: row.name,
     role: row.role as UserRole,
-    emailVerified: row.emailVerified !== null,
+    activated: row.activatedAt !== null,
   };
 }
 

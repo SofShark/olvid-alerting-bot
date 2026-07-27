@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   const { email } = await readValidatedBody(event, bodySchema.parse);
 
   const user = await userRepository.getByEmail(email);
-  if (!user || user.emailVerified) return { ok: true };
+  if (!user || user.activatedAt) return { ok: true };
 
   // Token-table read stays inline: verification-token access isn't
   // wide enough to justify its own repository yet.

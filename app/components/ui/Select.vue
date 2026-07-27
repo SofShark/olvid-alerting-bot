@@ -23,16 +23,23 @@ const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
-    modelValue: string;
+    modelValue?: string;
     options: Option[];
     disabled?: boolean;
     placeholder?: string;
     size?: "md" | "sm";
+    // Initial open state. Only read at mount; further changes are
+    // ignored so the user can freely open/close after that. Used by
+    // callers that unmount+remount the Select to reopen it (e.g.
+    // InputSourceSelector's "Change" button clears the selection and
+    // wants the picker back on screen already expanded).
+    defaultOpen?: boolean;
   }>(),
   {
     disabled: false,
     placeholder: () => "",
     size: "md",
+    defaultOpen: false,
   },
 );
 
@@ -40,7 +47,7 @@ const emit = defineEmits<{
   (e: "update:modelValue", v: string): void;
 }>();
 
-const isOpen = ref(false);
+const isOpen = ref(props.defaultOpen);
 const containerRef = ref<HTMLElement | null>(null);
 
 const current = computed(() =>
@@ -79,7 +86,10 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
       :aria-expanded="isOpen"
       @click="toggle"
     >
-      <span class="select-label">{{ displayLabel }}</span>
+      <span
+        class="select-label"
+        :class="{ 'select-label--placeholder': !current }"
+      >{{ displayLabel }}</span>
       <span class="select-chevron" :class="{ open: isOpen }" aria-hidden="true"
         >▾</span
       >
@@ -172,6 +182,11 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Muted color when the trigger is showing the placeholder — matches
+ * the treatment `<input>::placeholder` gets across the app. */
+.select-label--placeholder {
+  color: var(--color-text-dim);
+}
 .select-chevron {
   color: var(--color-text-dim);
   font-size: 12px;
@@ -200,7 +215,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 }
 .size-sm .select-dropdown {
   left: 0;
-  min-width: 100%;
+  width: 100%;
   padding: var(--space-1);
 }
 

@@ -138,7 +138,7 @@ const onClose = () => emit("close");
           :title="$t('formatEditor.buttons.closeTitle')"
           @click="onClose"
         >
-          ✕
+          <LucideX :stroke-width="2" />
         </button>
       </div>
 

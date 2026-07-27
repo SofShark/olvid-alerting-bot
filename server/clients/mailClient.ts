@@ -25,7 +25,7 @@ const PASSWORD = process.env.SMTP_PASSWORD;
 const FROM = process.env.SMTP_FROM;
 
 let client: MailPace.DomainClient | null = null;
-let warnedMissing = false;
+let warnedMissing = false; // Flag to detect unset smtp env variables => mail services unavailable
 
 function getClient(): MailPace.DomainClient | null {
   if (client) return client;
@@ -46,6 +46,13 @@ function getClient(): MailPace.DomainClient | null {
 // the mail preview (client) and this sender (server) stay in lockstep.
 
 export const mailClient = {
+  /** Cheap boot-time check: are the SMTP env vars set? Callers gate
+   *  every mail-related UI surface + endpoint on this so an operator
+   *  without SMTP configured never sees a broken "email" affordance. */
+  isAvailable(): boolean {
+    return Boolean(PASSWORD && FROM);
+  },
+
   async send(
     addresses: string[],
     subject: string,

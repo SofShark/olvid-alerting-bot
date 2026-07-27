@@ -13,6 +13,6 @@ export default defineEventHandler(async (event) => {
   if (!userId) {
     throw createError({ statusCode: 400, statusMessage: "token_invalid" });
   }
-  await userRepository.update(userId, { emailVerified: new Date() });
+  await userRepository.update(userId, { activatedAt: new Date() });
   return { ok: true };
 });

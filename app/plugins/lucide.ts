@@ -21,8 +21,8 @@ import {
   ChevronRight,
   CircleCheck,
   Info,
-  Workflow,
   Circle,
+  X,
   Copy,
   EllipsisVertical,
   UserCog,
@@ -35,7 +35,9 @@ import {
   Globe,
   User,
   Bell,
-  LucideUserCog,
+  CircleQuestionMark,
+  ChevronDown,
+ 
 } from "@lucide/vue";
 
 const icons = {
@@ -44,10 +46,11 @@ const icons = {
   LucideTrash2: Trash2,
   LucideChevronLeft: ChevronLeft,
   LucideChevronRight: ChevronRight,
+  LucideChevronDown: ChevronDown,
   LucideCircleCheck: CircleCheck,
   LucideInfo: Info,
-  LucideWorkflow: Workflow,
   LucideCircle: Circle,
+  LucideX: X,
   LucideCopy: Copy,
   LucideEllipsisVertical: EllipsisVertical,
   LucideArrowLeftRight: ArrowLeftRight,
@@ -60,6 +63,7 @@ const icons = {
   LucideUser: User,
   LucideUserCog: UserCog,
   LucideBell: Bell,
+  LucideCircleQuestionMark: CircleQuestionMark,
 };
 
 export default defineNuxtPlugin((nuxtApp) => {

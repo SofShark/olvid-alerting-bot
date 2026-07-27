@@ -2,7 +2,9 @@
 import type { CredentialsForm } from "#shared/types/auth";
 
 const { fetch: refreshSession } = useUserSession();
-const credentials = reactive<CredentialsForm>({ email: "", password: "" });
+const { data: authConfig } = await useAuthConfig();
+
+const credentials = reactive<CredentialsForm>({ login: "", password: "" });
 const error = ref<string | null>(null);
 const needsVerification = ref(false);
 const resent = ref(false);
@@ -17,26 +19,37 @@ async function login() {
     await navigateTo("/");
   } catch (err: unknown) {
     const status = (err as { statusMessage?: string })?.statusMessage;
-    if (status === "email_not_verified") {
+    if (status === "account_not_activated") {
       needsVerification.value = true;
-      error.value = "Please verify your email to sign in.";
+      error.value = "Your account isn't activated yet. Check your invite email.";
     } else {
-      error.value = "Invalid email or password.";
+      error.value = "Invalid credentials.";
     }
   }
 }
+
+// Resend affordance only makes sense when SMTP is on — the endpoint
+// is a no-op otherwise. And it's keyed by email, so we only offer it
+// when the login the user typed looks like an address.
+const canResend = computed(
+  () => authConfig.value?.mailEnabled && credentials.login.includes("@"),
+);
 
 async function resend() {
   try {
     await $fetch("/api/auth/resend-verification", {
       method: "POST",
-      body: { email: credentials.email },
+      body: { email: credentials.login },
     });
     resent.value = true;
   } catch {
-    /* swallow — endpoint returns 200 even on unknown addresses */
+    /* silent — endpoint returns 200 on unknown addresses on purpose */
   }
 }
+
+const loginLabel = computed(() =>
+  authConfig.value?.mailEnabled ? "Email or username" : "Username",
+);
 </script>
 
 <template>
@@ -45,11 +58,10 @@ async function resend() {
       <h4>Sign in</h4>
       <form class="login-form" @submit.prevent="login">
         <input
-          v-model="credentials.email"
+          v-model="credentials.login"
           class="field-input"
-          type="email"
-          placeholder="Email"
-          autocomplete="username"
+          type="text"
+          :placeholder="loginLabel"
           required
         />
         <input
@@ -57,13 +69,12 @@ async function resend() {
           class="field-input"
           type="password"
           placeholder="Password"
-          autocomplete="current-password"
           required
         />
         <button type="submit" class="btn btn-primary">Login</button>
       </form>
       <p v-if="error" class="msg msg--error">{{ error }}</p>
-      <p v-if="needsVerification && !resent" class="msg">
+      <p v-if="needsVerification && canResend && !resent" class="msg">
         <button type="button" class="link-btn" @click="resend">
           Resend verification email
         </button>

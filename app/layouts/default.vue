@@ -65,18 +65,16 @@ const selectedId = computed(() => {
           <LanguageToggle />
           <button
             v-if="user && user.role === 'admin'"
-            
             class="nav-toggle"
             @click="navigateTo(`/users`)"
           >
             <LucideUserCog :stroke-width="2" />
             Users
+          </button>
 
-          </button>
-                    
-          <button v-if="user" class="nav-toggle" @click="logout">
-            <LucideUser :stroke-width="2" /> Logout
-          </button>
+          <!-- Signed in → account dropdown with session info + logout.
+               Signed out → plain login shortcut. -->
+          <AccountMenu v-if="user" @logout="logout" />
           <button v-else class="nav-toggle" @click="goLogin">
             <LucideUser :stroke-width="2" /> Login
           </button>

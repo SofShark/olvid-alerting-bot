@@ -9,7 +9,7 @@ definePageMeta({
     <div class="placeholder-inner">
       <div class="ph-icon">
         <!--🔔-->  
-        <LucideBell :stroke-width="2.5" fill="var(--color-accent)"/>
+        <LucideBell :stroke-width="2" fill="var(--color-accent-border)"/>
       
       </div>
       <p>{{ $t("index.placeholder") }}</p>

@@ -1,66 +1,46 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { Source } from "#shared/types/source";
 
 const { t } = useI18n();
 
-/** UI label for a source enum value. Reads from
- *  `inputSourceSelector.labels.<enum-value>` so translations own the
- *  label ("Polling Source" → "Data Polling"). Falls back to the raw
- *  value if the key is missing. */
 const labelFor = (s: string): string => {
   const key = `inputSourceSelector.labels.${s}`;
   const translated = t(key);
   return translated === key ? s : translated;
 };
 
-const props = withDefaults(
-  defineProps<{
-    modelValue: Source | undefined;
-    locked?: boolean;
-  }>(),
-  {
-    locked: false,
-  },
-);
+defineProps<{
+  modelValue: Source | undefined;
+  locked?: boolean;
+}>();
+
 const emit = defineEmits<{
   "update:modelValue": [value: Source | undefined];
 }>();
 
-const sources = Object.values(Source);
-const searchQuery = ref("");
-const isDropdownOpen = ref(false);
-const containerRef = ref<HTMLElement | null>(null);
+const sourceOptions = computed(() =>
+  Object.values(Source).map((s) => ({ value: s, label: labelFor(s) })),
+);
 
-const filtered = computed(() => {
-  const q = searchQuery.value.toLowerCase();
-  if (!q) return sources;
-  // Match against both raw enum value AND translated label so users can
-  // type "Data Polling" and still find Source.Polling.
-  return sources.filter(
-    (s) => s.toLowerCase().includes(q) || labelFor(s).toLowerCase().includes(q),
-  );
-});
+// Emit the picked source; the Select gives us its raw string value.
+function select(value: string) {
+  emit("update:modelValue", value as Source);
+}
 
-const select = (s: Source) => {
-  emit("update:modelValue", s);
-  searchQuery.value = "";
-  isDropdownOpen.value = false;
-};
+// `defaultOpen` for the Select on remount — flipped on true when the
+// admin clicks Change so the picker appears already expanded (no
+// second click needed). Reset next tick so an initial mount without
+// a prior selection still shows the picker closed.
+const openOnRemount = ref(false);
 
-const clear = async () => {
-  isDropdownOpen.value = true;
-  await nextTick();
+function clear() {
+  openOnRemount.value = true;
   emit("update:modelValue", undefined);
-};
-
-const onClickOutside = (e: MouseEvent) => {
-  if (containerRef.value && !containerRef.value.contains(e.target as Node))
-    isDropdownOpen.value = false;
-};
-
-onMounted(() => document.addEventListener("click", onClickOutside));
-onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
+  nextTick(() => {
+    openOnRemount.value = false;
+  });
+}
 </script>
 
 <template>
@@ -74,28 +54,15 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         {{ $t("inputSourceSelector.changeButton") }}
       </button>
     </div>
-    <div v-else ref="containerRef" class="search-wrap">
-      <input
-        v-model="searchQuery"
-        type="text"
-        :placeholder="$t('inputSourceSelector.searchPlaceholder')"
-        class="search-input"
-        @focus="isDropdownOpen = true"
-      />
-      <div v-if="isDropdownOpen" class="dropdown">
-        <div
-          v-for="s in filtered"
-          :key="s"
-          class="dropdown-item"
-          @mousedown.prevent="select(s)"
-        >
-          {{ labelFor(s) }}
-        </div>
-        <div v-if="filtered.length === 0" class="dropdown-empty">
-          {{ $t("inputSourceSelector.noResults") }}
-        </div>
-      </div>
-    </div>
+    <Select
+      v-else
+      :model-value="modelValue"
+      :options="sourceOptions"
+      :placeholder="$t('inputSourceSelector.searchPlaceholder')"
+      size="sm"
+      :default-open="openOnRemount"
+      @update:model-value="select"
+    />
   </div>
 </template>
 
@@ -109,11 +76,12 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 .selected-badge {
   display: flex;
   justify-content: space-between;
+  height: 30px;
   align-items: center;
   background: var(--color-accent-soft);
   border: 1px solid var(--color-accent-border);
   border-radius: var(--radius-md);
-  padding: 9px var(--space-4);
+  padding: 0  var(--space-4);
   box-sizing: border-box;
 }
 .selected-left {
@@ -139,71 +107,5 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 }
 .btn-change:hover {
   color: var(--color-accent-text);
-}
-.locked-hint {
-  color: var(--color-text-faint);
-  font-size: var(--text-sm);
-}
-
-.search-wrap {
-  position: relative;
-  width: 100%;
-}
-
-.search-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 9px var(--space-4);
-  background: var(--color-bg-input);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  font-family: inherit;
-  font-size: var(--text-base);
-  outline: none;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
-}
-.search-input:focus {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
-}
-.search-input::placeholder {
-  color: var(--color-border-default);
-}
-
-.dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-  max-height: 180px;
-  overflow-y: auto;
-  z-index: 50;
-}
-.dropdown-item {
-  padding: 9px var(--space-4);
-  font-size: var(--text-base);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-.dropdown-item:last-child {
-  border-bottom: none;
-}
-.dropdown-item:hover {
-  background: var(--color-border-subtle);
-  color: var(--color-text-primary);
-}
-.dropdown-empty {
-  padding: var(--space-3) var(--space-4);
-  color: var(--color-text-faint);
-  font-size: var(--text-base);
-  font-style: italic;
 }
 </style>

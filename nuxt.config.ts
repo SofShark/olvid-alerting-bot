@@ -39,6 +39,7 @@ export default defineNuxtConfig({
     { path: "~/components/condition", pathPrefix: false },
     { path: "~/components/monitoring", pathPrefix: false },
     { path: "~/components/payload", pathPrefix: false },
+    { path: "~/components/user", pathPrefix: false },
   ],
 
   alias: {

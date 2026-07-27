@@ -21,6 +21,23 @@
     }
   },
 
+  "user": { 
+    "pageTitle": "Users",
+    "userRow" :{
+      "status": {
+        "active": "Active",
+        "pending": "Pending Invite"
+      },
+      "role" : {
+        "admin": "Admin",
+        "user" : "User"
+      }
+    },
+    "invitation" :{
+      "send": "Send invitation"
+    }
+  },
+
   "alertStatus": {
     "active": "Active",
     "inactive": "Inactive",
@@ -501,9 +518,7 @@
   },
 
   "inputSourceSelector": {
-    "lockedHint": "🔒 Can't be changed, bundles already depend on this source",
-    "searchPlaceholder": "Search source (GitHub, Grafana, Sentry...)",
-    "noResults": "No results",
+    "searchPlaceholder": "Select a source",
     "changeButton": "Change",
     "labels": {
       "Polling Source": "Data Polling",

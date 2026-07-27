@@ -1,6 +1,6 @@
 // Consumes an invite token, sets the user's password + optional name,
-// marks their email verified (the token traveled through their inbox),
-// and logs them in.
+// activates the account (the link travelled through their inbox or
+// clipboard), and logs them in.
 
 import { z } from "zod";
 import { userRepository } from "#server/repositories/userRepository";
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   const updated = await userRepository.update(userId, {
     passwordHash,
     name: name ?? current.name,
-    emailVerified: current.emailVerified ?? new Date(),
+    activatedAt: current.activatedAt ?? new Date(),
   });
 
   await setUserSession(event, { user: toClientUser(updated) });

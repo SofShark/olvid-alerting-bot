@@ -51,7 +51,7 @@ const copyWebhook = () => {
   padding: var(--space-3) var(--space-4);
 }
 .url-box code {
-  color: var(--color-text-webhook);
+  color: var(--color-text-url);
   font-size: var(--text-md);
   font-family: var(--font-mono);
   overflow: hidden;
@@ -75,15 +75,17 @@ const copyWebhook = () => {
   line-height: 1;
   padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
+  
   transition:
     color 0.15s,
     background-color 0.15s,
     transform 0.1s;
 }
-.btn-copy:hover {
-  background: var(--neutral-80);
+
+.btn-copy:hover .clipboard-icon{
+  color: var(--color-text-url);
 }
+
 .btn-copy:active {
   transform: scale(0.88);
 }

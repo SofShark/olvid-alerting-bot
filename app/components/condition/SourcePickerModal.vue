@@ -45,7 +45,7 @@ const emit = defineEmits<{
           :title="$t('conditionEditor.picker.closeTitle')"
           @click="emit('close')"
         >
-          ✕
+          <LucideX :stroke-width="2" />
         </button>
       </div>
 

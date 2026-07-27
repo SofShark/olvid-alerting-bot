@@ -15,13 +15,21 @@ datasource db {
 // users are created by an admin via /users (invite-by-email flow) and
 // default to role="user". `passwordHash` is null until the user completes
 // their password setup (invite acceptance or first-run setup form).
+// A User is identified by `login` — the string they type at the sign-in
+// screen. When SMTP is configured `login` is normally an email address
+// and `email` mirrors it (so we know where to send invites / resets).
+// When SMTP is off `login` is a plain username the admin picks and
+// `email` stays null. `activatedAt` records when the account became
+// usable — set by the setup form (first admin), the accept-invite
+// endpoint (user opens their invite link), or the verify-email endpoint.
 model User {
   id            Int       @id @default(autoincrement())
-  email         String    @unique
+  login         String    @unique
+  email         String?   @unique
   passwordHash  String?
   name          String?
   role          String    @default("user") // "admin" | "user"
-  emailVerified DateTime?
+  activatedAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
