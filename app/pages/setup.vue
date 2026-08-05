@@ -7,8 +7,15 @@ import type { SetupForm } from "#shared/types/auth";
 //   2. SMTP presence decides whether we collect an email + fire a
 //      verification link, or a plain username + activate immediately.
 
+const { t } = useI18n();
 const { data: authConfig, refresh: refreshAuthConfig } = await useAuthConfig();
 const { fetch: refreshSession } = useUserSession();
+const { mapAuthError } = useAuthErrors();
+const setupErrorMap = {
+  admin_key_not_configured: t("auth.setup.errorAdminKeyNotConfigured"),
+  invalid_admin_key: t("auth.setup.errorInvalidAdminKey"),
+  setup_already_complete: t("auth.setup.errorAlreadyComplete"),
+};
 
 const form = reactive<SetupForm>({
   adminKey: "",
@@ -25,17 +32,12 @@ const mailEnabled = computed(() => authConfig.value?.mailEnabled ?? false);
 async function submit() {
   error.value = null;
   try {
-    const res = await $fetch<{
-      requiresVerification: boolean;
-    }>("/api/auth/setup", {
-      method: "POST",
-      body: {
-        adminKey: form.adminKey,
-        login: mailEnabled.value ? form.email : form.login,
-        email: mailEnabled.value ? form.email : undefined,
-        password: form.password,
-        name: form.name || undefined,
-      },
+    const res = await authService.setup({
+      adminKey: form.adminKey,
+      login: mailEnabled.value ? form.email ?? "" : form.login,
+      email: mailEnabled.value ? form.email : undefined,
+      password: form.password,
+      name: form.name || undefined,
     });
     await refreshAuthConfig();
 
@@ -46,95 +48,85 @@ async function submit() {
       await navigateTo("/");
     }
   } catch (err: unknown) {
-    const status = (err as { statusMessage?: string })?.statusMessage;
-    error.value =
-      status === "admin_key_not_configured"
-        ? "ADMIN_KEY is not set on the server. Configure it in .env and restart."
-        : status === "invalid_admin_key"
-          ? "That admin key doesn't match the one configured on the server."
-          : status === "setup_already_complete"
-            ? "An admin already exists on this deploy."
-            : "Could not create the admin account. Check the inputs and try again.";
+    error.value = mapAuthError(err, setupErrorMap, t("auth.setup.errorFallback"));
   }
 }
 </script>
 
 <template>
-  <div class="overlay">
-    <div class="overlay-box overlay-box--compact">
-      <template v-if="!done">
-        <h4>Create the first admin</h4>
-        <p class="hint">
-          Paste the <code>ADMIN_KEY</code> from your <code>.env</code> to
-          prove you deployed this instance, then fill in your details.
-        </p>
-        <form class="setup-form" @submit.prevent="submit">
-          <input
-            v-model="form.adminKey"
-            class="field-input"
-            type="password"
-            placeholder="ADMIN_KEY"
-            autocomplete="off"
-            required
-          />
-          <input
-            v-model="form.name"
-            class="field-input"
-            type="text"
-            placeholder="Name (optional)"
-            autocomplete="name"
-          />
+  <AuthCard>
+    <template v-if="!done">
+      <h4>{{ $t("auth.setup.title") }}</h4>
+      <p class="hint">{{ $t("auth.setup.hint") }}</p>
+      <form class="setup-form" @submit.prevent="submit">
+        <input
+          v-model="form.adminKey"
+          class="field-input"
+          type="password"
+          :placeholder="$t('auth.setup.adminKey')"
+          autocomplete="off"
+          required
+        />
+        <input
+          v-model="form.name"
+          class="field-input"
+          type="text"
+          :placeholder="$t('auth.setup.namePlaceholder')"
+          autocomplete="name"
+        />
 
-          <!-- SMTP configured → collect email as the login. -->
-          <input
-            v-if="mailEnabled"
-            v-model="form.email"
-            class="field-input"
-            type="email"
-            placeholder="Email"
-            autocomplete="username"
-            required
-          />
-          <!-- SMTP off → collect a plain username instead. -->
-          <input
-            v-else
-            v-model="form.login"
-            class="field-input"
-            type="text"
-            placeholder="Username"
-            autocomplete="username"
-            required
-          />
+        <!-- SMTP configured → collect email as the login. -->
+        <input
+          v-if="mailEnabled"
+          v-model="form.email"
+          class="field-input"
+          type="email"
+          :placeholder="$t('auth.setup.emailPlaceholder')"
+          autocomplete="username"
+          required
+        />
+        <!-- SMTP off → collect a plain username instead. -->
+        <input
+          v-else
+          v-model="form.login"
+          class="field-input"
+          type="text"
+          :placeholder="$t('auth.setup.usernamePlaceholder')"
+          autocomplete="username"
+          required
+        />
 
-          <input
-            v-model="form.password"
-            class="field-input"
-            type="password"
-            placeholder="Password (min 8 chars)"
-            autocomplete="new-password"
-            minlength="8"
-            required
-          />
-          <button type="submit" class="btn btn-primary">Create admin</button>
-        </form>
-        <p v-if="error" class="msg msg--error">{{ error }}</p>
-        <p v-if="!mailEnabled" class="hint hint--small">
-          SMTP is not configured on this deploy — you'll be signed in
-          directly after creating the account (no email verification).
-        </p>
-      </template>
+        <input
+          v-model="form.password"
+          class="field-input"
+          type="password"
+          :placeholder="$t('auth.setup.passwordPlaceholder')"
+          autocomplete="new-password"
+          minlength="8"
+          required
+        />
+        <button type="submit" class="btn btn-primary">
+          {{ $t("auth.setup.submit") }}
+        </button>
+      </form>
+      <p v-if="error" class="msg msg--error">{{ error }}</p>
+      <p v-if="!mailEnabled" class="hint hint--small">
+        {{ $t("auth.setup.noSmtpHint") }}
+      </p>
+    </template>
 
-      <template v-else>
-        <h4>Check your inbox</h4>
-        <p class="hint">
-          A verification link has been sent to
-          <strong>{{ form.email }}</strong
-          >. Click it to activate the account, then sign in.
-        </p>
-        <NuxtLink to="/login" class="btn btn-primary">Go to login</NuxtLink>
-      </template>
-    </div>
-  </div>
+    <template v-else>
+      <h4>{{ $t("auth.setup.doneTitle") }}</h4>
+      <i18n-t keypath="auth.setup.doneBody" tag="p" class="hint">
+        <template #email>
+          <strong>{{ form.email }}</strong>
+        </template>
+      </i18n-t>
+      <NuxtLink to="/login" class="btn btn-primary">
+        {{ $t("auth.setup.doneCta") }}
+      </NuxtLink>
+    </template>
+  </AuthCard>
 </template>
 
 <style scoped>

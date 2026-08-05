@@ -1,5 +1,4 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-//import { resolve } from "node:dns"
 import { resolve } from "path";
 
 export default defineNuxtConfig({
@@ -12,7 +11,7 @@ export default defineNuxtConfig({
   },
 
   compatibilityDate: "2025-07-15",
-  devtools: { enabled: true },
+  devtools: { enabled: false },
 
   // DATABASE_URL is read directly by server/db/prisma.ts at boot — no
   // runtimeConfig hop needed. See that module for the SQLite-default /
@@ -67,13 +66,13 @@ export default defineNuxtConfig({
       ],
     },
 
-    /*  
+    /*
     experimental: { tasks: true }, // Internal heartbeat that conditionally triggers the activation of scheduled alerts
     scheduledTasks: {
       "* * * * *": ["polling:heartbeat"],
     },
     */
-    
+
   },
 
   modules: ["@nuxtjs/i18n", "@nuxt/eslint", "nuxt-auth-utils"],

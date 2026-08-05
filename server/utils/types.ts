@@ -19,11 +19,14 @@ export interface Parser {
   parse(ctx: ParserContext): ParseResult;
 }
 
+import type { Verdict } from "#shared/types/condition";
+
 export interface EvalResult {
   fired: boolean;
   reason: string;
-  observedValue?: any; // current value at the first watched path
-  baselineValue?: any; // either the previous-poll value, or the full per-path verdict array
+  /** Full per-path breakdown (empty when kind=None or no fields
+   *  configured). Reused as `ConditionOutcome.verdicts` on the client. */
+  verdicts: Verdict[];
 }
 
 export type RunResult = {

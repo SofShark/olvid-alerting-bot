@@ -1,25 +1,21 @@
 import { ref, computed, watch, type Ref } from "vue";
-import {
-  Source,
-  isPolling as isPollingType,
-  isMonitoring as isMonitoringType,
-  isScheduled,
-} from "#shared/types/source";
+import { Source } from "#shared/types/source";
 import {
   AlertStatus,
   type AlertModel,
   type AlertParams,
 } from "#shared/types/alert";
-import { Formatting, type BundleModel } from "#shared/types/bundle";
 import {
+  Formatting,
   BundleOutputType,
-  type BundleFrontendOutput,
-} from "#shared/types/bundleOutput";
+  type BundleModel,
+  type BundleOutput,
+} from "#shared/types/bundle";
 
 /**
  * Owns the AlertModel form shared by AlertView (read) and AlertWizard (write).
  *
- * The form matches the WIRE shape 1:1 (bundles carry `outputs: BundleFrontendOutput[]`,
+ * The form matches the WIRE shape 1:1 (bundles carry `outputs: BundleOutput[]`,
  * not pre-resolved discussion titles). Components that need a title
  * (AlertBundleRow, DiscussionSelector, …) look it up on the fly against
  * `useAlerts().availableDiscussions`. This keeps the form dumb and the
@@ -48,7 +44,8 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
       // union member is discriminated by `input` downstream. Webhook
       // alerts carry none.
       const alertParams: AlertParams =
-        isScheduled(a.input) && incomingParams
+        (a.input === Source.Polling || a.input === Source.Monitoring) &&
+        incomingParams
           ? (incomingParams as AlertParams)
           : undefined;
 
@@ -65,7 +62,7 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
           name: b.name,
           formating: (b.formating as Formatting) || Formatting.Unformatted,
           custom_script: b.custom_script || "",
-          outputs: (b.outputs ?? []) as BundleFrontendOutput[],
+          outputs: (b.outputs ?? []) as BundleOutput[],
         })),
       };
     } else {
@@ -98,8 +95,8 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
 
   // ── Derived shape flags ───────────────────────────────────────────────────
   const isExisting = computed(() => form.value.id !== null);
-  const isPolling = computed(() => isPollingType(form.value.input));
-  const isMonitoring = computed(() => isMonitoringType(form.value.input));
+  const isPolling = computed(() => form.value.input === Source.Polling);
+  const isMonitoring = computed(() => form.value.input === Source.Monitoring);
   const isWebhook = computed(() => form.value.input === Source.Webhook);
 
   return {
@@ -122,23 +119,23 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
 // Bridge between the wire shape (typed outputs) and the flat lists each
 // selector component speaks natively (Olvid discussion ids for
 // DiscussionSelector, email strings for EmailRecipientSelector).
-// The discriminated `BundleFrontendOutput` narrows `params` inside each
+// The discriminated `BundleOutput` narrows `params` inside each
 // filter so no cast is needed at the call site.
 
-export function olvidIdsOf(outputs: BundleFrontendOutput[]): string[] {
+export function olvidIdsOf(outputs: BundleOutput[]): string[] {
   return outputs
     .filter((o) => o.type === BundleOutputType.Olvid)
     .map((o) => o.params.discussionId);
 }
 
-export function outputsFromOlvidIds(ids: string[]): BundleFrontendOutput[] {
+export function outputsFromOlvidIds(ids: string[]): BundleOutput[] {
   return ids.map((discussionId) => ({
     type: BundleOutputType.Olvid,
     params: { discussionId },
   }));
 }
 
-export function mailAddressesOf(outputs: BundleFrontendOutput[]): string[] {
+export function mailAddressesOf(outputs: BundleOutput[]): string[] {
   return outputs
     .filter((o) => o.type === BundleOutputType.Mail)
     .map((o) => o.params.address);
@@ -146,7 +143,7 @@ export function mailAddressesOf(outputs: BundleFrontendOutput[]): string[] {
 
 export function outputsFromMailAddresses(
   addresses: string[],
-): BundleFrontendOutput[] {
+): BundleOutput[] {
   return addresses.map((address) => ({
     type: BundleOutputType.Mail,
     params: { address },
@@ -164,7 +161,7 @@ export function outputsFromMailAddresses(
 export function mergeOutputs(
   olvidIds: string[],
   mailAddresses: string[],
-): BundleFrontendOutput[] {
+): BundleOutput[] {
   return [
     ...outputsFromOlvidIds(olvidIds),
     ...outputsFromMailAddresses(mailAddresses),
@@ -178,7 +175,7 @@ export function mergeOutputs(
  *  from an older version, we go by the first output's type so the row
  *  keeps rendering (the editor will then normalize on save). */
 export function bundleKind(
-  outputs: BundleFrontendOutput[],
+  outputs: BundleOutput[],
 ): BundleOutputType | null {
   return outputs[0]?.type ?? null;
 }

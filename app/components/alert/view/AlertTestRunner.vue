@@ -35,7 +35,6 @@ const runTest = async () => {
     // Endpoint-level failure (404 / 400 / network). Coerce into the
     // envelope shape so the render path is one branch, not two.
     testResult.value = {
-      ok: false,
       error:
         error?.data?.statusMessage ??
         error?.message ??
@@ -82,8 +81,8 @@ const verdictHeadline = computed(() => {
           />
 
           <VerdictBreakdown
-            v-if="testResult.condition?.baselineValue?.length"
-            :verdicts="testResult.condition.baselineValue"
+            v-if="testResult.condition?.verdicts?.length"
+            :verdicts="testResult.condition.verdicts"
             :title="$t('editor.testModal.perFieldBreakdown')"
           />
 

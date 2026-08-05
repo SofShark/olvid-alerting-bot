@@ -1,5 +1,4 @@
-// Client-facing User shape. Nothing sensitive (no passwordHash, no
-// DB timestamps).
+// Client-facing User shape.
 //
 // `login` is the identifier the user types at sign-in — always present.
 // `email` is delivery-only and may be null when the account was created
@@ -12,8 +11,6 @@ export interface User {
   email: string | null;
   name: string | null;
   role: UserRole;
-  // `activated` — has the account been used at least once (setup form
-  // completed, invite accepted, or email verified). Renders as "Active"
-  // in the users table; pending users still need to open their invite.
+  // Has the account been actjvated. Pending users still need to open their invite.
   activated: boolean;
 }

@@ -2,7 +2,8 @@
 import { computed } from "vue";
 import { Source } from "#shared/types/source";
 import type { AlertModel } from "#shared/types/alert";
-import { TriggerMode, type PollingParams } from "#shared/types/polling";
+import { TriggerMode } from "#shared/types/triggerMode";
+import type { PollingParams } from "#shared/types/polling";
 import type { MonitorParams } from "#shared/types/monitor";
 import { ConditionKind, ConditionOperator } from "#shared/types/condition";
 

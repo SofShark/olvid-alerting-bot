@@ -12,7 +12,7 @@ import {
   ConditionOperator,
   type PollingCondition,
 } from "../types/condition";
-import { TriggerMode } from "../types/polling";
+import { TriggerMode } from "../types/triggerMode";
 
 /**
  * Outcome of a fire decision for one poll cycle.

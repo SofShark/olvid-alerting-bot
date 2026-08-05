@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { BundleModel } from "#shared/types/bundle";
+import { type BundleModel, BundleOutputType } from "#shared/types/bundle";
 import {
   olvidIdsOf,
   mailAddressesOf,
   bundleKind,
 } from "~/composables/useAlertForm";
-import { BundleOutputType } from "#shared/types/bundleOutput";
 import { LucideTrash2 } from "@lucide/vue";
 
 /*
@@ -40,7 +39,7 @@ defineEmits<{
   (e: "remove", index: number): void;
 }>();
 
-const { formatLabel } = useFormatLabel();
+const { formatLabel } = useAlertLabels();
 const { bundleStatus } = useBundleStatus();
 
 const status = computed(() => bundleStatus(props.bundle));

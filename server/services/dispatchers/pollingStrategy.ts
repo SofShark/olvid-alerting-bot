@@ -6,9 +6,11 @@
 // `pollingEngine` and `notifierService` resolve via Nitro auto-imports.
 
 import type {
+  ChannelReport,
   DispatchStrategy,
   DispatchResult,
 } from "#shared/types/dispatchStrategy";
+import { summariseChannels } from "#shared/types/dispatchStrategy";
 import type { AlertModel } from "#shared/types/alert";
 import { getPollingParams } from "#shared/types/alert";
 import { ConditionOperator } from "#shared/types/condition";
@@ -20,7 +22,11 @@ export const pollingStrategy: DispatchStrategy = {
     const params = getPollingParams(alert);
     if (!params) {
       return {
-        outcome: { status: "error", error: "Alert has no polling params" },
+        outcome: {
+          status: "error",
+          error: "Alert has no polling params",
+          details: { stage: "evaluate" },
+        },
         paramsPatch: {},
       };
     }
@@ -32,7 +38,14 @@ export const pollingStrategy: DispatchStrategy = {
       console.error(
         `[pollingStrategy] alert #${alert.id} retrieve failed: ${msg}`,
       );
-      return { outcome: { status: "error", error: msg }, paramsPatch: {} };
+      // `raw === undefined` ⇒ fetch never produced bytes, so the failure
+      // is on the fetch stage; otherwise the parser rejected the body.
+      const stage: "fetch" | "parse" =
+        run.raw === undefined ? "fetch" : "parse";
+      return {
+        outcome: { status: "error", error: msg, details: { stage } },
+        paramsPatch: {},
+      };
     }
 
     // 2) Evaluate the condition against the freshly-parsed payload.
@@ -50,9 +63,16 @@ export const pollingStrategy: DispatchStrategy = {
       params._lastFired,
     );
 
-    // 4) Notify — the notifier knows about 'alert' vs 'recovery' kinds.
+    // 4) Notify — the notifier knows about 'alert' vs 'recovery' kinds
+    //    and returns a flattened per-channel report so we can promote
+    //    the outcome to partial/failed if any channel silently failed.
+    let channels: ChannelReport[] = [];
     if (decision.fire) {
-      await notifierService.processAlert(alert, run.parsed, decision.kind);
+      channels = await notifierService.processAlert(
+        alert,
+        run.parsed,
+        decision.kind,
+      );
     }
 
     // 5) Runtime-state patch. `_baseline` is only meaningful for
@@ -64,6 +84,21 @@ export const pollingStrategy: DispatchStrategy = {
       paramsPatch._baseline = run.parsed;
     }
 
-    return { outcome: { status: "success", error: null }, paramsPatch };
+    // The dispatch outcome is decided by the per-channel promotion rule
+    // when we actually sent anything; otherwise the run was a clean
+    // no-fire tick (success, empty details).
+    const status = channels.length > 0 ? summariseChannels(channels) : "success";
+    const anyChannelError = channels.find((c) => !c.ok)?.error ?? null;
+    return {
+      outcome: {
+        status,
+        error: status === "success" ? null : anyChannelError,
+        details:
+          channels.length > 0
+            ? { stage: "dispatch", channels }
+            : undefined,
+      },
+      paramsPatch,
+    };
   },
 };

@@ -16,7 +16,7 @@ defineProps<{
   title: string;
 }>();
 
-const { formatLabel } = useFormatLabel();
+const { formatLabel } = useAlertLabels();
 
 const { t } = useI18n();
 const discussionCountLabel = (n: number) =>

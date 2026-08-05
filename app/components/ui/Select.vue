@@ -129,7 +129,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   font-size: var(--text-base);
-  height: 30px;
+  height: 32px;
   
   font-family: inherit;
   cursor: pointer;
@@ -205,6 +205,9 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
+  min-width: 100%;
+  width:max-content;
+
   max-height: 240px;
   overflow-y: auto;
   z-index: 200;
@@ -215,7 +218,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 }
 .size-sm .select-dropdown {
   left: 0;
-  width: 100%;
+  
   padding: var(--space-1);
 }
 

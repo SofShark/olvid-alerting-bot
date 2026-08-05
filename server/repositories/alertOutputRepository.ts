@@ -18,8 +18,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "#server/db/prisma";
 import {
   BundleOutputType,
-  type BundleFrontendOutput,
-} from "~~/shared/types/bundleOutput";
+  type BundleOutput,
+} from "~~/shared/types/bundle";
 
 /** Any interactive-transaction client (or the top-level prisma). Both
  *  expose the same query surface — the split just lets us thread
@@ -75,7 +75,7 @@ export function buildOutputsCreate(
 
 /** DB row → wire shape. Discussion ids stay strings; mail addresses
  *  come out already normalised (they were normalised on write). */
-export function serializeOutput(output: any): BundleFrontendOutput {
+export function serializeOutput(output: any): BundleOutput {
   if (output.type === BundleOutputType.Olvid) {
     const discussionId = String(output.params?.discussionId ?? "");
     return { type: BundleOutputType.Olvid, params: { discussionId } };
@@ -90,7 +90,7 @@ export function serializeOutput(output: any): BundleFrontendOutput {
   return {
     type: output.type,
     params: output.params ?? {},
-  } as BundleFrontendOutput;
+  } as BundleOutput;
 }
 
 // ── Repository ────────────────────────────────────────────────────────────

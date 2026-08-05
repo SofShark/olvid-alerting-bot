@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { TriggerMode } from "#shared/types/polling";
+import { TriggerMode } from "#shared/types/triggerMode";
 
 /*
   Source-agnostic "Firing behavior" panel — the same block rendered

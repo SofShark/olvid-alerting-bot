@@ -206,21 +206,28 @@ const parsedJson = computed(() => {
 </template>
 
 <style scoped>
-/* Refresh button — small chrome action, shared by polling + monitoring. */
+/* Refresh button — small chrome action, shared by polling + monitoring.
+ * Tokenised over the previous hard-coded hex ladder so the button reads
+ * like every other chrome control (bundle picker, payload toolbar). */
 .payload-refresh {
-  background: #3a3a3a;
-  color: #a3a3a3;
-  border: 1px solid #555;
+  background: var(--color-bg-menu);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-default);
   width: 28px;
   height: 24px;
   border-radius: var(--radius-sm);
   font-size: var(--text-lg);
   cursor: pointer;
   margin-left: auto;
+  transition:
+    background-color 0.12s,
+    color 0.12s,
+    border-color 0.12s;
 }
 .payload-refresh:hover:not(:disabled) {
-  background: #4a4a4a;
-  color: var(--color-text-on-accent);
+  background: var(--color-bg-card-soft);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
 }
 .payload-refresh:disabled {
   opacity: 0.4;

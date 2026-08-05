@@ -15,6 +15,15 @@
 import { getParser } from "./parsers";
 import { evaluate } from "./conditions/evaluator";
 import type { RunResult } from "./types";
+import type { PollingParams } from "#shared/types/polling";
+
+// Structural shape of an alert row as this engine reads it — we only need
+// the id (to key persisted payloads) and the polymorphic `alertParams`
+// blob narrowed to PollingParams at the call site.
+interface PollableAlert {
+  id?: number | null;
+  alertParams?: PollingParams;
+}
 
 async function fetchText(url: string): Promise<string> {
   const res = await fetch(url, { method: "GET" });
@@ -63,7 +72,7 @@ export const pollingEngine = {
     }
   },
 
-  async test(alert: any): Promise<RunResult> {
+  async test(alert: PollableAlert): Promise<RunResult> {
     // alertParams is the new name (post-refactor); fall back to alertParams
     // for any in-flight legacy alert that hasn't been re-saved yet.
     const params = (alert?.alertParams ?? {}) as PollingParams;

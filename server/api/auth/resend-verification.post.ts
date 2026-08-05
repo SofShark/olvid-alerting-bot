@@ -4,26 +4,25 @@
 // don't leak account presence via timing/response.
 
 import { z } from "zod";
-import { prisma } from "#server/db/prisma";
 import { userRepository } from "#server/repositories/userRepository";
+import { verificationTokenRepository } from "#server/repositories/verificationTokenRepository";
 import { issueToken, resolveOrigin } from "#server/utils/auth";
-import { verifyEmail as verifyEmailTemplate } from "#server/utils/authEmails";
+import { verifyEmail as verifyEmailTemplate } from "#server/utils/authMessages";
 import { mailClient } from "#server/clients/mailClient";
+import { readBodyOr400 } from "#server/utils/httpError";
 
 const bodySchema = z.object({ email: z.email() });
 
 export default defineEventHandler(async (event) => {
-  const { email } = await readValidatedBody(event, bodySchema.parse);
+  const { email } = await readBodyOr400(event, bodySchema);
 
   const user = await userRepository.getByEmail(email);
   if (!user || user.activatedAt) return { ok: true };
 
-  // Token-table read stays inline: verification-token access isn't
-  // wide enough to justify its own repository yet.
-  const recent = await prisma.verificationToken.findFirst({
-    where: { userId: user.id, purpose: "email_verify" },
-    orderBy: { createdAt: "desc" },
-  });
+  const recent = await verificationTokenRepository.findMostRecentByUser(
+    user.id,
+    "email_verify",
+  );
   if (recent && Date.now() - recent.createdAt.getTime() < 60_000) {
     return { ok: true };
   }

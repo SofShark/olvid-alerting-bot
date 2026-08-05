@@ -4,8 +4,7 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import type { H3Event } from "h3";
-import { prisma } from "../db/prisma";
-import { userRepository } from "../repositories/userRepository";
+import { verificationTokenRepository } from "../repositories/verificationTokenRepository";
 import type { User, UserRole } from "#shared/types/user";
 
 // ── Token semantics ─────────────────────────────────────────────────
@@ -31,42 +30,52 @@ export async function issueToken(
   purpose: TokenPurpose,
 ): Promise<string> {
   const raw = randomBytes(32).toString("base64url");
-  await prisma.verificationToken.create({
-    data: {
-      tokenHash: sha256(raw),
-      userId,
-      purpose,
-      expiresAt: new Date(Date.now() + TOKEN_TTL[purpose]),
-    },
+  await verificationTokenRepository.create({
+    tokenHash: sha256(raw),
+    userId,
+    purpose,
+    expiresAt: new Date(Date.now() + TOKEN_TTL[purpose]),
   });
   return raw;
 }
 
-// Consume a raw token: validate purpose / expiry / one-shot semantics
-// atomically, mark it used, and return the owning user's id. Callers
-// that need the user row fetch it via userRepository — keeps this
-// helper focused on token bookkeeping and leaves user access in one
-// place. Returns null on any failure (unknown, wrong purpose, expired,
-// already used) so callers can decide the HTTP status without leaking
-// which reason.
-export async function consumeToken(
+/**
+ * Validate a raw token against its expected purpose / expiry / one-shot
+ * semantics. Set `consume: true` to atomically mark the token used
+ * (race-safe: a concurrent consumer wins at most once); leave it false
+ * for read-only peeks (e.g. invite-info surfaces the invitee's login
+ * without burning the link).
+ *
+ * Returns the owning user's id on success, `null` on any failure
+ * (unknown / wrong purpose / expired / already used). Callers decide
+ * the HTTP status so we don't leak which reason.
+ *
+ * For atomic composition with another write (e.g. accept-invite, which
+ * must activate the user in lockstep) use authRepository.acceptInvite
+ * instead — the transaction belongs in the repository layer.
+ */
+export async function validateToken(
   rawToken: string,
   purpose: TokenPurpose,
+  { consume }: { consume: boolean } = { consume: false },
 ): Promise<number | null> {
-  const record = await prisma.verificationToken.findUnique({
-    where: { tokenHash: sha256(rawToken) },
-  });
+  const record = await verificationTokenRepository.findByHash(sha256(rawToken));
   if (!record) return null;
   if (record.purpose !== purpose) return null;
   if (record.usedAt) return null;
   if (record.expiresAt.getTime() < Date.now()) return null;
+  if (!consume) return record.userId;
 
-  await prisma.verificationToken.update({
-    where: { id: record.id },
-    data: { usedAt: new Date() },
-  });
+  const marked = await verificationTokenRepository.markUsedIfUnused(record.id);
+  if (!marked) return null;
   return record.userId;
 }
+
+// Thin aliases so call sites read naturally.
+export const consumeToken = (raw: string, purpose: TokenPurpose) =>
+  validateToken(raw, purpose, { consume: true });
+export const peekToken = (raw: string, purpose: TokenPurpose) =>
+  validateToken(raw, purpose, { consume: false });
 
 // ── Guards ──────────────────────────────────────────────────────────
 
@@ -76,6 +85,29 @@ export async function requireAdmin(event: H3Event) {
     throw createError({ statusCode: 403, statusMessage: "Admin only" });
   }
   return session;
+}
+
+/**
+ * Read + validate a positive integer from the `[id]` route param.
+ * Throws 400 bad_id on anything that isn't a positive integer. Used
+ * as a primitive by the domain-flavoured aliases below.
+ */
+function readIntRouteId(event: H3Event): number {
+  const id = Number(getRouterParam(event, "id"));
+  if (!Number.isInteger(id) || id <= 0) {
+    throw createError({ statusCode: 400, statusMessage: "bad_id" });
+  }
+  return id;
+}
+
+/** Admin-user endpoints: /api/users/[id].{delete,patch}, resend-invite. */
+export function readTargetUserId(event: H3Event): number {
+  return readIntRouteId(event);
+}
+
+/** Alert-scoped endpoints: /api/alerts/[id]/logs, /subscriptions.* */
+export function readTargetAlertId(event: H3Event): number {
+  return readIntRouteId(event);
 }
 
 // ── Shaping ─────────────────────────────────────────────────────────

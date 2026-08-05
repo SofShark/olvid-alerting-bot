@@ -50,6 +50,11 @@ defineEmits<{
     <h4>{{ title }}</h4>
     <p v-if="message">{{ message }}</p>
 
+    <!-- Rich body — for prompts that need more than a message: a rename
+         input, a checkbox, a small form. Callers with plain copy just
+         pass `message` and skip the slot. -->
+    <slot />
+
     <div class="overlay-actions">
       <!-- Optional third action (e.g. "Save as draft"). Renders on the
            left; the flexbox `space-between` on .overlay-actions keeps

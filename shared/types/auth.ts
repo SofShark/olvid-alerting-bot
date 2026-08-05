@@ -3,6 +3,15 @@
 // like { token } or { email } are inlined at the call site.
 import type { User, UserRole } from "./user";
 
+/**
+ * Minimum password length enforced across the auth surface:
+ *   - server zod schemas (accept-invite, setup, reset-password)
+ *   - html `minlength=` attributes on password inputs
+ *   - client-side comparators before submit
+ * Single source of truth so raising the bar is a one-file change.
+ */
+export const PASSWORD_MIN_LEN = 8;
+
 // The sign-in form. `login` accepts either an email address or a plain
 // username, depending on how the account was created.
 export interface CredentialsForm {
@@ -22,33 +31,74 @@ export interface SetupForm {
   name?: string;
 }
 
+// Accept-invite is just a password step — the admin already set login,
+// name, and role at invite time and the user isn't allowed to override
+// them. `token` proves the URL is valid.
 export interface AcceptInviteForm {
   token: string;
   password: string;
-  name?: string;
 }
 
-// The invite modal has two peer paths:
-//   - Mail path: admin supplies an email, backend fires SMTP.
-//   - URL path: admin supplies a login (username), backend just mints
-//     the token and returns the URL for manual sharing.
-// Backend requires exactly one identifier + role. `sendMail` controls
-// which side-effect runs; defaults to true when omitted.
+// Reset-password body — same shape as accept-invite but a different
+// endpoint (and token purpose) so the two flows can evolve independently.
+export interface ResetPasswordForm {
+  token: string;
+  password: string;
+}
+
+/**
+ * Delivery channel the admin picks at invite time.
+ *   mail   — server emails an invite URL (requires `email` + SMTP).
+ *   link   — server returns the URL for the admin to share manually.
+ *   olvid  — server DMs the URL through the Olvid daemon (requires
+ *            `olvidDiscussionId`; also persisted on the user row so
+ *            future password resets can reach them the same way).
+ */
+export type InviteChannel = "mail" | "link" | "olvid";
+
+// Invite payload. `login` (username) is always required and chosen by
+// the admin. `email` accompanies the mail path; `olvidDiscussionId` the
+// olvid path. `channel` supersedes the old `sendMail?: boolean` two-value
+// switch — a discriminated union scales cleanly for future channels.
 export interface InviteUserForm {
-  login?: string;
+  login: string;
   email?: string;
   name?: string;
   role: UserRole;
-  sendMail?: boolean;
+  channel: InviteChannel;
+  /** BigInt stringified over the wire — JSON has no bigint. */
+  olvidDiscussionId?: string;
 }
 
 // Server response for POST /users/invite and /resend-invite. The URL
 // is always included so the admin can copy it out-of-band regardless
-// of whether the mail was sent.
+// of whether the mail/DM was sent. `delivered` supersedes `mailed` —
+// same semantic ("we handed it to the outgoing channel and it accepted")
+// but no longer email-specific. `channel` echoes back which delivery
+// path the server actually used — clients switch on it to render
+// channel-specific feedback ("emailed to X" vs "DM'd on Olvid" vs
+// "copy the link").
 export interface InviteResponse {
   user: User;
   inviteUrl: string;
+  channel: InviteChannel;
+  delivered: boolean;
+  /** For legacy callers that still read the old field name. Will be
+   *  removed once every consumer has migrated to `delivered`. */
   mailed: boolean;
+}
+
+/**
+ * Response for POST /auth/request-password-reset. Never leaks whether
+ * the login exists (200 + delivered:false on unknown login), but does
+ * tell the caller which channel got used — the UI switches on this to
+ * render "check your Olvid", "check your mail", or "contact your admin".
+ */
+export type ResetChannel = "olvid" | "mail" | "none";
+export interface RequestPasswordResetResponse {
+  ok: true;
+  delivered: boolean;
+  channel: ResetChannel;
 }
 
 // Server response for GET /api/auth/status. `mailEnabled` is derived
@@ -58,4 +108,3 @@ export interface AuthStatus {
   needsSetup: boolean;
   mailEnabled: boolean;
 }
-

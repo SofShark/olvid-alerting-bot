@@ -92,7 +92,7 @@ const pathToHandlebars = (path: string): string =>
   font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   margin-right: var(--space-1);
 }
 .shortcut-chip {
@@ -101,7 +101,7 @@ const pathToHandlebars = (path: string): string =>
   color: var(--color-accent-text);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
-  padding: 3px var(--space-3);
+  padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition:
@@ -109,7 +109,7 @@ const pathToHandlebars = (path: string): string =>
     color 0.15s;
 }
 .shortcut-chip:hover {
-  background: #1e3a8a;
+  background: var(--color-accent-hover);
   color: var(--color-text-on-accent);
 }
 </style>

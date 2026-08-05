@@ -135,6 +135,12 @@
   margin: 0;
   accent-color: var(--color-accent); /* O usa una variable como var(--color-accent) si tu azul ya está definido ahí */
 }
+
+input[type="radio"] {
+  margin: 0;
+  accent-color: var(--color-accent); /* O usa una variable como var(--color-accent) si tu azul ya está definido ahí */
+}
+
 .btn-pill:hover {
   background: var(--color-bg-card-soft);
 }

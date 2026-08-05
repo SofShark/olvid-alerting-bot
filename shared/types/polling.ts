@@ -9,6 +9,7 @@
 // UI ignores them.
 
 import type { PollingCondition } from "./condition";
+import type { TriggerMode } from "./triggerMode";
 
 export const PollingFormat = {
   XML: "XML",
@@ -16,30 +17,6 @@ export const PollingFormat = {
   HTML: "HTML",
 } as const;
 export type PollingFormat = (typeof PollingFormat)[keyof typeof PollingFormat];
-
-// How often the alert is allowed to fire when its condition is satisfied:
-//
-//   EveryTime    fire on every poll while the condition is true (default —
-//                same behaviour the engine has always had).
-//
-//   OneShot      fire only when the condition transitions false → true.
-//                Stays quiet on subsequent polls while still true.
-//                Useful for "the server is down" alerts: notify once,
-//                not every 5 minutes.
-//
-//   WithRecovery same as OneShot plus a "recovery" message when the
-//                condition transitions back true → false. The notifier
-//                prefixes the message with "✓ RECOVERED:" so existing
-//                bundle scripts don't need to know about this mode.
-//
-// Trigger mode is IGNORED when the condition is kind=None (every-poll alert
-// by design) or operator=Changed (each change is itself a discrete event).
-export const TriggerMode = {
-  EveryTime: "every-time",
-  OneShot: "one-shot",
-  WithRecovery: "with-recovery",
-} as const;
-export type TriggerMode = (typeof TriggerMode)[keyof typeof TriggerMode];
 
 export type PollingParams = {
   url: string;

@@ -77,8 +77,8 @@ const { t } = useI18n();
 .mail-card {
   background: var(--color-bg-panel);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-3xl);
+  box-shadow: var(--shadow-card);
   padding: var(--space-6) var(--space-7);
   max-width: 100%;
   overflow-wrap: break-word;
@@ -106,7 +106,7 @@ const { t } = useI18n();
 .mail-label {
   display: block;
   font-size: var(--text-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-faint);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -117,14 +117,14 @@ const { t } = useI18n();
  * so no `text-xl`; sized so it reads as a mail subject line, comfortably
  * next to the meta line. */
 .mail-subject {
-  /* Same size as the body — hierarchy comes from weight (600) plus the
+  /* Same size as the body — hierarchy comes from weight plus the
    * uppercase label above, not from being visually bigger than the
    * message content. */
   margin: 0;
   color: var(--color-text-primary);
   font-size: var(--text-lg);
-  font-weight: 600;
-  line-height: 1.35;
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-tight);
   overflow-wrap: break-word;
   word-break: break-word;
 }
@@ -139,10 +139,10 @@ const { t } = useI18n();
   align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
-  padding-top: 14px; /* aligns with the subject baseline after the label */
+  padding-top: var(--space-5); /* aligns with the subject baseline after the label */
 }
 .mail-from {
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   color: var(--color-text-muted);
 }
 .mail-dot {
@@ -154,14 +154,13 @@ const { t } = useI18n();
 .mail-body {
   color: var(--color-text-primary);
   font-size: var(--text-lg);
-  line-height: 1.55;
+  line-height: 1.4;
   white-space: pre-wrap;
 }
 
-/* Inline tags from the Olvid-markup → HTML pass — kept readable
- * without adopting a full UA stylesheet. */
+/* Inline tags kept readable */
 .mail-body :deep(strong) {
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 .mail-body :deep(em),
 .mail-body :deep(i) {
@@ -173,9 +172,9 @@ const { t } = useI18n();
 .mail-body :deep(code) {
   font-family: var(--font-mono);
   font-size: 0.95em;
-  padding: 2px 5px;
+  padding: 2px var(--space-2);
   background: var(--color-bg-input);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 /* Same error surface as OlvidChatPreview so failure feedback is
@@ -185,7 +184,7 @@ const { t } = useI18n();
   color: var(--color-danger-bright);
   max-width: 85%;
   padding: var(--space-4) var(--space-6);
-  border-radius: 16px;
+  border-radius: var(--radius-3xl);
   border: 1px solid var(--color-danger-border);
   font-family: var(--font-mono);
   font-size: var(--text-base);

@@ -122,11 +122,14 @@ const showKey = () => !props.isRoot && !props.isArrayItem;
 </template>
 
 <style scoped>
+/* All syntax colors route through the --color-syntax-* tokens so the
+ * whole tree family (JSON + XML) shares one palette. Local hex is a
+ * regression — put new colors in tokens.css. */
 .node {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--text-md);
   line-height: 1.6;
-  color: #d4d4d4;
+  color: var(--color-text-code);
 }
 
 .line {
@@ -134,15 +137,15 @@ const showKey = () => !props.isRoot && !props.isArrayItem;
 }
 
 .value-line:hover {
-  background: #2a2d2e;
-  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
 .chevron {
   display: inline-block;
   width: 18px;
-  color: #808080;
+  color: var(--color-syntax-summary);
   cursor: pointer;
 }
 
@@ -151,36 +154,36 @@ const showKey = () => !props.isRoot && !props.isArrayItem;
 }
 
 .key {
-  color: #9cdcfe;
+  color: var(--color-syntax-key);
 }
 
 .string {
-  color: #ce9178;
+  color: var(--color-syntax-string);
 }
 
 .number {
-  color: #b5cea8;
+  color: var(--color-syntax-number);
 }
 
 .boolean {
-  color: #569cd6;
+  color: var(--color-syntax-boolean);
 }
 
 .null {
-  color: #569cd6;
+  color: var(--color-syntax-null);
 }
 
 .punct {
-  color: #d4d4d4;
+  color: var(--color-text-code);
 }
 
 .close {
-  color: #d4d4d4;
+  color: var(--color-text-code);
   margin-left: 18px;
 }
 
 .summary {
-  color: #808080;
-  margin: 0 4px;
+  color: var(--color-syntax-summary);
+  margin: 0 var(--space-1);
 }
 </style>

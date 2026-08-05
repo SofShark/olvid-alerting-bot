@@ -25,7 +25,7 @@
     "pageTitle": "Users",
     "userRow" :{
       "status": {
-        "active": "Active",
+        "registered": "Registered",
         "pending": "Pending Invite"
       },
       "role" : {
@@ -443,8 +443,8 @@
       "handlebarsError": "Error in Handlebars: {message}"
     },
     "preview": {
-      "title": "📱 Preview on device",
-      "mailTitle": "✉️ Preview in inbox",
+      "title": "Preview on device",
+      "mailTitle": "Preview in inbox",
       "placeholder": "Formatted message will appear here...",
       "sender": "Alerting Bot",
       "time": "now"
@@ -461,6 +461,19 @@
       "cancel": "Cancel",
       "save": "Save Script",
       "closeTitle": "Close"
+    },
+    "toolbar": {
+      "loadTemplate": "Load Template",
+      "loadTemplateTitle": "Load template payload",
+      "pickerMode": "Picker mode",
+      "prettify": "Prettify JSON",
+      "clear": "Clear"
+    },
+    "templates": {
+      "fromDatabase": "From database",
+      "fromLibrary": "From library",
+      "lastSuccess": "Last successful payload",
+      "lastFailed": "Last failed payload"
     }
   },
 
@@ -508,7 +521,8 @@
       "noFound": "No discussions found in daemon",
       "allAdded": "All discussions already added"
     },
-    "empty": "— no discussions —"
+    "empty": "— no discussions —",
+    "change": "Change"
   },
 
   "emailRecipientSelector": {
@@ -600,6 +614,182 @@
       "codes": "Codes: {codes}",
       "range": "Any {range} response",
       "notOk": "Any non-2xx response"
+    }
+  },
+
+  "alertLog": {
+    "title": "Status logs",
+    "empty": "No polls recorded yet.",
+    "showDetails": "Show details",
+    "hideDetails": "Hide details",
+    "noAdditionalDetail": "No additional detail.",
+    "channelsAria": "Per-channel dispatch outcome",
+    "status": {
+      "sent": "Sent",
+      "partial": "Partial",
+      "failed": "Failed"
+    },
+    "stage": {
+      "fetch": "Fetch",
+      "parse": "Parse",
+      "evaluate": "Evaluate",
+      "dispatch": "Dispatch"
+    },
+    "channel": {
+      "olvid": "Olvid",
+      "mail": "Email"
+    },
+    "detail": {
+      "stage": "Stage"
+    },
+    "channelTable": {
+      "channel": "Channel",
+      "recipients": "Recipients",
+      "outcome": "Outcome",
+      "error": "Error",
+      "ok": "Delivered",
+      "fail": "Failed"
+    }
+  },
+
+  "auth": {
+    "login": {
+      "title": "Log in",
+      "submit": "Login",
+      "identifierEmail": "Email or username",
+      "identifierUsername": "Username",
+      "password": "Password",
+      "errorInvalidCredentials": "Invalid credentials.",
+      "errorNotActivated": "Your account isn't activated yet. Check your invite email.",
+      "resendVerification": "Resend verification email",
+      "verificationSent": "Verification email sent. Check your inbox.",
+      "forgot": "Forgot my password?",
+      "forgotHint": "We'll send a reset link to whichever channel is bound to this account.",
+      "forgotSubmit": "Send reset link",
+      "forgotBusy": "Sending…",
+      "resetSentOlvid": "Reset link sent through Olvid. Check your bot conversation.",
+      "resetSentMail": "Reset link sent by email. Check your inbox.",
+      "resetUnreachable": "This account has no linked delivery channel. Ask an administrator to send you a fresh invitation.",
+      "resetNetworkError": "Couldn't reach the server — please try again."
+    },
+    "invite": {
+      "title": "Accept invitation",
+      "hintPassword": "Set a password to activate your account.",
+      "hintPasswordWithLogin": "Set a password to activate your account with login {login}.",
+      "passwordPlaceholder": "New password (min 8 chars)",
+      "confirmPasswordPlaceholder": "Confirm new password",
+      "submit": "Activate account",
+      "errorMissingToken": "Missing invitation token.",
+      "errorPasswordsDoNotMatch": "Passwords do not match",
+      "errorTokenInvalid": "This invitation is invalid, expired, or already used.",
+      "errorBadPassword": "Please pick a password of at least 8 characters.",
+      "errorNetwork": "Couldn't reach the server — please try again."
+    },
+    "resetPassword": {
+      "title": "Reset your password",
+      "hint": "Pick a new password to finish resetting your account.",
+      "hintWithLogin": "Pick a new password for {login}.",
+      "passwordPlaceholder": "New password (min 8 chars)",
+      "confirmPasswordPlaceholder": "Confirm new password",
+      "submit": "Set new password",
+      "errorMissingToken": "Missing reset token.",
+      "errorPasswordsDoNotMatch": "Passwords do not match",
+      "errorTokenInvalid": "This reset link is invalid, expired, or already used.",
+      "errorBadPassword": "Please pick a password of at least 8 characters.",
+      "errorNetwork": "Couldn't reach the server — please try again."
+    },
+    "verify": {
+      "pending": "Verifying…",
+      "successTitle": "Email verified",
+      "successBody": "Your email address is confirmed. You can sign in now.",
+      "successCta": "Go to login",
+      "errorTitle": "Verification failed",
+      "errorBody": "This link is invalid, expired, or already used. Request a new one from the login page.",
+      "errorCta": "Back to login"
+    },
+    "setup": {
+      "title": "Create the first admin",
+      "hint": "Paste the ADMIN_KEY from your .env to prove you deployed this instance, then fill in your details.",
+      "adminKey": "ADMIN_KEY",
+      "namePlaceholder": "Name (optional)",
+      "emailPlaceholder": "Email",
+      "usernamePlaceholder": "Username",
+      "passwordPlaceholder": "Password (min 8 chars)",
+      "submit": "Create admin",
+      "noSmtpHint": "SMTP is not configured on this deploy — you'll be signed in directly after creating the account (no email verification).",
+      "doneTitle": "Check your inbox",
+      "doneBody": "A verification link has been sent to {email}. Click it to activate the account, then sign in.",
+      "doneCta": "Go to login",
+      "errorAdminKeyNotConfigured": "ADMIN_KEY is not set on the server. Configure it in .env and restart.",
+      "errorInvalidAdminKey": "That admin key doesn't match the one configured on the server.",
+      "errorAlreadyComplete": "An admin already exists on this deploy.",
+      "errorFallback": "Could not create the admin account. Check the inputs and try again."
+    },
+    "users": {
+      "inviteButton": "Invite user",
+      "table": {
+        "login": "Login",
+        "name": "Name",
+        "role": "Role",
+        "status": "Status"
+      },
+      "loginTagEmail": "Login is an email address",
+      
+      "loginTagLocal": "Local username (no email delivery)",
+      "loginTagLocalShort": "Local username",
+      "copyLinkTitle": "Generate & copy an invite link",
+      "resendTitle": "Resend invitation",
+      "confirmDeletePrompt": "Delete user {login}?",
+      "feedbackEmailed": "Invitation emailed to {recipient}.",
+      "feedbackReSent": "Invitation re-sent to {recipient}.",
+      "feedbackSent": "Invitation sent to {recipient} via {channel}.",
+      "feedbackReSentVia": "Invitation re-sent to {recipient} via {channel}.",
+      "feedbackRefreshed": "Invitation refreshed. Copy the link to share it manually.",
+      "channelMail": "email",
+      "channelOlvid": "Olvid",
+      "errorResend": "Could not resend the invitation.",
+      "errorGenerateLink": "Could not generate a fresh invite link.",
+      "errorCannotDeleteSelf": "You cannot delete your own account.",
+      "errorCannotDeleteLastAdmin": "There must be at least one admin.",
+      "errorDeleteFallback": "Could not delete this user."
+    },
+    "inviteModal": {
+      "title": "Invite a new user",
+      "channelLabel": "Delivery channel",
+      "channelPillMail": "Email",
+      "channelPillOlvid": "Olvid",
+      "channelPillLink": "Shareable link",
+      "channelPillMailDisabled": "SMTP is not configured on this deploy.",
+      "fieldName": "Name",
+      "namePlaceholder": "Alice",
+      "fieldEmail": "Email",
+      "emailPlaceholder": "alice{'@'}example.com",
+      "fieldUsername": "Username (login)",
+      "usernamePlaceholder": "alice",
+      "fieldRole": "Role",
+      "fieldOlvidDiscussion": "Olvid discussion",
+      "submitMail": "Send by email",
+      "submitMailBusy": "Sending…",
+      "submitLink": "Create & copy link",
+      "submitLinkBusy": "Creating…",
+      "submitOlvid": "Send via Olvid",
+      "submitOlvidBusy": "Sending…",
+      "cancel": "Cancel",
+      "ariaLabel": "Invite user",
+      "errorUserAlreadyActive": "That user already has an active account.",
+      "errorLoginInUse": "That login is already taken. Pick a different one, or resend the invitation from the users list.",
+      "errorEmailInUse": "That email is already tied to another user. Resend the invitation from the users list instead.",
+      "errorOlvidInUse": "That Olvid discussion is already tied to another user. Pick a different discussion.",
+      "errorEmailRequired": "Email is required for a mail invite.",
+      "errorMailNotConfigured": "SMTP is not configured on this deploy.",
+      "errorOlvidRequired": "Pick an Olvid discussion to send the invitation to.",
+      "errorFallback": "Could not create the invitation."
+    },
+    "reveal": {
+      "title": "Invitation link ready",
+      "ariaLabel": "Invite link",
+      "body": "New {role} with login {login} was created. Copy the invite URL below.",
+      "close": "Close"
     }
   }
 }

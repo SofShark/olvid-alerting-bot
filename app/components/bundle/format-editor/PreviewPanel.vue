@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BundleOutputType } from "#shared/types/bundleOutput";
+import { BundleOutputType } from "#shared/types/bundle";
 
 /*
   Right-hand pane. Delegates the actual rendering to a variant component
@@ -50,19 +50,30 @@ const headerTitle = computed(() =>
 </template>
 
 <style scoped>
+/* Right column of the editor grid — the seam with the code column is
+ * already drawn by .code-column's border-right; this column doesn't
+ * add its own border to avoid a doubled 2px seam. Internal scroll on
+ * min-height:0 so long previews don't push the footer off-screen. */
 .preview-column {
   display: flex;
   flex-direction: column;
   background: var(--color-bg-card-soft);
-  border-left: 1px solid var(--color-border-subtle);
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
+
+/* Panel eyebrow, matching the section-eyebrow idiom used elsewhere
+ * (see AlertLogs.vue). Uppercase tracking + muted text so it reads
+ * as a label, not a title. */
 .chat-header {
+  padding: var(--space-4) var(--space-6);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
   background: var(--color-bg-panel);
-  padding: var(--space-6);
-  text-align: center;
-  font-weight: bold;
-  color: var(--color-text-muted);
   border-bottom: 1px solid var(--color-border-subtle);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 </style>

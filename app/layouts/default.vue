@@ -11,7 +11,7 @@ const { collapsed: sidebarCollapsed } = useSidebar();
 const { user, clear: clearSession } = useUserSession();
 
 async function logout() {
-  await $fetch("/api/auth/logout", { method: "POST" });
+  await authService.logout();
   await clearSession();
   await navigateTo("/login");
 }
@@ -142,10 +142,26 @@ const selectedId = computed(() => {
   color: var(--color-text-muted);
   font-weight: 500;
 }
+/* Logo is a fixed-colour PNG — under the mildly-lit dark navbar it
+ * blends in. Pin it against a small dark surface so it reads with
+ * proper contrast. In light mode the nav is already dark enough
+ * against the logo, so we clear the surface. */
 .olvid-logo-img {
   width: 120px;
   height: auto;
   object-fit: contain;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0;
+  border-radius: var(--radius-sm);
+  /* Soft dark halo — spreads the tint past the image rectangle so
+   * the edge feathers into the nav instead of showing a hard border. */
+  box-shadow: 0 0 10px 6px rgba(0, 0, 0, 0.2);
+}
+
+:root[data-theme="light"] .olvid-logo-img {
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
 }
 
 .nav-actions {

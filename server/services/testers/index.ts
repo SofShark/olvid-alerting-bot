@@ -25,7 +25,6 @@ export const alertTester = {
         return monitoringTester.test(alert);
       default:
         return {
-          ok: false,
           error: `Alerts of type "${alert.input}" cannot be tested`,
           bundleMessages: [],
         };

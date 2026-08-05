@@ -25,8 +25,8 @@
     "pageTitle": "Utilisateurs",
     "userRow" :{
       "status": {
-        "active": "Actif",
-        "pending": "En attente"
+        "registered": "Enregistré",
+        "pending": "En attente de validation"
       },
       "role" : {
         "admin": "Admin",
@@ -442,8 +442,8 @@
       "handlebarsError": "Erreur dans Handlebars : {message}"
     },
     "preview": {
-      "title": "📱 Aperçu sur l'appareil",
-      "mailTitle": "✉️ Aperçu dans la boîte mail",
+      "title": "Aperçu sur l'appareil",
+      "mailTitle": "Aperçu dans la boîte mail",
       "placeholder": "Le message formaté apparaîtra ici...",
       "sender": "Bot d'alerte",
       "time": "maintenant"
@@ -460,6 +460,19 @@
       "cancel": "Annuler",
       "save": "Enregistrer le script",
       "closeTitle": "Fermer"
+    },
+    "toolbar": {
+      "loadTemplate": "Charger un modèle",
+      "loadTemplateTitle": "Charger un modèle de charge utile",
+      "pickerMode": "Mode sélection",
+      "prettify": "Formater le JSON",
+      "clear": "Effacer"
+    },
+    "templates": {
+      "fromDatabase": "Depuis la base",
+      "fromLibrary": "Depuis la bibliothèque",
+      "lastSuccess": "Dernière charge utile réussie",
+      "lastFailed": "Dernière charge utile en échec"
     }
   },
 
@@ -507,7 +520,8 @@
       "noFound": "Aucune discussion trouvée dans le démon",
       "allAdded": "Toutes les discussions sont déjà ajoutées"
     },
-    "empty": "— aucune discussion —"
+    "empty": "— aucune discussion —",
+    "change": "Changer"
   },
 
   "emailRecipientSelector": {
@@ -599,6 +613,181 @@
       "codes": "Codes : {codes}",
       "range": "Toute réponse {range}",
       "notOk": "Toute réponse non-2xx"
+    }
+  },
+
+  "alertLog": {
+    "title": "Journal d'état",
+    "empty": "Aucun sondage enregistré pour le moment.",
+    "showDetails": "Afficher les détails",
+    "hideDetails": "Masquer les détails",
+    "noAdditionalDetail": "Aucun détail supplémentaire.",
+    "channelsAria": "Résultat de l'envoi par canal",
+    "status": {
+      "sent": "Envoyé",
+      "partial": "Partiel",
+      "failed": "Échec"
+    },
+    "stage": {
+      "fetch": "Récupération",
+      "parse": "Analyse",
+      "evaluate": "Évaluation",
+      "dispatch": "Envoi"
+    },
+    "channel": {
+      "olvid": "Olvid",
+      "mail": "E-mail"
+    },
+    "detail": {
+      "stage": "Étape"
+    },
+    "channelTable": {
+      "channel": "Canal",
+      "recipients": "Destinataires",
+      "outcome": "Résultat",
+      "error": "Erreur",
+      "ok": "Livré",
+      "fail": "Échec"
+    }
+  },
+
+  "auth": {
+    "login": {
+      "title": "Connexion",
+      "submit": "Se connecter",
+      "identifierEmail": "E-mail ou nom d'utilisateur",
+      "identifierUsername": "Nom d'utilisateur",
+      "password": "Mot de passe",
+      "errorInvalidCredentials": "Identifiants invalides.",
+      "errorNotActivated": "Votre compte n'est pas encore activé. Consultez l'e-mail d'invitation.",
+      "resendVerification": "Renvoyer l'e-mail de vérification",
+      "verificationSent": "E-mail de vérification envoyé. Consultez votre boîte de réception.",
+      "forgot": "Mot de passe oublié ?",
+      "forgotHint": "Nous enverrons un lien de réinitialisation au canal associé à ce compte.",
+      "forgotSubmit": "Envoyer le lien",
+      "forgotBusy": "Envoi…",
+      "resetSentOlvid": "Lien de réinitialisation envoyé sur Olvid. Consultez votre conversation avec le bot.",
+      "resetSentMail": "Lien de réinitialisation envoyé par e-mail. Consultez votre boîte de réception.",
+      "resetUnreachable": "Ce compte n'a aucun canal de contact associé. Demandez à un administrateur de vous renvoyer une invitation.",
+      "resetNetworkError": "Impossible de joindre le serveur — veuillez réessayer."
+    },
+    "invite": {
+      "title": "Accepter l'invitation",
+      "hintPassword": "Choisissez un mot de passe pour activer votre compte.",
+      "hintPasswordWithLogin": "Choisissez un mot de passe pour activer votre compte avec l'identifiant {login}.",
+      "passwordPlaceholder": "Nouveau mot de passe (min. 8 caractères)",
+      "confirmPasswordPlaceholder": "Confirmer le mot de passe",
+      "submit": "Activer le compte",
+      "errorMissingToken": "Jeton d'invitation manquant.",
+      "errorPasswordsDoNotMatch": "Les mots de passe ne correspondent pas",
+      "errorTokenInvalid": "Cette invitation est invalide, expirée ou déjà utilisée.",
+      "errorBadPassword": "Choisissez un mot de passe d'au moins 8 caractères.",
+      "errorNetwork": "Impossible de joindre le serveur — veuillez réessayer."
+    },
+    "resetPassword": {
+      "title": "Réinitialiser le mot de passe",
+      "hint": "Choisissez un nouveau mot de passe pour terminer la réinitialisation.",
+      "hintWithLogin": "Choisissez un nouveau mot de passe pour {login}.",
+      "passwordPlaceholder": "Nouveau mot de passe (min. 8 caractères)",
+      "confirmPasswordPlaceholder": "Confirmer le mot de passe",
+      "submit": "Définir le nouveau mot de passe",
+      "errorMissingToken": "Jeton de réinitialisation manquant.",
+      "errorPasswordsDoNotMatch": "Les mots de passe ne correspondent pas",
+      "errorTokenInvalid": "Ce lien de réinitialisation est invalide, expiré ou déjà utilisé.",
+      "errorBadPassword": "Choisissez un mot de passe d'au moins 8 caractères.",
+      "errorNetwork": "Impossible de joindre le serveur — veuillez réessayer."
+    },
+    "verify": {
+      "pending": "Vérification…",
+      "successTitle": "E-mail vérifié",
+      "successBody": "Votre adresse e-mail est confirmée. Vous pouvez maintenant vous connecter.",
+      "successCta": "Aller à la connexion",
+      "errorTitle": "Échec de la vérification",
+      "errorBody": "Ce lien est invalide, expiré ou déjà utilisé. Demandez-en un nouveau depuis la page de connexion.",
+      "errorCta": "Retour à la connexion"
+    },
+    "setup": {
+      "title": "Créer le premier administrateur",
+      "hint": "Collez la clé ADMIN_KEY de votre .env pour prouver que vous avez déployé cette instance, puis renseignez vos informations.",
+      "adminKey": "ADMIN_KEY",
+      "namePlaceholder": "Nom (facultatif)",
+      "emailPlaceholder": "E-mail",
+      "usernamePlaceholder": "Nom d'utilisateur",
+      "passwordPlaceholder": "Mot de passe (min. 8 caractères)",
+      "submit": "Créer l'administrateur",
+      "noSmtpHint": "SMTP n'est pas configuré sur ce déploiement — vous serez connecté directement après la création du compte (pas de vérification par e-mail).",
+      "doneTitle": "Consultez votre boîte de réception",
+      "doneBody": "Un lien de vérification a été envoyé à {email}. Cliquez dessus pour activer le compte, puis connectez-vous.",
+      "doneCta": "Aller à la connexion",
+      "errorAdminKeyNotConfigured": "ADMIN_KEY n'est pas défini sur le serveur. Configurez-le dans .env puis redémarrez.",
+      "errorInvalidAdminKey": "Cette clé d'administrateur ne correspond pas à celle configurée sur le serveur.",
+      "errorAlreadyComplete": "Un administrateur existe déjà sur ce déploiement.",
+      "errorFallback": "Impossible de créer le compte administrateur. Vérifiez les champs et réessayez."
+    },
+    "users": {
+      "inviteButton": "Inviter un utilisateur",
+      "table": {
+        "login": "Identifiant",
+        "name": "Nom",
+        "role": "Rôle",
+        "status": "Statut"
+      },
+      "loginTagEmail": "L'identifiant est une adresse e-mail",
+      "loginTagLocal": "Nom d'utilisateur local (pas de livraison par e-mail)",
+      "loginTagLocalShort": "Nom d'utilisateur local",
+      "copyLinkTitle": "Générer et copier un lien d'invitation",
+      "resendTitle": "Renvoyer l'invitation",
+      "confirmDeletePrompt": "Supprimer l'utilisateur {login} ?",
+      "feedbackEmailed": "Invitation envoyée par e-mail à {recipient}.",
+      "feedbackReSent": "Invitation renvoyée à {recipient}.",
+      "feedbackSent": "Invitation envoyée à {recipient} via {channel}.",
+      "feedbackReSentVia": "Invitation renvoyée à {recipient} via {channel}.",
+      "feedbackRefreshed": "Invitation actualisée. Copiez le lien pour le partager manuellement.",
+      "channelMail": "e-mail",
+      "channelOlvid": "Olvid",
+      "errorResend": "Impossible de renvoyer l'invitation.",
+      "errorGenerateLink": "Impossible de générer un nouveau lien d'invitation.",
+      "errorCannotDeleteSelf": "Vous ne pouvez pas supprimer votre propre compte.",
+      "errorCannotDeleteLastAdmin": "Il doit rester au moins un administrateur.",
+      "errorDeleteFallback": "Impossible de supprimer cet utilisateur."
+    },
+    "inviteModal": {
+      "title": "Inviter un nouvel utilisateur",
+      "channelLabel": "Canal de livraison",
+      "channelPillMail": "E-mail",
+      "channelPillOlvid": "Olvid",
+      "channelPillLink": "Lien partageable",
+      "channelPillMailDisabled": "SMTP n'est pas configuré sur ce déploiement.",
+      "fieldName": "Nom",
+      "namePlaceholder": "Alice",
+      "fieldEmail": "E-mail",
+      "emailPlaceholder": "alice{'@'}exemple.com",
+      "fieldUsername": "Nom d'utilisateur (identifiant)",
+      "usernamePlaceholder": "alice",
+      "fieldRole": "Rôle",
+      "fieldOlvidDiscussion": "Discussion Olvid",
+      "submitMail": "Envoyer par e-mail",
+      "submitMailBusy": "Envoi…",
+      "submitLink": "Créer et copier le lien",
+      "submitLinkBusy": "Création…",
+      "submitOlvid": "Envoyer via Olvid",
+      "submitOlvidBusy": "Envoi…",
+      "cancel": "Annuler",
+      "ariaLabel": "Inviter un utilisateur",
+      "errorUserAlreadyActive": "Cet utilisateur possède déjà un compte actif.",
+      "errorLoginInUse": "Cet identifiant est déjà utilisé. Choisissez-en un autre, ou renvoyez l'invitation depuis la liste des utilisateurs.",
+      "errorEmailInUse": "Cet e-mail est déjà associé à un autre utilisateur. Renvoyez l'invitation depuis la liste des utilisateurs.",
+      "errorOlvidInUse": "Cette discussion Olvid est déjà associée à un autre utilisateur. Choisissez une autre discussion.",
+      "errorEmailRequired": "L'e-mail est requis pour une invitation par e-mail.",
+      "errorMailNotConfigured": "SMTP n'est pas configuré sur ce déploiement.",
+      "errorOlvidRequired": "Choisissez une discussion Olvid pour envoyer l'invitation.",
+      "errorFallback": "Impossible de créer l'invitation."
+    },
+    "reveal": {
+      "title": "Lien d'invitation prêt",
+      "ariaLabel": "Lien d'invitation",
+      "body": "Nouveau {role} avec l'identifiant {login} créé. Copiez l'URL d'invitation ci-dessous.",
+      "close": "Fermer"
     }
   }
 }

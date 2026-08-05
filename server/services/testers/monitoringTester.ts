@@ -18,7 +18,6 @@ export const monitoringTester = {
     const params = getMonitorParams(alert);
     if (!params) {
       return {
-        ok: false,
         error: "Alert has no monitor params",
         bundleMessages: [],
       };
@@ -39,7 +38,6 @@ export const monitoringTester = {
       }
     } catch (error: unknown) {
       return {
-        ok: false,
         error: getErrorMessage(error, "Fetch failed"),
         bundleMessages: [],
       };
@@ -67,7 +65,6 @@ export const monitoringTester = {
       : `HTTP ${res.status} does not match ${matchLabel}`;
 
     return {
-      ok: true,
       error: null,
       parsed: payload,
       condition: { fired, reason },

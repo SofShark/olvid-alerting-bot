@@ -44,13 +44,14 @@ async function dispatch(alert: AlertModel): Promise<void> {
     outcome = { status: "error", error: msg };
   } finally {
     // Persist + log are best-effort — a repository failure here should
-    // never crash the heartbeat loop.
+    // never crash the heartbeat loop. 
     if (alert.id != null) {
       await persistRuntimeState(alert, {
         _lastPolledAt: startedAt,
         ...paramsPatch,
       });
       await writeOutcomeLog(alert.id, outcome);
+      
     }
   }
 }
@@ -75,13 +76,10 @@ async function persistRuntimeState(
 
 async function writeOutcomeLog(alertId: number, outcome: DispatchOutcome) {
   try {
-    if (outcome.status === "success") {
-      await alertLogRepository.logSuccess(alertId);
-    } else if (outcome.status === "warning") {
-      await alertLogRepository.logWarning(alertId, outcome.error ?? "");
-    } else {
-      await alertLogRepository.logError(alertId, outcome.error ?? "");
-    }
+    // Repository owns the DispatchOutcome → row decomposition: status,
+    // error, and structured details all flow through one entry point so
+    // dispatchers never need to know the DB column names.
+    await alertLogRepository.insertOutcome(alertId, outcome);
   } catch (error: unknown) {
     console.warn(
       `[pollingDispatcher] alert #${alertId} failed to write log:`,

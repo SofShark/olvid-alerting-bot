@@ -1,21 +1,24 @@
 <script setup lang="ts">
 import type { UserRole } from "#shared/types/user";
-import type { InviteResponse, InviteUserForm } from "#shared/types/auth";
-
+import type {
+  InviteChannel,
+  InviteResponse,
+  InviteUserForm,
+} from "#shared/types/auth";
+import type { DiscussionModel } from "#shared/types/discussion";
+import {DiscussionKind} from "#shared/types/discussion";
 /*
-  Two-path invite modal. The parent owns:
-    - `open` state (this component just reflects it)
-    - what to do with the result (cache URL, refresh table, show toast)
+  Single-page invite form. Two pill groups drive the shape:
+    - Delivery channel: mail | olvid | link. Picking one only changes
+      the identifier field's label + which auxiliary input is shown
+      (Olvid picker). No route change, no separate view.
+    - Role: user | admin. Same pattern used across the app (see
+      TriggerModePicker.vue, ConditionKindPicker.vue) — button host
+      with a native <input type="radio"> for a11y + a label span.
 
-  This component owns:
-    - the two peer forms (mail path / link path)
-    - per-form busy flags
-    - inline error feedback (errors from POST /api/users/invite that
-      would otherwise render behind the teleported overlay)
-
-  On a successful invite it emits `invited` with the raw response and
-  clears its own state; the parent decides whether to close the modal
-  (typically yes — same UX as before the extract).
+  Name and role are shared across channels; identifier + olvid picker
+  are per-channel. Switching channels mid-edit keeps the shared parts
+  intact so the admin can pivot without retyping.
 */
 
 const props = defineProps<{ open: boolean; mailEnabled: boolean }>();
@@ -27,39 +30,87 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-// Role is shared across both forms — the admin's choice shouldn't
-// disappear if they switch which section they submit from.
+const channel = ref<InviteChannel>("mail");
+const name = ref("");
+const identifier = ref(""); // email in mail mode, plain username otherwise
 const role = ref<UserRole>("user");
-
-const mailForm = reactive<{ email: string; name: string }>({
-  email: "",
-  name: "",
-});
-const linkForm = reactive<{ login: string; name: string }>({
-  login: "",
-  name: "",
-});
-
-const busyMail = ref(false);
-const busyLink = ref(false);
+const olvidPick = ref<DiscussionModel[]>([]);
+const olvidAvailable = ref<DiscussionModel[]>([]);
+const olvidLoading = ref(false);
+const busy = ref(false);
 const feedback = ref<string | null>(null);
 
+// Pill option builders. Kept as computeds so locale switches update
+// labels in-place without a component remount.
+const channelOptions = computed(() => {
+  const opts: Array<{ value: InviteChannel; label: string; disabled?: boolean; hint?: string }> = [];
+  opts.push({
+    value: "mail",
+    label: t("auth.inviteModal.channelPillMail"),
+    disabled: !props.mailEnabled,
+    hint: !props.mailEnabled
+      ? t("auth.inviteModal.channelPillMailDisabled")
+      : undefined,
+  });
+  opts.push({
+    value: "olvid",
+    label: t("auth.inviteModal.channelPillOlvid"),
+  });
+  opts.push({
+    value: "link",
+    label: t("auth.inviteModal.channelPillLink"),
+  });
+  return opts;
+});
+
 const roleOptions = computed(() => [
-  { value: "user", label: t("user.userRow.role.user") },
-  { value: "admin", label: t("user.userRow.role.admin") },
+  { value: "user" as const, label: t("user.userRow.role.user") },
+  { value: "admin" as const, label: t("user.userRow.role.admin") },
 ]);
 
-function reset() {
-  role.value = "user";
-  mailForm.email = "";
-  mailForm.name = "";
-  linkForm.login = "";
-  linkForm.name = "";
-  feedback.value = null;
+// Channel-driven identifier field. When we start typing in one channel
+// then switch to another, the label + input type update — the value
+// stays (an email address is still a valid arbitrary string).
+const idField = computed(() => {
+  if (channel.value === "mail") {
+    return {
+      label: t("auth.inviteModal.fieldEmail"),
+      placeholder: t("auth.inviteModal.emailPlaceholder"),
+      type: "email",
+      autocomplete: "off",
+    };
+  }
+  return {
+    label: t("auth.inviteModal.fieldUsername"),
+    placeholder: t("auth.inviteModal.usernamePlaceholder"),
+    type: "text",
+    autocomplete: "off",
+  };
+});
+
+function pickChannel(next: InviteChannel) {
+  const opt = channelOptions.value.find((o) => o.value === next);
+  if (opt?.disabled) return;
+  channel.value = next;
 }
 
-// Reset the two forms every time the parent opens the modal, so a
-// previous session's typed values don't leak into the next invite.
+// Default channel picking + full-reset on modal open. `mail` is
+// preferred when SMTP is up because it's the most familiar path;
+// fall back to `olvid` (daemon is always present in this deploy),
+// then `link` as a last resort.
+function initialChannel(): InviteChannel {
+  if (props.mailEnabled) return "mail";
+  return "olvid";
+}
+function reset() {
+  channel.value = initialChannel();
+  name.value = "";
+  identifier.value = "";
+  role.value = "user";
+  olvidPick.value = [];
+  busy.value = false;
+  feedback.value = null;
+}
 watch(
   () => props.open,
   (isOpen) => {
@@ -67,305 +118,260 @@ watch(
   },
 );
 
+// Lazy-load Olvid discussions the first time the user picks the Olvid
+// channel — no need to talk to the daemon if they never go there.
+// Filter to contacts only: invites target a person, not a room.
+watch(channel, async (v) => {
+  if (v !== "olvid" || olvidAvailable.value.length > 0) return;
+  olvidLoading.value = true;
+  try {
+    const all =
+      (await alertService.getDiscussionList()) as DiscussionModel[];
+    olvidAvailable.value = all.filter((d) => d.kind === DiscussionKind.Contact);
+  } catch {
+    olvidAvailable.value = [];
+  } finally {
+    olvidLoading.value = false;
+  }
+});
+
+const { mapAuthError } = useAuthErrors();
+const inviteErrorMap = {
+  user_already_active: t("auth.inviteModal.errorUserAlreadyActive"),
+  login_in_use: t("auth.inviteModal.errorLoginInUse"),
+  email_in_use: t("auth.inviteModal.errorEmailInUse"),
+  olvid_in_use: t("auth.inviteModal.errorOlvidInUse"),
+  email_required: t("auth.inviteModal.errorEmailRequired"),
+  mail_not_configured: t("auth.inviteModal.errorMailNotConfigured"),
+  olvid_discussion_required: t("auth.inviteModal.errorOlvidRequired"),
+};
+
 function describeError(err: unknown): string {
-  const status = (err as { statusMessage?: string })?.statusMessage;
-  switch (status) { // TODO i18n
-    case "user_already_active":
-      return "That user already has an active account.";
-    case "invite_needs_identifier":
-      return "Provide an email or a username.";
-    case "email_required":
-      return "Email is required for a mail invite.";
-    case "mail_not_configured":
-      return "SMTP is not configured on this deploy.";
-    default:
-      return "Could not create the invitation.";
-  }
+  return mapAuthError(err, inviteErrorMap, t("auth.inviteModal.errorFallback"));
 }
 
-async function submitMail() {
-  if (!mailForm.email) return;
+const canSubmit = computed(() => {
+  if (busy.value) return false;
+  if (!identifier.value) return false;
+  if (channel.value === "olvid" && olvidPick.value.length === 0) return false;
+  return true;
+});
+
+function buildBody(): InviteUserForm | null {
+  const commonName = name.value || undefined;
+  if (channel.value === "mail") {
+    return {
+      login: identifier.value,
+      email: identifier.value,
+      name: commonName,
+      role: role.value,
+      channel: "mail",
+    };
+  }
+  if (channel.value === "link") {
+    return {
+      login: identifier.value,
+      name: commonName,
+      role: role.value,
+      channel: "link",
+    };
+  }
+  const picked = olvidPick.value[0];
+  if (!picked) return null;
+  return {
+    login: identifier.value,
+    name: commonName,
+    role: role.value,
+    channel: "olvid",
+    olvidDiscussionId: String(picked.id),
+  };
+}
+
+async function submit() {
+  if (!canSubmit.value) return;
+  const body = buildBody();
+  if (!body) return;
   feedback.value = null;
-  busyMail.value = true;
+  busy.value = true;
   try {
-    const res = await $fetch<InviteResponse>("/api/users/invite", {
-      method: "POST",
-      body: {
-        email: mailForm.email,
-        role: role.value,
-        name: mailForm.name || undefined,
-        sendMail: true,
-      } satisfies InviteUserForm,
-    });
+    const res = await userService.invite(body);
     emit("invited", res);
   } catch (err) {
     feedback.value = describeError(err);
   } finally {
-    busyMail.value = false;
+    busy.value = false;
   }
 }
 
-async function submitLink() {
-  if (!linkForm.login) return;
-  feedback.value = null;
-  busyLink.value = true;
-  try {
-    const res = await $fetch<InviteResponse>("/api/users/invite", {
-      method: "POST",
-      body: {
-        login: linkForm.login,
-        role: role.value,
-        name: linkForm.name || undefined,
-        sendMail: false,
-      } satisfies InviteUserForm,
-    });
-    emit("invited", res);
-  } catch (err) {
-    feedback.value = describeError(err);
-  } finally {
-    busyLink.value = false;
+const submitLabel = computed(() => {
+  if (busy.value) {
+    if (channel.value === "mail") return t("auth.inviteModal.submitMailBusy");
+    if (channel.value === "olvid") return t("auth.inviteModal.submitOlvidBusy");
+    return t("auth.inviteModal.submitLinkBusy");
   }
-}
+  if (channel.value === "mail") return t("auth.inviteModal.submitMail");
+  if (channel.value === "olvid") return t("auth.inviteModal.submitOlvid");
+  return t("auth.inviteModal.submitLink");
+});
 </script>
 
 <template>
   <Modal
     :open="open"
     size="default"
-    aria-label="Invite user"
+    :aria-label="$t('auth.inviteModal.ariaLabel')"
     @close="emit('close')"
   >
-    <ModalHead title="Invite a new user" @close="emit('close')" />
+    <ModalHead
+      :title="$t('auth.inviteModal.title')"
+      @close="emit('close')"
+    />
 
-    <div class="modal-body">
+    <form class="invite-form" @submit.prevent="submit">
       <p v-if="feedback" class="modal-feedback">{{ feedback }}</p>
 
-      <!-- Section 1: mail invite — only when SMTP is available. -->
-      <section v-if="mailEnabled" class="invite-section">
-        <h5 class="section-title">Send an email invitation</h5>
-        <p class="section-hint">
-          An invitation link is sent to the address; the user sets
-          their password on arrival.
-        </p>
-        <form class="invite-form" @submit.prevent="submitMail">
-          <label class="field">
-            <span class="field-label">Email</span>
+      <!-- ── Delivery channel — pill group ────────────────────────── -->
+      <div class="field">
+        <span class="field-label">
+          {{ $t("auth.inviteModal.channelLabel") }}
+        </span>
+        <div class="btn-pill-group">
+          <button
+            v-for="opt in channelOptions"
+            :key="opt.value"
+            type="button"
+            class="btn-pill"
+            :class="{ active: channel === opt.value, 'is-disabled': opt.disabled }"
+            :aria-disabled="opt.disabled ? 'true' : undefined"
+            :title="opt.hint"
+            @click="pickChannel(opt.value)"
+          >
             <input
-              v-model="mailForm.email"
-              class="field-input"
-              type="email"
-              placeholder="teammate@example.com"
-              autocomplete="off"
-              required
+              type="radio"
+              :checked="channel === opt.value"
+              :disabled="opt.disabled"
+              tabindex="-1"
             />
-          </label>
-          <label class="field">
-            <span class="field-label">Name (optional)</span>
+            <span>{{ opt.label }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Name ─────────────────────────────────────────────────── -->
+      <label class="field">
+        <span class="field-label">
+          {{ $t("auth.inviteModal.fieldName") }}
+        </span>
+        <input
+          v-model="name"
+          class="field-input"
+          type="text"
+          :placeholder="$t('auth.inviteModal.namePlaceholder')"
+          autocomplete="off"
+        />
+      </label>
+
+      <!-- ── Identifier (email for mail, username otherwise) ──────── -->
+      <label class="field">
+        <span class="field-label">{{ idField.label }}</span>
+        <input
+          v-model="identifier"
+          class="field-input"
+          :type="idField.type"
+          :placeholder="idField.placeholder"
+          :autocomplete="idField.autocomplete"
+          required
+        />
+      </label>
+
+      <!-- ── Olvid discussion picker ──────────────────────────────── -->
+      <div v-if="channel === 'olvid'" class="field">
+        <span class="field-label">
+          {{ $t("auth.inviteModal.fieldOlvidDiscussion") }}
+        </span>
+        <DiscussionSelector
+          v-model="olvidPick"
+          mode="single"
+          :available="olvidAvailable"
+          :is-loading="olvidLoading"
+        />
+      </div>
+
+      <!-- ── Role — pill group with radio ─────────────────────────── -->
+      <div class="field">
+        <span class="field-label">
+          {{ $t("auth.inviteModal.fieldRole") }}
+        </span>
+        <div class="btn-pill-group">
+          <button
+            v-for="opt in roleOptions"
+            :key="opt.value"
+            type="button"
+            class="btn-pill"
+            :class="{ active: role === opt.value }"
+            @click="role = opt.value"
+          >
             <input
-              v-model="mailForm.name"
-              class="field-input"
-              type="text"
-              placeholder="Sofia"
+              type="radio"
+              :checked="role === opt.value"
+              tabindex="-1"
             />
-          </label>
-          <div class="field">
-            <span class="field-label">Role</span>
+            <span>{{ opt.label }}</span>
+          </button>
+        </div>
+      </div>
 
-            <div class="btn-pill-group">
-              <button
-                v-for="opt in roleOptions"
-                :key="opt.value"
-                type="button"
-                class="btn-pill"
-                :class="{ active: role === opt.value as UserRole }"
-                @click="role = opt.value as UserRole"
-              >
-                <input type="radio" :checked="role === opt.value" />
-                <span>{{ opt.label }}</span>
-              </button>
-            </div>
-            
-          </div>
-          <div class="section-actions">
-            <button
-              type="submit"
-              class="btn btn-primary"
-              :disabled="busyMail"
-            >
-              {{ busyMail ? "Sending…" : "Send by email" }}
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <div v-if="mailEnabled" class="section-divider"><span>or</span></div>
-
-      <!-- Section 2: link-only invite — always available. -->
-      <section class="invite-section">
-        <h5 class="section-title">Create a shareable invite link</h5>
-        <p class="section-hint">
-          Pick a username. The link is copied to your clipboard —
-          share it through any channel.
-        </p>
-        <form class="invite-form" @submit.prevent="submitLink">
-          <label class="field">
-            <span class="field-label">Username (login)</span>
-            <input
-              v-model="linkForm.login"
-              class="field-input"
-              type="text"
-              placeholder="alice"
-              autocomplete="off"
-              required
-            />
-          </label>
-          <label class="field">
-            <span class="field-label">Name (optional)</span>
-            <input
-              v-model="linkForm.name"
-              class="field-input"
-              type="text"
-              placeholder="Alice"
-            />
-          </label>
-          <div class="field">
-            <span class="field-label">Role</span>
-            <div class="btn-pill-group">
-              <button
-                v-for="opt in roleOptions"
-                :key="opt.value"
-                type="button"
-                class="btn-pill"
-                :class="{ active: role === opt.value as UserRole }"
-                @click="role = opt.value as UserRole"
-              >
-                <input type="radio" :checked="role === opt.value" />
-                <span>{{ opt.label }}</span>
-              </button>
-            </div>
-          </div>
-          <div class="section-actions">
-            <button
-              type="submit"
-              class="btn btn-primary"
-              :disabled="busyLink"
-            >
-              {{ busyLink ? "Creating…" : "Create & copy link" }}
-            </button>
-          </div>
-        </form>
-      </section>
-
+      <!-- ── Actions ──────────────────────────────────────────────── -->
       <div class="overlay-actions">
         <button type="button" class="btn btn-ghost" @click="emit('close')">
-          Close
+          {{ $t("auth.inviteModal.cancel") }}
+        </button>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          :disabled="!canSubmit"
+        >
+          {{ submitLabel }}
         </button>
       </div>
-    </div>
+    </form>
   </Modal>
 </template>
 
 <style scoped>
-.modal-body {
-  padding: 0 var(--space-6) var(--space-5);
+.invite-form {
+  padding: var(--space-3) var(--space-6) var(--space-6);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
 .modal-feedback {
-  color: var(--color-danger, #b91c1c);
+  color: var(--color-danger-text);
   font-size: var(--text-sm);
   margin: 0;
   padding: var(--space-2) var(--space-3);
-  background: var(--color-danger-soft, rgba(185, 28, 28, 0.08));
+  background: var(--color-danger-soft);
   border-radius: var(--radius-md);
 }
 
-.invite-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-.section-title {
-  margin: 0;
-  font-size: var(--text-md);
-  font-weight: 600;
-}
-.section-hint {
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-  margin: 0;
-}
-.section-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-.section-divider {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  color: var(--color-text-dim);
-  font-size: var(--text-sm);
-}
-.section-divider::before,
-.section-divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--color-border-subtle);
-}
-
-.invite-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 .field-label {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
 
-/* Segmented radio-pill group. One button per role; the selected pill
- * gets the accent fill. Uses role=radiogroup + role=radio so screen
- * readers announce it as a set instead of arbitrary buttons. */
-.role-pills {
-  display: inline-flex;
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  align-self: flex-start;
+/* Disabled channel pill — the pill itself stays visible but greyed
+ * out. Tooltip explains why (e.g. "SMTP not configured"). */
+.btn-pill.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: auto;
 }
-.role-pill {
+.btn-pill.is-disabled:hover {
   background: transparent;
-  border: none;
-  padding: 6px 14px;
-  font-size: var(--text-sm);
-  font-family: inherit;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition:
-    background-color 0.15s,
-    color 0.15s;
-}
-.role-pill + .role-pill {
-  border-left: 1px solid var(--color-border-default);
-}
-.role-pill:hover:not(.selected) {
-  background: var(--color-bg-card-soft);
-  color: var(--color-text-primary);
-}
-.role-pill.selected {
-  background: var(--color-accent-soft);
-  color: var(--color-accent-text, var(--color-accent));
-  font-weight: 600;
-}
-.role-pill:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: -2px;
 }
 </style>

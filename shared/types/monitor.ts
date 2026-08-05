@@ -10,7 +10,7 @@
 // observed status, last-fired flag for edge detection, last-poll
 // timestamp). They survive serialization but the UI ignores them.
 
-import type { TriggerMode } from "./polling";
+import type { TriggerMode } from "./triggerMode";
 
 /** How a probed HTTP status is matched against the alert's rule.
  *

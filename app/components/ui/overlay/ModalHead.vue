@@ -27,6 +27,12 @@ defineEmits<{ (e: "close"): void }>();
 <template>
   <div class="modal-head" :class="`modal-head--${variant}`">
     <h4>{{ title }}</h4>
+    <!-- Optional controls between the title and the close X. Kept
+         collapsed when no consumer supplies content so the header stays
+         tight for the common "title only" case. -->
+    <div class="modal-head-actions">
+      <slot name="actions" />
+    </div>
     <button
       type="button"
       class="modal-close"
@@ -64,7 +70,16 @@ defineEmits<{ (e: "close"): void }>();
   border-bottom: 1px solid var(--color-border-subtle);
 }
 .modal-head--filled h4 {
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
+}
+
+.modal-head-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.modal-head-actions:empty {
+  display: none;
 }
 
 .modal-close {

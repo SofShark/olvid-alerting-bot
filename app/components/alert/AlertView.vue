@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, toRef } from "vue";
+import { ref, computed, toRef, watch } from "vue";
 import { AlertStatus, type AlertModel } from "#shared/types/alert";
 import type { BundleModel } from "#shared/types/bundle";
 import { getErrorMessage } from "~/utils/errors";
@@ -61,6 +61,20 @@ const webhookUrl = computed(() => {
 // ── Edit / delete / status / duplicate ────────────────────────────────────
 const confirmingDelete = ref(false);
 const confirmingDuplicate = ref(false);
+const duplicateDraftTitle = ref("");
+const duplicateInputRef = ref<HTMLInputElement | null>(null);
+
+// Reseed the rename input every time the duplicate dialog opens so a
+// previous edit doesn't leak into the next attempt.
+watch(confirmingDuplicate, (isOpen) => {
+  if (!isOpen) return;
+  const base = (form.value.title ?? "").trim() || t("common.untitled");
+  duplicateDraftTitle.value = base + t("duplicateModal.copySuffix");
+  requestAnimationFrame(() => {
+    duplicateInputRef.value?.focus();
+    duplicateInputRef.value?.select();
+  });
+});
 
 // ── Test now (overflow menu → server-side dry-run) ────────────────────────
 // First run shows an explainer dialog; user can tick "don't show again"
@@ -72,7 +86,14 @@ const confirmingDuplicate = ref(false);
 // "is this a source we can test at all?" via `canTest`.
 const TEST_INTRO_SKIP_KEY = "alerting.dontShowAgain.alertTestIntro";
 const showingTestIntro = ref(false);
+const testIntroDontShowAgain = ref(false);
 const testRunnerRef = ref<{ run: () => Promise<void> } | null>(null);
+
+// Reset the "don't show again" checkbox each time the intro reopens so a
+// previous session's tick doesn't leak into the current one.
+watch(showingTestIntro, (isOpen) => {
+  if (isOpen) testIntroDontShowAgain.value = false;
+});
 
 const canTest = computed(
   () => !!form.value.id && (isPolling.value || isMonitoring.value),
@@ -97,7 +118,8 @@ const onTest = () => {
   }
 };
 
-const onTestIntroConfirm = (dontShowAgain: boolean) => {
+const onTestIntroConfirm = () => {
+  const dontShowAgain = testIntroDontShowAgain.value;
   showingTestIntro.value = false;
   if (dontShowAgain && typeof window !== "undefined") {
     try {
@@ -140,7 +162,9 @@ const cleanAlertParamsForCopy = (params: any): any => {
   return cleaned;
 };
 
-const onDuplicate = async (newTitle: string) => {
+const onDuplicate = async () => {
+  const newTitle = duplicateDraftTitle.value.trim();
+  if (!newTitle) return;
   if (!form.value.id) return;
   const payload = {
     id: null,
@@ -270,13 +294,30 @@ const onSaveBundle = async ({
       @cancel="confirmingDelete = false"
     />
 
-    <DuplicateAlertDialog
+    <ConfirmDialog
       :open="confirmingDuplicate"
-      :original-title="form.title"
-      :saving="saving"
+      :title="$t('duplicateModal.title')"
+      :message="$t('duplicateModal.message')"
+      :confirm-label="saving ? $t('common.saving') : $t('duplicateModal.confirm')"
+      :cancel-label="$t('button.cancel')"
       @confirm="onDuplicate"
       @cancel="confirmingDuplicate = false"
-    />
+    >
+      <div class="field duplicate-field">
+        <label class="field-label" for="duplicate-title-input">
+          {{ $t("duplicateModal.titleLabel") }}
+        </label>
+        <input
+          id="duplicate-title-input"
+          ref="duplicateInputRef"
+          v-model="duplicateDraftTitle"
+          type="text"
+          class="field-input"
+          :placeholder="$t('duplicateModal.titlePlaceholder')"
+          @keydown.enter.prevent="onDuplicate"
+        />
+      </div>
+    </ConfirmDialog>
 
     <BundleEditDialog
       :open="editingBundleIndex !== null"
@@ -312,11 +353,21 @@ const onSaveBundle = async ({
              by the overflow menu. The runner owns the result modal; we
              only call its `run()`. Source-agnostic — the server picks
              polling vs monitoring behind the unified endpoint. -->
-    <AlertTestIntroDialog
+    <ConfirmDialog
       :open="showingTestIntro"
+      size="default"
+      :title="$t('testIntroDialog.title')"
+      :message="$t('testIntroDialog.body')"
+      :confirm-label="$t('testIntroDialog.confirm')"
+      :cancel-label="$t('button.cancel')"
       @confirm="onTestIntroConfirm"
       @cancel="showingTestIntro = false"
-    />
+    >
+      <label class="dont-show-again">
+        <input v-model="testIntroDontShowAgain" type="checkbox" />
+        <span>{{ $t("testIntroDialog.dontShowAgain") }}</span>
+      </label>
+    </ConfirmDialog>
     <AlertTestRunner v-if="canTest" ref="testRunnerRef" :alert-id="form.id" />
 
     <div class="panel-body">
@@ -343,6 +394,31 @@ const onSaveBundle = async ({
 </template>
 
 <style scoped>
+/* Duplicate-alert rename field — inlined inside <ConfirmDialog>'s slot. */
+.duplicate-field {
+  margin-top: var(--space-3);
+}
+.duplicate-field .field-label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  font-size: var(--text-sm);
+}
+
+/* Test-intro "don't show again" checkbox — inlined inside <ConfirmDialog>'s slot. */
+.dont-show-again {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  user-select: none;
+}
+.dont-show-again input {
+  cursor: pointer;
+}
 
 .split {
   display: grid;

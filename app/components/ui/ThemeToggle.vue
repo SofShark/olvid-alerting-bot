@@ -18,7 +18,7 @@ function toggle() {
   try {
     localStorage.setItem("theme", next);
   } catch {
-    /* private mode */
+    
   }
   current.value = next;
 }

@@ -1,30 +1,36 @@
 import { LogStatus } from "#imports";
 import { AlertStatus } from "#shared/types/alert";
+import { summariseChannels } from "#shared/types/dispatchStrategy";
+import type { DispatchDetails, DispatchOutcome } from "#shared/types/dispatchStrategy";
 import { getErrorMessage } from "~/utils/errors";
 
 /**
- * Webhook receiver. One log row per incoming request:
- *   - success  : notifier accepted the payload and dispatched the alert
- *   - warning  : the request arrived but the alert isn't Active
- *   - error    : body parse failed OR the notifier threw
+ * Webhook receiver. One log row per incoming request. The row's status
+ * follows the same "success | warning | error" enum used by polling +
+ * monitoring — labelled SENT / PARTIAL / FAILED in the UI — so admins
+ * see a homogenous timeline across sources.
  */
 
-async function safeLog(
-  alertId: number,
-  kind: LogStatus,
-  msg: string | null = null,
-) {
+async function safeLogOutcome(alertId: number, outcome: DispatchOutcome) {
   try {
-    if (kind === LogStatus.Success) await alertLogRepository.logSuccess(alertId);
-    else if (kind === LogStatus.Warning)
-      await alertLogRepository.logWarning(alertId, msg ?? "");
-    else await alertLogRepository.logError(alertId, msg ?? "");
+    await alertLogRepository.insertOutcome(alertId, outcome);
   } catch (e) {
     console.warn(
       `[webhook] alert #${alertId} failed to write log:`,
       getErrorMessage(e),
     );
   }
+}
+
+// Small helpers to keep the request handler focused on flow. `stageFail`
+// covers the "no dispatch happened, we know exactly where it broke" case.
+// `dispatchOutcome` promotes the notifier's per-channel report to the
+// timeline enum (success → success, mixed → warning, all-fail → error).
+function stageFail(
+  stage: DispatchDetails["stage"],
+  error: string,
+): DispatchOutcome {
+  return { status: "error", error, details: { stage } };
 }
 
 export default defineEventHandler(async (event) => {
@@ -72,7 +78,7 @@ export default defineEventHandler(async (event) => {
       error: msg,
       stage: "parse",
     });
-    await safeLog(alert.id, LogStatus.Error, `Invalid body: ${msg}`);
+    await safeLogOutcome(alert.id, stageFail("parse", `Invalid body: ${msg}`));
     throw createError({ statusCode: 400, statusMessage: "Invalid body" });
   }
 
@@ -84,21 +90,33 @@ export default defineEventHandler(async (event) => {
   // in vain) but we log a warning so the operator sees the mismatch in
   // the timeline.
   if (alert.status !== AlertStatus.Active) {
-    await safeLog(
-      alert.id,
-      LogStatus.Warning,
-      `Alert is ${alert.status} — webhook received but not dispatched`,
-    );
+    await safeLogOutcome(alert.id, {
+      status: LogStatus.Warning,
+      error: `Alert is ${alert.status} — webhook received but not dispatched`,
+      details: { stage: "dispatch" },
+    });
     return { status: "ignored", message: `Alert is ${alert.status}` };
   }
 
   try {
-    await notifierService.processAlert(alert, payload);
+    const channels = await notifierService.processAlert(alert, payload);
     // Persist the body as this alert's last-received payload. Keyed by alert
     // id, so two webhook alerts with the same source no longer overwrite each
     // other's history.
     await alertPayloadRepository.upsertLastAlertPayload(alert.id, payload);
-    await safeLog(alert.id, LogStatus.Success);
+
+    // Promote to partial/failed when any channel silently failed —
+    // symmetric with the polling + monitoring dispatchers.
+    const status =
+      channels.length > 0 ? summariseChannels(channels) : "success";
+    const anyChannelError = channels.find((c) => !c.ok)?.error ?? null;
+    const outcome = {
+      status,
+      error: status === "success" ? null : anyChannelError,
+      details:
+        channels.length > 0 ? { stage: "dispatch" as const, channels } : undefined,
+    };
+    await safeLogOutcome(alert.id, outcome);
   } catch (error: any) {
     const msg = error?.message ?? "Unknown error during processAlert";
     console.error("❌ [Webhook] Unexpected error:", msg);
@@ -117,7 +135,9 @@ export default defineEventHandler(async (event) => {
         persistErr?.message,
       );
     }
-    await safeLog(alert.id, LogStatus.Error, msg);
+    const outcome = stageFail("dispatch", msg);
+    await safeLogOutcome(alert.id, outcome);
+    
     throw createError({
       statusCode: 500,
       statusMessage: "Internal Server Error",

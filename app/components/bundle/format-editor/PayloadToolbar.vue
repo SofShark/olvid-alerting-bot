@@ -27,7 +27,7 @@ defineEmits<{
       class="toggle-btn toggle-btn-wide"
       :class="{ 'is-open': loadOpen }"
       :aria-expanded="loadOpen"
-      title="Load template payload"
+      :title="$t('formatEditor.toolbar.loadTemplateTitle')"
       @click="
         $emit(
           'open-load',
@@ -35,26 +35,32 @@ defineEmits<{
         )
       "
     >
-      <span>Load Template</span>
+      <span>{{ $t('formatEditor.toolbar.loadTemplate') }}</span>
       <span class="caret" aria-hidden="true" />
     </button>
     <span class="toolbar-divider" aria-hidden="true" />
     <button
       class="toggle-btn"
-      title="Picker Mode"
+      :title="$t('formatEditor.toolbar.pickerMode')"
+      :aria-label="$t('formatEditor.toolbar.pickerMode')"
       @click="$emit('toggle-picker')"
     >
-      <img
-        src="../../../assets/eyedrop.png"
-        alt="Picker Mode"
-        class="eyedrop-icon"
-      />
+      <LucidePipette :stroke-width="2" class="toolbar-icon" />
     </button>
-    <button class="toggle-btn" title="Prettify JSON" @click="$emit('prettify')">
+    <button
+      class="toggle-btn"
+      :title="$t('formatEditor.toolbar.prettify')"
+      :aria-label="$t('formatEditor.toolbar.prettify')"
+      @click="$emit('prettify')"
+    >
       { }
     </button>
-    <button class="toggle-btn" title="Clear Payload" @click="$emit('clear')">
-      Clear
+    <button
+      class="toggle-btn"
+      :title="$t('formatEditor.toolbar.clear')"
+      @click="$emit('clear')"
+    >
+      {{ $t('formatEditor.toolbar.clear') }}
     </button>
   </div>
 </template>
@@ -62,19 +68,19 @@ defineEmits<{
 <style scoped>
 .payload-toolbar {
   display: flex;
-  gap: 8px;
+  gap: var(--space-3);
   margin-left: auto;
   align-items: center;
 }
 .toolbar-divider {
   width: 1px;
   height: 18px;
-  background: #3a3a3a;
-  margin: 0 4px;
+  background: var(--color-border-subtle);
+  margin: 0 var(--space-1);
 }
-.eyedrop-icon {
+.toolbar-icon {
   width: 14px;
   height: 14px;
-  display: flex;
+  display: block;
 }
 </style>

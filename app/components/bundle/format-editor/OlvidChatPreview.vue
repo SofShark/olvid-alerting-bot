@@ -33,8 +33,10 @@ defineProps<{
   max-width: 85%;
   width: fit-content;
   padding: var(--space-4) var(--space-6);
-  border-radius: 16px 16px 16px 0;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  /* Asymmetric corner leaves the bottom-left flat — anchors the
+   * "sent by the app" chat bubble to the left rail of the pane. */
+  border-radius: var(--radius-3xl) var(--radius-3xl) var(--radius-3xl) 0;
+  box-shadow: var(--shadow-card);
   margin-bottom: var(--space-6);
   border: 1px solid var(--color-border-subtle);
   overflow-wrap: break-word;
@@ -42,9 +44,9 @@ defineProps<{
 }
 .bubble-sender {
   color: var(--color-accent);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   font-size: var(--text-base);
-  margin-bottom: 5px;
+  margin-bottom: var(--space-2);
 }
 .bubble-text {
   margin: 0;
@@ -58,14 +60,14 @@ defineProps<{
   text-align: right;
   color: var(--color-text-dim);
   font-size: var(--text-sm);
-  margin-top: 5px;
+  margin-top: var(--space-2);
 }
 .error-bubble {
   background: var(--color-danger-soft);
   color: var(--color-danger-bright);
   max-width: 85%;
   padding: var(--space-4) var(--space-6);
-  border-radius: 16px;
+  border-radius: var(--radius-3xl);
   border: 1px solid var(--color-danger-border);
   font-family: var(--font-mono);
   font-size: var(--text-base);

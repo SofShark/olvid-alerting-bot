@@ -19,10 +19,13 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Redo2,
   CircleCheck,
   Info,
   Circle,
   X,
+  Plus,
   Copy,
   EllipsisVertical,
   UserCog,
@@ -36,8 +39,10 @@ import {
   User,
   Bell,
   CircleQuestionMark,
-  ChevronDown,
- 
+
+  Link,
+  Pipette,
+
 } from "@lucide/vue";
 
 const icons = {
@@ -47,15 +52,18 @@ const icons = {
   LucideChevronLeft: ChevronLeft,
   LucideChevronRight: ChevronRight,
   LucideChevronDown: ChevronDown,
+  LucideRedo: Redo2,
   LucideCircleCheck: CircleCheck,
   LucideInfo: Info,
   LucideCircle: Circle,
   LucideX: X,
+  LucidePlus: Plus,
   LucideCopy: Copy,
   LucideEllipsisVertical: EllipsisVertical,
   LucideArrowLeftRight: ArrowLeftRight,
   LucidePlay: Play,
   LucideMail: Mail,
+  LucideLink: Link,
   LucideSquareMousePointer: SquareMousePointer,
   LucideMoon: Moon,
   LucideSun: Sun,
@@ -64,6 +72,7 @@ const icons = {
   LucideUserCog: UserCog,
   LucideBell: Bell,
   LucideCircleQuestionMark: CircleQuestionMark,
+  LucidePipette: Pipette,
 };
 
 export default defineNuxtPlugin((nuxtApp) => {

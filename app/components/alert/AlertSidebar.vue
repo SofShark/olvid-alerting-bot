@@ -105,10 +105,9 @@ const initials = (title: string): string => {
         :disabled="disabled"
         @click="onNew"
       >
-        <span class="plus">+</span>
-        <span v-if="!collapsed">{{
-          $t("button.newAlert")
-        }}</span>
+        <LucidePlus class="plus" aria-hidden="true" /> 
+        <span v-if="!collapsed" >  {{$t("button.newAlert")}}</span>
+        
       </button>
     </div>
   </aside>
@@ -236,7 +235,7 @@ const initials = (title: string): string => {
   background: var(--color-bg-card-soft);
 }
 .alert-row.selected {
-  background: var(--color-bg-card-soft);
+  background: var(--color-bg-card-selected);
   color: var(--color-text-primary);
 }
 
@@ -306,7 +305,9 @@ const initials = (title: string): string => {
   margin-left: var(--space-2);
   margin-right: var(--space-2);
   margin-bottom: var(--space-3);
-
+  display: flex;
+  flex-direction:row;
+  align-items: center;
   padding: 9px;
   background: var(--color-border-subtle);
   color: var(--color-text-secondary);
@@ -314,7 +315,7 @@ const initials = (title: string): string => {
 }
 .btn-new-bottom:hover {
   background: var(--color-accent-soft);
-  color: var(--color-text-primary);
+  color: var(--color-accent);
   border-color: var(--color-accent-border);
 }
 .btn-new-bottom:disabled,
@@ -328,8 +329,12 @@ const initials = (title: string): string => {
   border-color: var(--color-border-default);
 }
 
+
 .plus {
-  font-size: var(--text-xl);
-  line-height: 1;
+  width: 24px;
+  height: 14px;
+  stroke-width: 3;
+  flex-shrink: 0;
 }
+
 </style>

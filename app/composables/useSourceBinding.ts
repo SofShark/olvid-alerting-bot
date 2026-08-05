@@ -1,11 +1,8 @@
 import { computed, type Ref, type WritableComputedRef } from "vue";
 import { Source } from "#shared/types/source";
 import type { AlertModel, AlertParams } from "#shared/types/alert";
-import {
-  PollingFormat,
-  TriggerMode,
-  type PollingParams,
-} from "#shared/types/polling";
+import { PollingFormat, type PollingParams } from "#shared/types/polling";
+import { TriggerMode } from "#shared/types/triggerMode";
 import type { MonitorParams } from "#shared/types/monitor";
 import { DEFAULT_SCHEDULE } from "#shared/polling/scheduler";
 import { blankCondition } from "#shared/condition/migrate";

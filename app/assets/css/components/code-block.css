@@ -22,7 +22,7 @@
   display: flex;
   align-items: center;
   padding: var(--space-3) 15px;
-  background: #1e1e1e;
+  background: var(--color-bg-code-header);
   border-bottom: 1px solid #333;
   gap: var(--space-3);
 }
@@ -135,7 +135,7 @@
  * focus / open — accent appears only on intentional interaction.
  */
 .toggle-btn {
-  background: #3a3a3a;
+  background: var(--color-bg-code);
   color: #a3a3a3;
   border: 1px solid #555;
   border-radius: var(--radius-sm);
@@ -147,7 +147,7 @@
     color 0.15s;
 }
 .toggle-btn:hover {
-  background: #4a4a4a;
+  background: var(--color-bg-code-header);
   color: var(--color-text-code);
 }
 
@@ -156,7 +156,6 @@
   align-items: center;
   gap: 6px;
   padding: 3px var(--space-3);
-  font-weight: 600;
   letter-spacing: 0.1px;
 }
 .toggle-btn-wide .caret {

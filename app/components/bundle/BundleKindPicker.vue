@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BundleOutputType } from "#shared/types/bundleOutput";
+import { BundleOutputType } from "#shared/types/bundle";
 
 defineProps<{
   modelValue: BundleOutputType | null;

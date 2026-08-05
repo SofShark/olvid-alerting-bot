@@ -18,7 +18,7 @@ import { z } from "zod";
 import { timingSafeEqual } from "node:crypto";
 import { userRepository } from "#server/repositories/userRepository";
 import { issueToken, resolveOrigin, toClientUser } from "#server/utils/auth";
-import { verifyEmail as verifyEmailTemplate } from "#server/utils/authEmails";
+import { verifyEmail as verifyEmailTemplate } from "#server/utils/authMessages";
 import { mailClient } from "#server/clients/mailClient";
 import type { SetupForm } from "#shared/types/auth";
 

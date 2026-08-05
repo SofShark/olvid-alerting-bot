@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
 import { Source } from "#shared/types/source";
-import { TriggerMode, type PollingParams } from "#shared/types/polling";
+import { TriggerMode } from "#shared/types/triggerMode";
+import type { PollingParams } from "#shared/types/polling";
 import type { MonitorParams } from "#shared/types/monitor";
 import { ConditionKind, ConditionOperator } from "#shared/types/condition";
 
@@ -12,9 +13,9 @@ import { ConditionKind, ConditionOperator } from "#shared/types/condition";
     - Monitoring → URL, interval, "Triggers on" summary, trigger mode.
 
   Layout-only — delegates rendering of the condition row to
-  AlertConditionSummary, and the status match label to
-  useStatusMatchLabel. Both hide themselves for edge-native cases so the
-  view never lies about the effective trigger mode.
+  AlertConditionSummary, and the schedule / status match / trigger mode
+  labels to useAlertLabels. Both hide themselves for edge-native cases
+  so the view never lies about the effective trigger mode.
 */
 
 const props = defineProps<{
@@ -24,9 +25,11 @@ const props = defineProps<{
   webhookUrl?: string;
 }>();
 
-const { scheduleLabel } = useScheduleLabel();
-const { statusMatchLabel } = useStatusMatchLabel();
-const { labelFor: triggerModeLabelFor } = useTriggerModeOptions();
+const {
+  scheduleLabel,
+  statusMatchLabel,
+  triggerModeLabel: triggerModeLabelFor,
+} = useAlertLabels();
 
 const isPolling = computed(() => props.source === Source.Polling);
 const isMonitoring = computed(() => props.source === Source.Monitoring);
@@ -207,10 +210,15 @@ onMounted(() => {
 }
 .data-value {
   margin: 0;
+  /* Fill the remaining horizontal space in .data-row (which is a
+   * flex container). Without flex-grow, a shrink-to-fit `<dd>` would
+   * clamp any child that uses `width: 100%` (like <URLCopyBox>) to
+   * its own intrinsic content width. */
+  flex: 1 1 auto;
+  min-width: 0;
   color: var(--color-text-primary);
   font-size: var(--text-base);
   line-height: 1.5;
-  min-width: 0;
 }
 .data-value .dim {
   color: var(--color-text-dim);

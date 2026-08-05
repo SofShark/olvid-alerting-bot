@@ -22,11 +22,40 @@
 import { AlertStatus } from "#shared/types/alert";
 import {
   BundleOutputType,
-  MailOutputParams,
-  OlvidOutputParams,
-} from "#shared/types/bundleOutput";
+  type Formatting,
+  type MailOutputParams,
+  type OlvidOutputParams,
+} from "#shared/types/bundle";
+import type { ChannelReport } from "#shared/types/dispatchStrategy";
 
 export type FireKind = "alert" | "recovery";
+
+// Structural shapes for what the notifier actually reads off a fired
+// alert. These mirror the Prisma row + nested `include` used by
+// alertRepository (bundles → outputs) rather than the client-side
+// AlertModel, which carries a slightly different shape (id nullable,
+// no createdAt, etc.). Payloads stay `unknown` — they're arbitrary
+// webhook / parsed-source JSON and only formatter strategies interpret
+// them.
+export interface FiredBundleOutput {
+  type: string;
+  params: unknown;
+}
+
+export interface FiredBundle {
+  id: number;
+  name?: string | null;
+  formating: Formatting | string;
+  custom_script?: string | null;
+  outputs?: FiredBundleOutput[];
+}
+
+export interface FiredAlert {
+  id: number;
+  title: string;
+  status: string;
+  bundles?: FiredBundle[];
+}
 
 const RECOVERY_PREFIX = "✓ RECOVERED:";
 
@@ -37,8 +66,14 @@ export const notifierService = {
 
   // Entry point for an incoming webhook (or polling tick). The alert is
   // resolved by token / id and carries its bundles. Each bundle is one
-  // output (audience + format).
-  async processAlert(alert: any, payload: any, kind: FireKind = "alert") {
+  // output (audience + format). Returns the flattened ChannelReport list
+  // aggregated across every bundle so the caller (webhook handler /
+  // dispatcher) can record what actually happened per channel.
+  async processAlert(
+    alert: FiredAlert,
+    payload: unknown,
+    kind: FireKind = "alert",
+  ): Promise<ChannelReport[]> {
     console.log(
       `⚙️ Processing alert #${alert.id}: ${alert.title}${kind === "recovery" ? " (recovery)" : ""}`,
     );
@@ -47,39 +82,37 @@ export const notifierService = {
       console.log(
         `The alert is not active (status: ${alert.status}) — skipping`,
       );
-      return;
+      return [];
     }
 
     const bundles = alert.bundles ?? [];
     if (bundles.length === 0) {
       console.warn(`⚠️ Alert #${alert.id} is active but has no bundles`);
-      return;
+      return [];
     }
 
-    // Fire every bundle in parallel.
-    await Promise.all(
-      bundles.map((bundle: any) =>
-        this.processBundle(alert, bundle, payload, kind),
-      ),
+    // Fire every bundle in parallel, then flatten. Each bundle's channel
+    // reports are independent — a failure on one bundle's Olvid channel
+    // must not hide a success on another bundle's mail channel.
+    const perBundle = await Promise.all(
+      bundles.map((bundle) => this.processBundle(alert, bundle, payload, kind)),
     );
+    return perBundle.flat();
   },
 
   async processBundle(
-    alert: any,
-    bundle: any,
-    payload: any,
+    alert: FiredAlert,
+    bundle: FiredBundle,
+    payload: unknown,
     kind: FireKind = "alert",
-  ) {
-    const outputs = (bundle.outputs ?? []) as Array<{
-      type: string;
-      params: any;
-    }>;
+  ): Promise<ChannelReport[]> {
+    const outputs = bundle.outputs ?? [];
 
     if (outputs.length === 0) {
       console.warn(
         `⚠️ Bundle #${bundle.id} of alert #${alert.id} has no outputs`,
       );
-      return;
+      return [];
     }
 
     const message = this.formatMessage(alert, bundle, payload, kind);
@@ -112,23 +145,46 @@ export const notifierService = {
     }
 
     // Dispatch channels in parallel — one channel's failure can't block
-    // the other. Both clients swallow errors internally and return bool.
+    // the other. Both clients swallow errors internally and return bool;
+    // we capture that boolean into a ChannelReport per channel so the
+    // caller can render a per-channel breakdown.
     const subject =
       kind === "recovery" ? `${RECOVERY_PREFIX} ${alert.title}` : alert.title;
-    await Promise.all([
-      olvidDiscussions.length > 0
-        ? olvidClient.sendMessage(olvidDiscussions, message)
-        : Promise.resolve(),
-      mailAddresses.length > 0
-        ? mailClient.send(mailAddresses, subject, message)
-        : Promise.resolve(),
-    ]);
+
+    const dispatches: Array<Promise<ChannelReport | null>> = [];
+    if (olvidDiscussions.length > 0) {
+      dispatches.push(
+        sendOlvid(olvidDiscussions, message).catch(
+          (err): ChannelReport => ({
+            channel: "olvid",
+            ok: false,
+            recipients: olvidDiscussions.length,
+            error: errorMessage(err),
+          }),
+        ),
+      );
+    }
+    if (mailAddresses.length > 0) {
+      dispatches.push(
+        sendMail(mailAddresses, subject, message).catch(
+          (err): ChannelReport => ({
+            channel: "mail",
+            ok: false,
+            recipients: mailAddresses.length,
+            error: errorMessage(err),
+          }),
+        ),
+      );
+    }
+
+    const settled = await Promise.all(dispatches);
+    return settled.filter((r): r is ChannelReport => r !== null);
   },
 
   formatMessage(
-    alert: any,
-    bundle: any,
-    payload: any,
+    alert: FiredAlert,
+    bundle: FiredBundle,
+    payload: unknown,
     kind: FireKind = "alert",
   ): string {
     const body = renderBody(alert, bundle, payload);
@@ -139,8 +195,54 @@ export const notifierService = {
 // Internal: builds the bundle's message body (no recovery prefix). The
 // per-format logic lives in server/services/formatters/ — one strategy
 // per Formatting value, selected by the factory. Strategies never throw.
-function renderBody(alert: any, bundle: any, payload: any): string {
+function renderBody(
+  alert: FiredAlert,
+  bundle: FiredBundle,
+  payload: unknown,
+): string {
   return formatterFactory
     .forFormatting(bundle.formating)
     .render(alert, bundle, payload);
+}
+
+/** Wrap the Olvid client's boolean return in a ChannelReport. Client
+ *  swallows individual send errors internally and returns false when
+ *  any fell over — we don't have per-recipient granularity from the
+ *  daemon today, so we report the batch outcome. */
+async function sendOlvid(
+  discussions: bigint[],
+  message: string,
+): Promise<ChannelReport> {
+  const ok = await olvidClient.sendMessage(discussions, message);
+  return {
+    channel: "olvid",
+    ok,
+    recipients: discussions.length,
+    error: ok ? undefined : "Olvid daemon reported a send failure",
+  };
+}
+
+/** Same shape as sendOlvid — wraps the mailClient's `allOk` boolean. */
+async function sendMail(
+  addresses: string[],
+  subject: string,
+  message: string,
+): Promise<ChannelReport> {
+  const ok = await mailClient.send(addresses, subject, message);
+  return {
+    channel: "mail",
+    ok,
+    recipients: addresses.length,
+    error: ok ? undefined : "MailPace rejected one or more recipients",
+  };
+}
+
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return "unknown error";
+  }
 }

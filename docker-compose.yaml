@@ -1,10 +1,13 @@
 services:
-  # 1
-  nuxt_app:
+  # The Alerting Bot web app (UI + HTTP API + polling heartbeat).
+  # Bind to 0.0.0.0:3000 by default so the app is reachable from the LAN;
+  # put a reverse proxy (Caddy/nginx) in front of this for TLS + a public
+  # hostname before exposing it to the internet.
+  app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: olvid-nuxt-web
+    container_name: alerting-bot-app
     ports:
       - "3000:3000"
     environment:
@@ -18,7 +21,7 @@ services:
     # and container recreation, tidier than a bind-mount (no host path leak
     # into this file). The DB file is at /data/alerting.db per DATABASE_URL.
     #
-    # To inspect: `docker compose exec nuxt_app sh -c "sqlite3 /data/alerting.db"`
+    # To inspect: `docker compose exec app sh -c "sqlite3 /data/alerting.db"`
     # To reset:   `docker compose down -v` (⚠ removes the volume too).
     #
     # Prefer a bind-mount instead? Replace with `- ./data:/data` here and
@@ -39,7 +42,7 @@ services:
     env_file:
       - .env
     ports:
-      - 50052:50051
+      - 50051:50051
     volumes:
       - ./data:/daemon/data
       - ./data/app_configuration.properties:/opt/conf/app_configuration.properties

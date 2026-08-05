@@ -30,6 +30,19 @@ model User {
   name          String?
   role          String    @default("user") // "admin" | "user"
   activatedAt   DateTime?
+  // Persistent binding to the user's Olvid discussion. Set at invite
+  // time when the admin picks the Olvid channel, or later when we
+  // grow a "link Olvid to my account" affordance. Used by:
+  //   1. Password-reset delivery (preferred over email when set).
+
+  olvidDiscussionId BigInt?
+  // Id of the last outbound invite message the bot sent to this user's
+  // discussion. Type is always OUTBOUND — the bot is always the sender —
+  // so we only persist the numeric id. Populated on invite (and reset on
+  // resend); cleared once the invite is accepted or the row is deleted.
+  // Used by the delete-user flow to revoke the pending invite from the
+  // invitee's chat so a dangling link doesn't linger.
+  inviteOlvidMessageId BigInt?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -119,6 +132,7 @@ model LastFailedPayload {
   alert    AlertTable @relation(fields: [alertId], references: [id], onDelete: Cascade)
 }
 
+
 /// One-to-many events log per alert. Every poll (success or failure) inserts
 /// one row; the heartbeat's failure branches populate `error` with a
 /// human-readable message. The 200-row cap per alertId is enforced in
@@ -128,6 +142,10 @@ model AlertLog {
   alertId   Int
   status    String     // "success" | "warning" | "error"
   error     String?    // populated only for warning / error rows
+  // Structured DispatchDetails ({ stage?, channels? }) serialised as JSON.
+  // Rendered inside the expandable row of the log panel; null when the
+  // run had nothing structured to report.
+  details   Json?
   createdAt DateTime   @default(now())
   alert     AlertTable @relation(fields: [alertId], references: [id], onDelete: Cascade)
 

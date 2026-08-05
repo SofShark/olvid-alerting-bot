@@ -17,7 +17,6 @@ export const pollingTester = {
     // meaningful without a parsed payload.
     if (!engineResult.ok) {
       return {
-        ok: false,
         error: engineResult.error ?? "Test failed",
         parsed: engineResult.parsed,
         condition: engineResult.condition,
@@ -26,7 +25,6 @@ export const pollingTester = {
     }
 
     return {
-      ok: true,
       error: null,
       parsed: engineResult.parsed,
       condition: engineResult.condition,
