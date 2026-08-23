@@ -5,11 +5,10 @@ definePageMeta({
 </script>
 
 <template>
-  <div class="placeholder" style="align-items: center">
+  <div class="placeholder">
     <div class="placeholder-inner">
       <div class="ph-icon">
-        <!--🔔-->  
-        <LucideBell :stroke-width="2" fill="var(--color-accent-border)"/>
+        <LucideBell :stroke-width="1.5" fill="var(--color-accent-border)"/>
       
       </div>
       <p>{{ $t("index.placeholder") }}</p>

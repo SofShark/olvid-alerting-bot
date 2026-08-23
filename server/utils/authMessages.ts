@@ -1,8 +1,6 @@
-// Outbound auth-flow message templates. Each helper returns the
+// Auth-flow message templates helpers. Each helper returns the
 // channel-shaped payload the delivery client expects:
-//   - `*Email(...)`   → { subject, html }  for mailClient.send()
-//   - `*Olvid(...)`   → string             for olvidClient.sendMessage()
-//
+
 // One file so the two channels can't drift apart — same flow, same
 // copy tone, same URL shape. Renamed from authEmails.ts when Olvid was
 // added as a delivery channel; the old name only covered half the
@@ -47,7 +45,8 @@ export function inviteEmail(origin: string, token: string, invitedBy?: string) {
     subject: "You've been invited to Alerting Bot",
     html: shell(
       "You've been invited",
-      `<p>${who} has invited you to join Alerting Bot. Click the button below to set your password and activate your account. The link expires in 7 days.</p>${ctaButton(url, "Accept invitation")}`,
+      `<p>${who} has invited you to join Alerting Bot. Click the button below to set your password and activate your account. The link expires in 7 days.</p>
+      ${ctaButton(url, "Accept invitation")}`,
     ),
   };
 }

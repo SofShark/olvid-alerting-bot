@@ -1,106 +1,253 @@
-# Alerting Bot
+<h1>
+  <img src="app/assets/olvid_name_logo.png" alt="Alerting Bot logo" width="200" align="bottom" />
+  Alerting Bot
+</h1>
 
-**Watch things. Get told when they change. On Olvid or by email.**
+Self-hosted alerting platform
+powered by Nuxt 4 and Olvid.
+- Webhooks
+- HTTP monitoring
+- Data polling
+- Olvid + Email delivery
+- Multi-user
+- Template editor
+- Docker ready
 
-Alerting Bot is a small self-hosted web app that lets you author alerts against
-external data sources and receive the resulting notifications through 
-[Olvid](https://olvid.io), by email, or both.
+## 📒 Index
+
+- [About](#about)
+  - [Overview on Olvid's Alerting Bot](#overview-on-olvid's-alerting-bot)
+  - [Composing the message](#composing-the-message)
+  - [Multi-user out of the box](#multi-user-out-of-the-box)
+  - [Why Olvid as a channel?](#why-olvid-as-a-channel)
+- [Usage](#usage)
+  - [Installation](#installation)
+    - [Pre-Requisites](#pre-requisites)
+    - [Get the code](#get-the-code)
+  - [Configuration](#configuration)
+    - [Prepare the environment file](#prepare-the-environment-file)
+    - [Pair the Olvid daemon](#pair-the-olvid-daemon)
+    - [Configure email (optional)](#configure-email-optional)
+    - [Generate the auth secrets](#generate-the-auth-secrets)
+  - [Build & deployment](#build--deployment)
+    - [Start the app](#start-the-app)
+    - [Expose the app publicly](#expose-the-app-publicly)
+    - [Create the first admin account](#create-the-first-admin-account)
+- [Guideline](#guideline)
+  - [First login](#first-login)
+  - [The UI at a glance](#the-ui-at-a-glance)
+  - [Creating your first alert](#creating-your-first-alert)
+  - [Testing an alert before going live](#testing-an-alert-before-going-live)
+  - [Reading the dispatch log](#reading-the-dispatch-log)
+  - [Managing users and authentication](#managing-users-and-authentication)
+    - [Roles](#roles)
+    - [Inviting users](#inviting-users)
+    - [Forgot my password](#forgot-my-password)
+    - [Deleting a user](#deleting-a-user)
+- [FAQ](#faq)
+- [Resources](#resources)
+- [Gallery](#gallery)
+- [Development](#development)
+  - [Build](#build)
+  - [Deployment](#deployment)
+  - [Development (hot-reload)](#development-hot-reload)
+  - [File Structure](#file-structure)
+- [Credit / Acknowledgment](#credit--acknowledgment)
+- [License](#license)
 
 ---
 
-## What you can do with it
+# About
+## Overview on Olvid's Alerting Bot
+**Alerting Bot** is a self-hosted web app that watches external data sources
+and routes the resulting notifications to a channel of your choice. You author
+each alert in an intuitive interface, and the app takes care of scheduling,
+evaluating, formatting, and dispatching the messages — you never write a line
+of code to receive a notification.
 
-- **Watch feeds and APIs** — polling any URL that returns JSON, XML, or HTML on
-  a cron schedule and firing when a field crosses a threshold, changes, or
-  matches a value.
-- **Monitor endpoints** — probing a URL periodically and firing on any HTTP
-  status class you care about (5xx, non-2xx, specific codes, …).
-- **Ingest external events (Webhooks)** — webhook alerts expose an inbound webhook URL
-  that third-party systems (GitHub, Grafana, Sentry, custom scripts) can POST
-  payloads to.
-- **Compose the message** — one alert can produce several *bundles* (one per
-  audience/channel), each with its own recipients and its own Handlebars
-  template rendered against the incoming payload.
-- **Deliver over Olvid or by email** — Olvid recipients get an E2E-encrypted
-  DM from the bot; email recipients get a normal SMTP message.
-- **Manage users end-to-end** — invite teammates via Olvid, email, or a plain
-  shareable link; reset lost passwords over the same channels; admin vs user
-  roles; audit each alert's dispatch history from the sidebar.
+Under the hood, three kinds of alert cover the vast majority of what a small
+team needs to keep an eye on:
+
+- **Webhook alerts** — the app exposes an inbound URL and reacts to whatever
+  a third-party (GitHub, Grafana, Sentry, your own scripts, …) POSTs to it.
+- **Data Polling alerts** — periodically fetch a URL, parse the JSON / XML /
+  HTML response, evaluated the selected watched field(s) and fire when they sattisfy the
+  specificated trigger condition (crosses a threshold,
+  change from previous value, matches a value).   
+- **Monitoring alerts** — periodically probe an HTTP endpoint and fire on the
+  HTTP status classes you care about (5xx, non-2xx, specific codes, …). 
+
+For more information on how to configure alerts see [Creating your first alert](#creating-your-first-alert).
+### Composing the message
+
+A **format editor** lets you point-and-click at fields from a live sample
+payload to build the outgoing message. The same editor lets you write full templates
+against the parsed tree, with an inline Olvid-chat / email-card preview so
+you always see what your recipients will see. You'll be able to style the message
+using Olvid's native markdown format, or standard html tags for emails. 
+
+The email channel is still there as a fallback (for recipients who aren't on
+Olvid), but Olvid is the recommended default: fewer moving parts, better
+security posture, and richer routing (groups).
 
 ---
 
-## Setup
+# Usage
+## 🚀 Quick Start
 
-You'll do this once, in about ten minutes, before you can create your first alert.
+The first installation takes around **10 minutes**.
+At a high level, you'll:
 
-### 1. Prerequisites
+1. Clone the repository.
+2. Copy `.env.example` to `.env`.
+3. Pair the bundled Olvid daemon.
+4. Fill the required `.env` variables.
+5. Start the application.
+6. Create the first administrator account.
 
-- **Docker Desktop** (or Docker Engine + Compose v2).
-- The **Olvid mobile app** on your phone — the bot needs an Olvid identity to
-  send messages, and pairing is done from the phone.
-- Optionally, **an SMTP account** if you want the email delivery channel
-  (MailPace, Amazon SES, Postfix, whatever). SMTP is not required — the bot
-  works with Olvid-only, email-only, or both.
+Each step is explained in detail below.
 
-### 2. Copy the environment file
+## Installation
 
-From the project root:
+### Requirements
+
+Before starting, make sure you have:
+
+- **Docker Desktop**, or Docker Engine + Compose v2.
+- **[Olvid](<https://olvid.io/>)** app installed (on phone or desktop) required to pair the bot (optional)
+- SMTP server credentials if you want email delivery. (optional)
+
+### Get the code
+
+Clone the repository:
+
+```bash
+git clone https://github.com/<your-org>/alerting-bot.git
+cd alerting-bot
+```
+
+## ⚙️ Configuration
+
+### Prepare the environment file
+
+From the project root, copy the template:
 
 ```bash
 cp .env.example .env
 ```
 
-You'll edit `.env` progressively over the next three steps. Every value below
-is a line to fill in that file.
+You'll fill `.env` progressively over the next four steps. Every code block
+below points at one or more variables to set in that file.
 
-### 3. Pair the Olvid daemon
+### 🤖 Pair the Olvid daemon
+The daemon is the bridge between Alerting Bot and the Olvid network.
+Once paired, the daemon becomes the identity used to send all Olvid notifications.
 
-The bot talks to a small **Olvid daemon** container (bundled in this repo's
-`docker-compose.yaml`) which holds its Olvid identity and speaks the protocol
-for you. Pairing it links a phone-side Olvid profile to the daemon so it can
-send DMs on your behalf. Full walkthrough at
-<https://doc.bot.olvid.io/en/stable/> — the short version below is enough for
-this project.
-
-**a) Start the daemon on its own first.** It needs to be up before the CLI can
-talk to it, and before the app can boot:
+**a) Start the daemon** in background with the following command:
 
 ```bash
 docker compose up -d daemon
 ```
 
-**b) Launch the interactive CLI.** This runs the Olvid Python CLI in a
-throwaway container connected to the daemon:
+To confirm it started cleanly, follow its logs for a moment:
+
+```bash
+docker compose logs -f daemon
+```
+
+Once the log lines stop scrolling, press **Ctrl + C** to detach — the daemon keeps running in the background.
+
+**b) Launch the interactive CLI.** 
 
 ```bash
 docker compose run --rm cli
 ```
 
-**c) Register or link an identity.** The CLI walks you through it — pick
-"register a new identity" for a fresh bot, or "invite an existing identity"
-to reuse one. Confirm the pairing invitation on your phone's Olvid app.
+**c) Follow the CLI through pairing.** The CLI walks you through the whole
+flow. Annotated transcript below — the strings after `>` are what you type:
 
-**d) Copy the client key it prints.** At the end the CLI prints something like
-`Client key: 34f52581-…`. Copy it and paste it into `.env`:
+```text
+# Create a new identity. Replace FirstName, LastName, ... with your bot's
+# persona. LastName, Position and Company are optional and editable later.
+0 > identity new FirstName LastName
+
+# A client key to connect to daemon is automatically created.
+# Save it — you'll paste it into .env in the next step.
+identity creation > Here is your client key to connect to daemon with this identity:
+AAAAAAAA-BBBB-AAAA-AAAA-AAAAAAAAAAAA
+
+# Enter "yes" so the bot appears in your personal Olvid contacts —
+# required to start a 1-to-1 discussion with it later.
+identity creation > Do you want to add this identity to your contacts ? (y/N)
+> yes
+
+# The CLI prints an Olvid invitation link. Open it in your web browser to
+# show a QR you can scan with the Olvid mobile app, OR paste it into your
+# Olvid desktop client.
+identity creation > Send an invitation to this invitation link: https://invitation.olvid.io/#........
+
+# The CLI now waits for the invitation to arrive from your phone.
+# Once you accept on the phone, the two devices exchange short SAS codes.
+identity creation > Please enter sas code displayed on the other device
+
+# Type the 4-digit SAS code shown on your Olvid mobile app:
+> 0000
+
+# The CLI shows a 4-digit code — enter THIS code on your phone:
+identity creation > Please enter this sas code on the other device: 1111
+
+# Pairing is now complete.
+Now using identity: 1
+You can now send messages to <YOUR NAME> in discussion 1
+
+# Quick sanity check — DM yourself:
+1 > message send 1 Hello World !
+
+# Exit the CLI when you're done (or press Ctrl + D).
+1 > exit
+```
+
+**d) Copy the client key into `.env`.** Paste the value the CLI printed
+(right after `Here is your client key…`) here:
 
 ```
-OLVID_CLIENT_KEY=<client key value provided by the CLI>
+OLVID_CLIENT_KEY=<the client key value the CLI printed>
 ```
 
-Leave `OLVID_DAEMON_URL` at its default (`http://daemon:50051`) — that's the
-address of the daemon inside the compose network.
+In case you cleared the terminal or lost the key, you can retrieve it by running:
+```bash
+docker compose run --rm cli
+0 > key get
+```
 
-The daemon is now yours. It'll show up as a normal Olvid contact on any phone
-you paired it with. Any Olvid discussion you start with it (a 1-to-1 chat or
-a group where it's a member) becomes a possible delivery target inside the
-app's UI.
+The daemon is now paired with your Olvid identity, and the alerting bot is connected to the daemon on its turn.
 
-### 4. Configure email (optional)
+### 🔐 Generate the auth secrets
 
-Skip this step if you're happy with Olvid-only delivery.
+Two random strings that only you know about — one signs the login cookie, the
+other gates the first-admin setup page:
 
-If you do want email, fill the SMTP block in `.env`. Any provider works;
-defaults target [MailPace](https://mailpace.com):
+```bash
+# Session cookie secret (must be ≥ 32 chars)
+openssl rand -base64 32
+
+# First-admin bootstrap key.
+openssl rand -base64 32
+```
+
+Paste each into the matching line of `.env`:
+
+```
+NUXT_SESSION_PASSWORD=…first key…
+ADMIN_KEY=…second key…
+```
+
+### ✉️ Configure email (optional)
+
+Skip this step if you're happy with Olvid-only delivery. Set it up if you
+want any of: email as a bundle output, invite-by-email, or password-reset by
+email.
+
 
 ```
 SMTP_HOST=smtp.mailpace.com
@@ -110,40 +257,17 @@ SMTP_PASSWORD=<your-mailpace-server-token>
 SMTP_FROM=Alerting Bot <alerts@yourdomain.com>
 ```
 
-`SMTP_FROM` must be a verified sender on your provider or delivery is silently
-rejected. When SMTP is off, mail-related options in the UI (invite by mail,
-mail bundle output) simply grey out with a tooltip — nothing crashes.
+`SMTP_FROM` must be a verified sender on your provider or delivery is
+silently rejected.
 
-### 5. Generate the auth secrets
-
-Two random strings that only you know about — one signs the login cookie, the
-other gates the first-admin setup page.
+## 🔨 Build & deployment
 
 ```bash
-# Session cookie secret (must be ≥ 32 chars)
-openssl rand -base64 48
-
-# First-admin bootstrap key
-openssl rand -base64 32
+docker compose up -d app
 ```
 
-Paste each into the matching line of `.env`:
-
-```
-NUXT_SESSION_PASSWORD=…the first one…
-ADMIN_KEY=…the second one…
-```
-
-Also set the public origin of your deploy — the URL users' browsers actually
-open. This becomes the base for outgoing invite / reset links.
-
-```
-NUXT_PUBLIC_BASE_URL=http://localhost:3000       # local
-# or, once you have a domain:
-NUXT_PUBLIC_BASE_URL=https://alerts.example.com
-```
-
-### 6. Start the app
+Once logs hace stopped scrolling it means your docker container has been successfully built. 
+You can now run the alerting-bot app.
 
 ```bash
 docker compose up -d app
@@ -151,142 +275,140 @@ docker compose up -d app
 
 That's it — the stack is live at <http://localhost:3000>.
 
-**Making it reachable from other machines.** By default Docker publishes the
-port on `0.0.0.0:3000`, so anything on your LAN can already open
-`http://<your-machine-lan-ip>:3000`. For a real deployment you'll want a
-reverse proxy (Caddy or nginx) sitting in front to add TLS and a proper
-hostname. Point it at `localhost:3000` (or the compose service `app:3000`
-if the proxy is in the same compose network) and you're done. For a quick
-non-Docker dev on your laptop, `npm run dev -- --host` also binds to `0.0.0.0`
-so devices on the same wifi can reach the dev server without Docker.
+### 📢 Expose the app publicly
 
-### 7. Create the first admin account
+By default, Docker publishes port 3000 on `0.0.0.0`, so anything on your LAN
+can already open `http://<your-machine-lan-ip>:3000`.
 
-Alerting Bot ships with zero users. On the very first visit, every route
-redirects to `/setup`:
+For a real public deployment you can use a reverse proxy like Caddy or nginx.
+Point the proxy at `localhost:3000` (or the compose service `app:3000` if the 
+proxy runs in the same compose network).
+
+### 👤Create the first admin account
+
+Alerting Bot ships with zero users. 
 
 1. Open the app — you'll land on `/setup` automatically.
 2. Paste the `ADMIN_KEY` value from `.env` into the *Admin key* field. This
-   proves you're the operator, not a random visitor who reached the URL first.
-3. Enter your login (an email if SMTP is on, otherwise any username), a
-   password (min 8 characters), and optionally a display name.
+   proves you're the operator, not a random visitor who reached the URL
+   first.
+3. Enter your login (an email address if SMTP is on, otherwise any plain
+   username), a password (min 8 characters), and optionally a display name.
 4. Submit.
 
-If SMTP is configured, the app mails you a verification link — click it to
-activate the account. If SMTP isn't configured, you're signed in immediately.
+You can additionally choose to verify your account sending a verification link to 
+your Olvid discussion (that you linked to the daemon previously) or an email (in case
+SMTP is available). This will allow you to recover your password in future logins.
 
-From this point on, `/setup` refuses to run again — every subsequent user is
-added by an admin from the `/users` page (see [Managing users](#managing-users-and-authentication) below).
+
+From this point on every subsequent user is added by an admin from the `/users` page (see
+[Managing users and authentication](#managing-users-and-authentication)).
 
 ---
 
-## Using the app
+# 📋Guideline
 
-### First login
+## Creating your first alert
 
-Open the app, land on `/login`, enter the credentials you set at `/setup`.
-The sidebar populates with your alerts (empty at first) and a **+ New Alert**
-button opens the wizard.
+Click **+ New Alert** in the sidebar. The wizard walks you through four
+steps:
 
-Two things worth knowing right away:
-
-- **Everything visible in the app has an inline hint** — hover the small `?`
-  icons and the help text in the wizard for context-specific tips. This README
-  doesn't repeat every field.
-- **The language** switches between English and French from the account
-  dropdown (top-right, next to your name). All wizard copy is translated.
-
-### The UI at a glance
-
-Three panes:
-
-- **Left sidebar** — every alert you can see, grouped by status (Active /
-  Inactive / Draft). Clicking a row opens it in the main pane.
-- **Main pane** — either the *view mode* of a saved alert (its trigger config
-  + bundles + dispatch log), or the *wizard* when creating / editing.
-- **Top nav** — account menu (name, role, logout, language) and a global
-  *Users* link if you're an admin.
-
-### Creating your first alert
-
-Click **+ New Alert** in the sidebar. The wizard walks you through four steps:
-
-1. **General.** Give the alert a title + description. Pick a **Source** — one
-   of *Data Polling*, *Monitoring*, or *Webhook*. Each has a short hint about
-   what it does; the rest of the wizard tailors itself to the source you picked.
+1. **General.** Give the alert a title + description. Pick a **Source** —
+   *Data Polling*, *Monitoring*, or *Webhook*. Each has a hint under the
+   picker explaining what it does; the rest of the wizard tailors itself to
+   the source you picked.
 
 2. **Trigger.** Configure the source:
    - **Polling** → URL to fetch, response format (JSON / XML / HTML), cron
      schedule.
    - **Monitoring** → URL to probe, cron schedule.
-   - **Webhook** → nothing to configure; the app generates an inbound URL and
-     shows a copy button once the alert is saved.
-   The wizard fetches a sample payload live so you can see the shape you'll be
-   writing rules against.
+   - **Webhook** → nothing to configure; the app generates an inbound URL
+     and shows a copy button once the alert is saved.
 
-3. **Condition.** Describe *when the alert should fire*:
-   - Polling & Webhook alerts get a payload tree. Click any value to insert
-     its path (`root.data.item.price`) into a rule. Combine multiple rules
-     with AND/OR. Pick a comparison operator (`>`, `<`, `==`, `contains`,
-     `changed`, …). Aggregation operators (`sum`, `average`, `min`, `max`)
-     support wildcard paths.
-   - Monitoring alerts get a status-match rule: specific codes, a range
-     (2xx / 3xx / 4xx / 5xx), or the shortcut "any non-2xx".
-   - **Trigger mode** decides when the alert re-fires when the condition
-     stays true: every time / once (edge-detected) / on recovery (fires once
-     when true, again when it goes back to false).
+   The wizard fetches a sample payload live so you can see the shape you'll
+   be writing rules against.
 
-4. **Bundles.** *A bundle is one message, sent to one set of recipients, in
-   one format.* An alert can carry many bundles — useful when different
+3. **Condition.** Describe *when the alert should fire*. Webhook alerts
+   skip this step — every incoming POST is treated as the fire event, so
+   there is no condition to author.
+
+   - **Polling alerts** — click any value in the payload tree to insert
+     its path (e.g. `root.data.item.price`) into a rule. A rule is one
+     path + one comparison operator (`>`, `<`, `==`, `contains`,
+     `changed`, …). You can add several rules and combine them:
+     - **All of** (AND) — every rule must fire.
+     - **Any of** (OR) — a single firing rule is enough.
+     - **Sum / Average / Min / Max** — aggregate the numeric values
+       across all matched paths into a single number, then compare it
+       to the threshold (fires when e.g. *sum* > 100).
+
+     **Wildcards.** Paths that contain a **double dot (`..`)** match
+     zero or more segments, so one rule can cover a whole shape:
+     - `root.items..price` — every `price` anywhere under `items`, no
+       matter the depth or index.
+     - `..error` — every `error` field wherever it appears in the
+       response.
+     - `sensors..[0].value` — the first `value` inside every sensor.
+
+     A wildcard rule expands to one verdict per concrete match at eval
+     time.
+
+   - **Monitoring alerts** — status-match rule: specific codes
+     (`404, 500`), a range (`2xx` / `3xx` / `4xx` / `5xx`), or the
+     shortcut *any non-2xx*.
+
+   - **Trigger mode** decides how the alert re-fires when the condition
+     stays true:
+     - **Every time** — fire on every poll while the condition is met.
+     - **Once** — fire only when the condition transitions false → true.
+     - **On recovery** — fire once when true, and again when it goes
+       back to false (recovery message is prefixed `✓ RECOVERED:`).
+
+4. **Bundles.** A **bundle** represents a group of discussions and the formatn
+template that will be applied to the alert's message. An alert can carry many bundles — useful when different
    teams want the same alert phrased differently. For each bundle:
    - Pick a **channel** — Olvid or email — and add recipients.
-     - Olvid → contacts + groups from the daemon's discussion list.
+     - Olvid → contacts *and groups* from the daemon's discussion list.
+       Discussions the daemon already knows about show up in the selector
+       automatically; adding a new one is one click.
      - Email → any address you type.
-   - Pick a **format** — a plain summary, the raw payload, or a Handlebars
-     template. Custom formats open a **full-screen editor** with three panes:
-     script (left), payload tree (middle, click to insert paths), and a live
-     preview (right, in an Olvid chat bubble or a mail card). The *Load
-     Template* dropdown offers pre-built recipes for GitHub, Grafana, Sentry,
-     and more.
+   - Pick a **format** — a plain summary, the raw payload, or a custom script
+     template. Custom formats open a **full-screen editor** with a script (upper-left), 
+     payload tree (lower-left, click to insert paths), and a
+     live preview (right). 
 
-Save the alert. It lands in *Draft* status. Once the wizard is confident it's
-complete (has at least one bundle with recipients, a valid condition, a
-schedule where relevant), the sidebar's status toggle activates it — and the
-next scheduled run will pick it up.
+## Testing an alert before going live
 
-### Testing an alert before going live
+Monitoring and Polling alerts, once saved, have a **Run test** button in the view pane. It runs the
+full pipeline (fetch → parse → evaluate → render bundles) *without
+dispatching*, and opens a result modal showing what fired, why, and what
+each bundle would have looked like. Ideal for tuning your condition or your
+Handlebars template without spamming your Olvid contacts.
 
-Every saved alert has a **Run test** button in the view pane. It runs the full
-pipeline (fetch → parse → evaluate → render bundles) *without dispatching*, and
-opens a result modal showing what fired, why, and what each bundle would have
-looked like. Ideal for tuning your condition or your Handlebars template
-without spamming your Olvid contacts.
+## Reading the dispatch log
 
-### Reading the dispatch log
+Once the alert is active, a log panel will update on every scheduled run or inbound trigger.
+Rows are colour-coded:
 
-Once the alert is active, every scheduled run — success or failure — writes
-one row to the log panel underneath the view. Labels are colour-coded:
+| Label       | Meaning                                                                     |
+| ----------- | --------------------------------------------------------------------------- |
+| **Sent**    | Every channel of every bundle delivered.                                    |
+| **Partial** | Some channels delivered, some failed. Expand for the per-channel breakdown. |
+| **Failed**  | Everything failed, or the run bailed before dispatch (fetch/parse error).   |
 
-| Label       | Meaning                                                                      |
-| ----------- | ---------------------------------------------------------------------------- |
-| **Sent**    | Every channel of every bundle delivered.                                     |
-| **Partial** | Some channels delivered, some failed. Expand for the per-channel breakdown.  |
-| **Failed**  | Everything failed, or the run bailed before dispatch (fetch/parse error).    |
-
-Click the chevron on any row to see the details: pipeline stage that ran, the
-top-level error if any, and per-channel outcomes (recipient count, error
-line).
-
----
-
-## Managing users and authentication
+## 👥 Managing users and authentication
 
 ### Roles
 
-- **User** — signs in, sees alerts, can subscribe themselves to error
-  notifications on any alert.
-- **Admin** — everything a user does, plus: create / delete users, invite
-  through any channel, delete alerts, edit bundles.
+Everyone with an account can do the day-to-day work — read, create, edit,
+test, and delete alerts and their bundles. The role only gates the
+**user-management** surface:
+
+- **User** — full access to alerts: browse the list, create new ones, edit
+  triggers / conditions / bundles, run tests, view dispatch logs, and delete
+  alerts they no longer need. Cannot access `/users`.
+- **Admin** — everything a user does, plus the `/users` page: invite new
+  people through any channel, list existing users, and delete accounts.
 
 Admins can neither delete themselves nor delete the last remaining admin —
 those buttons refuse with a tooltip.
@@ -295,99 +417,89 @@ those buttons refuse with a tooltip.
 
 From `/users`, click **Invite user**. Pick a delivery channel:
 
-- **Email** — sends an invitation email with a one-click link.
-  Requires SMTP configured and an email address for the invitee.
-- **Olvid** — DMs the same link over Olvid. Requires the bot to already have
-  a contact discussion with the invitee (they've added the bot on their
-  phone). Group discussions are filtered out — invites go to **contacts only**.
-- **Shareable link** — no delivery. The modal reveals the URL for you to hand
-  over out-of-band (Signal, in person, whatever).
+- **Email** — sends an invitation email with a one-click link. Requires
+  SMTP configured and an email address for the invitee.
+- **Olvid** — DMs the same link over Olvid. Requires the bot to already
+  have a contact discussion with the invitee (the invitee has added the
+  bot on their phone). Group discussions are filtered out here — user
+  invitations always go to **contacts only** (bundle deliveries have no
+  such restriction).
+- **Shareable link** — no delivery. The modal reveals the URL for you to
+  hand over out-of-band.
 
-The invitee opens the link, picks a password (min 8 chars), and lands signed
-in. If invite delivery fails for mail/Olvid, the modal falls back to the
-shareable-link view so you can still hand the URL over.
+You can invite either a *user* or an *admin* by toggling the
+role pill in the invite modal.
 
-You can invite either a *user* or an *admin* by toggling the role pill in the
-invite modal. Role is set at invite time — to change it later, delete +
-reinvite.
-
-### Forgot my password
-
-The `/login` page has a **Forgot my password?** link. Enter your login, and
-the server picks a delivery channel from your account:
-
-1. Olvid, if the account has a linked Olvid discussion.
-2. Email, if the account has an email and SMTP is on.
-3. Neither — the UI tells you to contact your admin, who can reissue a fresh
-   invitation from `/users`.
-
-The link takes you to `/reset-password?token=…`, you set a new password, and
-you're signed back in. Rate-limited to one request per user per 60 seconds.
 
 ### Deleting a user
 
 From the user row, click **Delete** and confirm. If the user was still
 *pending* (never accepted their invite) and the invite went out over Olvid,
 the bot revokes the invite DM from the invitee's chat before removing the
-row — no dangling links.
-
-### Why prefer Olvid over email?
-
-Both work; Olvid gives you three concrete wins for auth traffic:
-
-- **E2E-encrypted delivery.** Invitation and password-reset links travel
-  inside Olvid's encrypted channel — they never touch an SMTP relay, never
-  land in a webmail archive.
-- **Phishing resistance.** No mail sender to spoof; the invite arrives from
-  the bot's Olvid identity, verifiable by whoever added the contact on their
-  phone.
-- **Fewer moving parts.** No SMTP provider, no verified-sender dance, no
-  spam-folder debugging.
-
-The mail channel remains as a fallback for people who aren't on Olvid; a
-deployment that wants the tightest posture can invite every admin over Olvid
-and leave SMTP configured only for outbound bundle-output emails.
+row — no dangling links or invitations sent by mistake.
 
 ---
 
-## Technical reference
+# 🧐 FAQ
 
-The high-level story above is enough to run the app. This section is for
-operators, contributors, and future-me.
+**Do I need both Olvid and SMTP?**
+No. Olvid alone works. SMTP alone works. Both together works. Configure
+whichever channels you want to use.
 
-### Stack
+**Can one alert deliver to Olvid AND email?**
+Yes — one *bundle* is one channel, but an alert can carry many bundles.
+Add one Olvid bundle for the on-call group and one email bundle for the
+mailing list, both fed by the same trigger.
 
-- **[Nuxt 4](https://nuxt.com)** — Vue 3 SFCs, Nitro server, Vite bundler.
-- **[Prisma 7](https://www.prisma.io/) + SQLite** — data layer, migrations
-  under `prisma/`.
-- **[nuxt-auth-utils](https://github.com/atinux/nuxt-auth-utils)** — signed
-  session cookies.
-- **[Olvid Bot Node SDK](https://doc.bot.olvid.io/)** — gRPC client that
-  talks to the daemon container.
-- **[Handlebars](https://handlebarsjs.com/)** — bundle message templating.
-- **@nuxtjs/i18n** — en / fr locales.
+**What happens if the daemon is down when an alert fires?**
+The dispatch is marked `Failed` in the log with the daemon error surfaced
+per channel. The alert itself keeps its schedule; the next tick tries
+again.
 
-### Compose services
+**Where is my data stored?**
+SQLite, in the `alerting_db` Docker volume (`docker compose down -v` wipes
+it). Olvid daemon state is in the bind-mounted `./data` folder next to the
+repo.
 
-| Service  | Image / build                     | Role                                                                 |
-| -------- | --------------------------------- | -------------------------------------------------------------------- |
-| `app`    | built from `Dockerfile`           | Nuxt app — UI, HTTP API, and the `polling:heartbeat` scheduled task. |
-| `daemon` | `olvid/bot-daemon:2.0.1`          | Olvid bot daemon. gRPC on `:50051`.                                  |
-| `cli`    | `olvid/bot-python-runner:2.0.1`   | Interactive Olvid CLI. Only used at pairing time.                    |
+**How do I reset everything?**
+`docker compose down -v` (drops the DB volume and the running parts) + `rm -rf ./data/*` (drops
+the daemon state). Restart, redo the setup. 
 
-### Environment variables
 
-| Variable                | Required                | Purpose                                                                                            |
-| ----------------------- | ----------------------- | -------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`          | yes                     | SQLite path. Must start with `file:`. Compose default: `file:/data/alerting.db`.                   |
-| `OLVID_DAEMON_URL`      | yes                     | gRPC endpoint of the daemon.                                                                       |
-| `OLVID_CLIENT_KEY`      | yes                     | Client key printed by the CLI at pairing.                                                          |
-| `NUXT_SESSION_PASSWORD` | yes                     | Signs the session cookie. ≥ 32 chars.                                                              |
-| `ADMIN_KEY`             | yes                     | First-run bootstrap secret for `/setup`.                                                           |
-| `NUXT_PUBLIC_BASE_URL`  | yes for prod            | Origin used in outgoing invite / verification / reset URLs.                                        |
-| `SMTP_HOST/PORT/USER/PASSWORD/FROM` | conditional | Optional — enables the email delivery + email-invite + email-reset paths.                          |
+---
 
-### Repository layout
+# Resources
+
+- **Olvid** — <https://olvid.io/>
+- **Olvid bot daemon docs** — <https://doc.bot.olvid.io/en/stable/>
+- **Nuxt 4** — <https://nuxt.com/>
+- **Prisma** — <https://www.prisma.io/>
+- **Handlebars** — <https://handlebarsjs.com/>
+- **MailPace (SMTP)** — <https://mailpace.com/>
+- **nuxt-auth-utils** — <https://github.com/atinux/nuxt-auth-utils>
+
+---
+
+
+# Development
+
+For local Vue / server-side work outside Docker:
+
+```bash
+# Keep the daemon running in Docker; only the app is hot-reloaded.
+docker compose up -d daemon
+
+# In .env, point the local dev server at the host-exposed daemon port
+# and use a separate SQLite file from the compose one:
+#   OLVID_DAEMON_URL=http://localhost:50051
+#   DATABASE_URL=file:./dev.db
+
+npm install
+npx prisma generate
+npm run dev             # http://localhost:3000
+```
+
+## File Structure
 
 ```
 alerting-bot/
@@ -396,41 +508,22 @@ alerting-bot/
 ├── shared/         # Types + pure logic imported by both client and server
 ├── prisma/         # schema.prisma (SQLite)
 ├── i18n/locales/   # en, fr translation files
-├── data/           # runtime SQLite + Olvid daemon state (gitignored)
+├── data/           # runtime SQLite + Olvid daemon state
 ├── Dockerfile
 ├── docker-compose.yaml
 └── .env.example
 ```
 
-### Local dev without Docker
-
-```bash
-# Daemon still runs in Docker — the app is what you hot-reload.
-docker compose up -d daemon
-
-# Point the local dev server at the host-exposed daemon port.
-# .env → OLVID_DAEMON_URL=http://localhost:50051  (only for local dev)
-# .env → DATABASE_URL=file:./dev.db               (separate from the compose DB)
-
-npm install
-npx prisma generate
-npm run dev            # http://localhost:3000
-npm run dev -- --host  # http://0.0.0.0:3000 (reachable from LAN)
-```
-
-### Common ops
-
-| Task                                    | Command                                                   |
-| --------------------------------------- | --------------------------------------------------------- |
-| Follow app logs                         | `docker compose logs -f app`                              |
-| Follow daemon logs                      | `docker compose logs -f daemon`                           |
-| Rebuild after a dep change              | `docker compose build --no-cache app`                     |
-| Regenerate the Prisma client            | `npx prisma generate`                                     |
-| Reset the DB (compose)                  | `docker compose down -v`  ⚠ also drops the daemon volume  |
-| Reset the DB (local dev)                | `rm ./dev.db*` and restart `npm run dev`                  |
-
 ---
 
-## License
+# Credit / Acknowledgment
 
-TODO — pick a license before publishing.
+**Alerting Bot v1.0** designed and developed by **Sofia Maeso Shakh**  
+Special thanks to **Matthieu Finiasz** for his guidance and mentorship throughout the project.
+
+Built on top of the [Olvid Bot Daemon](https://doc.bot.olvid.io/)
+Stack: [Nuxt 4](https://nuxt.com/), [Vue 3](https://vuejs.org/),
+[Nitro](https://nitro.build/), [Prisma](https://www.prisma.io/),
+[SQLite](https://www.sqlite.org/), [Handlebars](https://handlebarsjs.com/),
+[nuxt-auth-utils](https://github.com/atinux/nuxt-auth-utils),
+[@nuxtjs/i18n](https://i18n.nuxtjs.org/), [Lucide icons](https://lucide.dev/).

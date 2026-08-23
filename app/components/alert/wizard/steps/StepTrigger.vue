@@ -21,14 +21,9 @@ import { ConditionKind, ConditionOperator } from "#shared/types/condition";
   Only the `variant` prop changes the hint wording.
 
   Webhook alerts skip this step entirely (useWizardSteps handles it).
-
-  Re-emits `update:payload` upward so the wizard can pipe the parsed
-  payload into the bundle dialog's preview on step 3.
 */
 
 const form = defineModel<AlertModel>({ required: true });
-
-defineEmits<{ (e: "update:payload", v: any): void }>();
 
 const isPolling = computed(() => form.value.input === Source.Polling);
 const isMonitoring = computed(() => form.value.input === Source.Monitoring);
@@ -90,7 +85,6 @@ const behaviorVariant = computed<"polling" | "monitoring">(() =>
         :url="(form.alertParams as PollingParams | undefined)?.url"
         :format="(form.alertParams as PollingParams | undefined)?.format"
         @update:model-value="condition = $event"
-        @update:payload="$emit('update:payload', $event)"
       />
     </template>
     <template v-else-if="isMonitoring">

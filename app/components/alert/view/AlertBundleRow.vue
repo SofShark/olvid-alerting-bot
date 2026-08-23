@@ -10,16 +10,6 @@ import { LucideTrash2 } from "@lucide/vue";
 
 /*
   One row in the view-mode bundle table.
-
-  Design notes:
-    - No index column. Bundle.name (or "Untitled") is the identity; a
-      monospace "01" tag is noise.
-    - No success indicator. Status pip is shown ONLY when something is
-      wrong (no destinations / custom format without script). "Ready" is
-      the silent default — admin tables don't celebrate the happy path.
-    - Format and destination count read as plain dim text, not chips.
-      Chips were competing visually with the section eyebrow and the
-      alert's main title.
 */
 const t = useI18n().t;
 
@@ -27,8 +17,7 @@ const props = withDefaults(
   defineProps<{
     bundle: BundleModel;
     index: number;
-    /** Wizard rows can be removed; view-mode rows can't. Off by default
-     *  so existing view-mode usage is untouched. */
+    /** Wizard rows can be removed; view-mode rows can't. */
     removable?: boolean;
   }>(),
   { removable: false },
@@ -44,7 +33,9 @@ const { bundleStatus } = useBundleStatus();
 
 const status = computed(() => bundleStatus(props.bundle));
 const hasWarning = computed(() => status.value.kind !== "ready");
-const displayName = computed(() => props.bundle.name || "Untitled bundle");
+const displayName = computed(
+  () => props.bundle.name || t("bundleRow.untitled"),
+);
 
 // Row summary reads only the active kind's items — bundles are now
 // homogeneous (one channel per bundle). `bundleKind()` picks the right
@@ -68,7 +59,7 @@ const destCount = computed(() => destNames.value.length);
 
 const destSummary = computed(() => {
   const count = destCount.value;
-  if (count === 0) return "No destinations";
+  if (count === 0) return t("bundleRow.noDestinations");
   const firstTwoNames = destNames.value.slice(0, 2).join(", ");
   if (count <= 2) return firstTwoNames;
   const remaining = count - 2;
@@ -100,7 +91,7 @@ const destSummary = computed(() => {
       <button
         type="button"
         class="row-edit"
-        title="Edit bundle"
+        :title="t('bundleRow.editTooltip')"
         @click="$emit('edit', index)"
       >
         <LucideSquarePen :stroke-width="2"/>
@@ -109,7 +100,7 @@ const destSummary = computed(() => {
         v-if="removable"
         type="button"
         class="row-edit row-remove"
-        title="Remove bundle"
+        :title="t('bundleRow.removeTooltip')"
         @click="$emit('remove', index)"
       >
         <LucideTrash2/>

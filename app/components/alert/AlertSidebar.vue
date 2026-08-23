@@ -249,9 +249,9 @@ const initials = (title: string): string => {
 
 /* The 3-char prefix shown when collapsed.*/
 .row-initials {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  font-weight: 700;
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
   letter-spacing: 0.5px;
   color: inherit;
   white-space: nowrap;
@@ -328,7 +328,6 @@ const initials = (title: string): string => {
   color: var(--color-text-secondary);
   border-color: var(--color-border-default);
 }
-
 
 .plus {
   width: 24px;

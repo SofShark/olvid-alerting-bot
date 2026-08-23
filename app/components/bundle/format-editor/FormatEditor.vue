@@ -94,27 +94,16 @@ const cursor = useCursorInsert(
 );
 
 // ── Local UI state ─────────────────────────────────────────────────────────
-const pickerMode = ref(false); // toggle inside PayloadToolbar (webhook only)
-const loadOpen = ref(false); // Load Template dropdown
-const loadAnchor = ref<DOMRect | null>(null); // computed from the toolbar button
-
-// ── Event routing ──────────────────────────────────────────────────────────
-const onOpenLoad = (rect: DOMRect) => {
-  loadAnchor.value = rect;
-  loadOpen.value = true;
-};
-const closeLoad = () => {
-  loadOpen.value = false;
-};
+const pickerMode = ref(false);
+const loadOpen = ref(false);
 
 const onSelectTemplate = (id: string) => {
-  const script = payload.loadLibraryPayload(id as WebhookTemplateId);
-  if (script) scriptContent.value = script;
-  closeLoad();
+  payload.loadLibraryPayload(id as WebhookTemplateId);
+  loadOpen.value = false;
 };
 const onSelectLast = (type: "success" | "failed") => {
   payload.loadLastPayload(type);
-  closeLoad();
+  loadOpen.value = false;
 };
 
 const onSave = () => emit("save", scriptContent.value);
@@ -135,9 +124,11 @@ const onClose = () => emit("close");
       :close-label="$t('formatEditor.buttons.closeTitle')"
       @close="onClose"
     >
-      <template #actions>
-        <HelpTooltip :message="formatHint" />
-      </template>
+    <div class="modal-head-actions">
+      <HelpTooltip :message="formatHint" />
+    </div>
+    
+      
     </ModalHead>
 
     <div class="editor-body">
@@ -171,7 +162,7 @@ const onClose = () => emit("close");
           @select-path="cursor.onPathSelect"
           @retrieve="polling.retrievePolling"
           @retrieve-monitor="monitoring.retrieveMonitor"
-          @open-load="onOpenLoad"
+          @toggle-load="loadOpen = !loadOpen"
           @toggle-picker="pickerMode = !pickerMode"
           @prettify="payload.formatJson"
           @clear="payload.clearPayloadPanel"
@@ -195,14 +186,14 @@ const onClose = () => emit("close");
       </button>
     </div>
 
-    <LoadTemplate
-      :open="loadOpen"
-      :anchor="loadAnchor"
-      @select-last="onSelectLast"
-      @select-template="onSelectTemplate"
-      @close="closeLoad"
-    />
   </Modal>
+
+  <LoadTemplate
+    :open="loadOpen"
+    @select-last="onSelectLast"
+    @select-template="onSelectTemplate"
+    @close="loadOpen = false"
+  />
 </template>
 
 <style scoped>

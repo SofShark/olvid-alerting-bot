@@ -1,39 +1,12 @@
-/* ────────────────────────────────────────────────────────────────────
- * Design tokens — the single source of truth for color, type, spacing.
- * Two layers, in strict order:
- *
- *   1. PRIMITIVES  — raw palette scales (`--blue-10..90`, `--neutral-10..95`)
- *                    and non-color primitives (radii, spacing, type).
- *                    These are the atoms. Consumers do NOT read them
- *                    directly; treat them as private.
- *
- *   2. SEMANTIC    — context-named tokens (`--color-bg-app`,
- *                    `--color-text-primary`, `--color-accent`, …) that
- *                    map onto the primitives. Components read only from
- *                    this layer. Re-theming = swap this layer, primitives
- *                    stay put.
- *
- * Elevation ladder (both themes, same slot names):
- *   bg-0 = app / page          — the canvas
- *   bg-1 = surface / paper     — panels, nav, cards
- *   bg-2 = elevated surface    — modal, popover, secondary card
- *   bg-3 = header strip / hover
- *   bg-4 = max elevation       — menus, dropdowns
- *
- * Status colors (success / warning / danger) are intentionally OUT of
- * the scale — they're categorical, not gradient.
- *
- * Toggle themes by setting [data-theme="light"] on <html>.
- * ─────────────────────────────────────────────────────────────────── */
+/*
+Theme switch handled by in app/plugins/theme.client.ts
+*/
 
 :root {
   color-scheme: dark;
 
   /* ──────────────────────────────────────────────────────────────
-   *  PRIMITIVES — Blue brand ladder (10 stops, low → high value).
-   *  Sampled from the reference palette so the whole app shares one
-   *  identity. Use the middle stops (50–70) for interactive accents;
-   *  the extremes (10–20 / 80–90) power soft tints and deep backdrops.
+   *  PRIMITIVES — Blue brand ladder 
    * ────────────────────────────────────────────────────────────── */
   --blue-10: #eaf0fe;
   --blue-20: #d5e0fd;
@@ -47,13 +20,7 @@
   --blue-dark:#161c2e;
 
   /* ──────────────────────────────────────────────────────────────
-   *  PRIMITIVES — Neutrals. Text stops (10..70) stay pure grey so
-   *  copy reads cleanly on any dark surface. Surface stops (80..95)
-   *  are the app's bespoke dark ladder — a faint blue undertone
-   *  (hue ~220°, very low chroma) that gives the palette a hint of
-   *  identity without competing with the brand blue.
-   *
-   *  10 is the softest off-white; 95 is the deepest near-black.
+   *  PRIMITIVES — Neutrals.
    * ────────────────────────────────────────────────────────────── */
   --neutral-10: #f8fafc;
   --neutral-20: #f1f5f9;
@@ -74,15 +41,13 @@
 
   /* ──────────────────────────────────────────────────────────────
    *  SEMANTIC — Dark theme mapping.
-   *  Elevation increases with slot number and with brightness.
    * ────────────────────────────────────────────────────────────── */
 
   /* Surfaces */
   --color-bg-app: var(--neutral-95);
   --color-bg-input: var(
     --black
-  ); /* slightly lifted so slots read
-                                              both on app bg AND inside cards */
+  ); 
   --color-bg-nav: var(--neutral-85);
   --color-bg-sidebar-head: var(--neutral-85); /* was 85*/
   --color-bg-sidebar: var(--neutral-90);
@@ -291,7 +256,7 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- *  ARCHIVE — "Cool dark mode" (SLATE)
+ *  ARCHIVE — "Cool dark mode" ? TODO
  *
  *  A blue-tinted dark palette we tried before switching the default
  *  dark neutrals to a pure grey. Kept here as a ready-to-swap

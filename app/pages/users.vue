@@ -4,20 +4,25 @@ import { useUserAdmin } from "~/composables/useUserAdmin";
 
 definePageMeta({ middleware: ["auth", "admin"] });
 
+const { t } = useI18n();
 const { data: authConfig } = await useAuthConfig();
 const mailEnabled = computed(() => authConfig.value?.mailEnabled ?? false);
 
 const {
   users,
   loading,
-  feedback,
   inviteUrls,
   revealedInvite,
   pendingDelete,
+  pendingResend,
+  resendSuccess,
   load,
   onInvited,
   closeReveal,
-  resendInvite,
+  askResend,
+  cancelResend,
+  confirmResend,
+  closeResendSuccess,
   copyInviteLink,
   askRemove,
   cancelRemove,
@@ -32,13 +37,30 @@ function loginIsEmail(u: User): boolean {
   return u.email !== null && u.email === u.login;
 }
 
+function loginIsOlvid(u: User): boolean {
+  return !!(u.olvidDiscussionId);
+}
+
 function isPendingInvite(u: User): boolean {
   return !u.activated;
 }
 
+function resendChannel(u: User): "olvid" | "mail" | null {
+  if (!isPendingInvite(u)) return null;
+  if (u.olvidDiscussionId) return "olvid";
+  if (u.email && mailEnabled.value) return "mail";
+  return null;
+}
+function canResend(u: User): boolean {
+  return resendChannel(u) !== null;
+}
+function channelLabel(u: User): string {
+  return resendChannel(u) === "olvid" ? "Olvid" : t("auth.users.channelMail");
+}
+
 // Route the invite modal's success event through the composable and
-// close the modal — the composable decides between feedback line and
-// reveal modal based on the mailed flag.
+// close the modal — the composable decides whether to open the reveal
+// modal based on the channel and delivery status.
 async function handleInvited(res: Parameters<typeof onInvited>[0]) {
   modalOpen.value = false;
   await onInvited(res);
@@ -53,8 +75,6 @@ async function handleInvited(res: Parameters<typeof onInvited>[0]) {
         {{ $t("auth.users.inviteButton") }}
       </button>
     </header>
-
-    <p v-if="feedback && !modalOpen" class="feedback">{{ feedback }}</p>
 
     <table v-if="!loading" class="users-table">
       <thead>
@@ -74,16 +94,24 @@ async function handleInvited(res: Parameters<typeof onInvited>[0]) {
                 v-if="loginIsEmail(u)"
                 class="channel-tag"
                 :title="$t('auth.users.loginTagEmail')"
-                :aria-label="$t('auth.users.loginTagEmail')"
               >
                 <LucideMail :stroke-width="2" />
               </span>
-              
+              <span
+                v-else-if="loginIsOlvid(u)" 
+                class="channel-tag"
+                :title="$t('auth.users.loginTagOlvid')"  
+              >
+
+              <OlvidLogo :stroke-width="2" />
+
+              </span>
+
               <span
                 v-else
                 class="channel-tag"
                 :title="$t('auth.users.loginTagLocal')"
-                :aria-label="$t('auth.users.loginTagLocalShort')"
+                :aria-label="$t('auth.users.loginTagLocal')"
               >
                 <LucideUser :stroke-width="2" />
               </span>
@@ -137,11 +165,11 @@ async function handleInvited(res: Parameters<typeof onInvited>[0]) {
               </button>
 
               <button
-                v-if="isPendingInvite(u) && mailEnabled && u.email"
+                v-if="canResend(u)"
                 type="button"
                 class="btn-icon"
                 :title="$t('auth.users.resendTitle')"
-                @click="resendInvite(u)"
+                @click="askResend(u)"
               >
                 <LucideRedo />
               </button>
@@ -170,6 +198,42 @@ async function handleInvited(res: Parameters<typeof onInvited>[0]) {
     />
 
     <InviteRevealModal :invite="revealedInvite" @close="closeReveal" />
+
+    <ConfirmDialog
+      :open="pendingResend !== null"
+      :title="$t('auth.users.resendTitle')"
+      :message="
+        pendingResend
+          ? $t('auth.users.confirmResendPrompt', {
+              recipient: pendingResend.name ?? pendingResend.email ?? pendingResend.login,
+              channel: channelLabel(pendingResend),
+            })
+          : ''
+      "
+      :confirm-label="$t('auth.users.confirmResendConfirm')"
+      :cancel-label="$t('button.cancel')"
+      variant="primary"
+      @confirm="confirmResend"
+      @cancel="cancelResend"
+    />
+
+    <ConfirmDialog
+      :open="resendSuccess !== null"
+      :title="$t('auth.users.resendSuccessTitle')"
+      :message="
+        resendSuccess
+          ? $t('auth.users.resendSuccessMessage', {
+              recipient: resendSuccess.name ?? resendSuccess.email ?? resendSuccess.login,
+              channel: channelLabel(resendSuccess),
+            })
+          : ''
+      "
+      :confirm-label="$t('button.ok')"
+      :cancel-label="$t('button.ok')"
+      variant="primary"
+      @confirm="closeResendSuccess"
+      @cancel="closeResendSuccess"
+    />
 
     <ConfirmDialog
       :open="pendingDelete !== null"
@@ -201,11 +265,6 @@ async function handleInvited(res: Parameters<typeof onInvited>[0]) {
   justify-content: space-between;
   align-items: center;
 }
-.feedback {
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-
 /* ── Table chrome ────────────────────────────────────────────── */
 .users-table {
   width: 100%;

@@ -1,11 +1,7 @@
 // Scheduled-source heartbeat. Fires every minute via Nitro's
-// scheduled-tasks system. The registered task name is derived from this
-// file's path under `server/tasks/` (using `:` as the directory
-// separator), so this file at `server/tasks/polling/heartbeat.ts`
-// becomes `polling:heartbeat`. `nuxt.config.ts` references that exact
-// name in `nitro.scheduledTasks`.
+// scheduled-tasks system in `nuxt.config.ts` nitro.scheduledTasks`.
 //
-// Responsibility split:
+// Responsibility:
 //   - heartbeat (this file)  → who + when. Reads all active scheduled
 //                              alerts (Polling + Monitoring), filters by
 //                              cron dueness, hands each due alert off to
@@ -13,10 +9,6 @@
 //   - pollingDispatcher      → how. Runs the source-specific probe,
 //                              decides fire/no-fire, notifies, persists
 //                              runtime state, writes the log.
-//
-// This file stays minimal on purpose — the pipeline is somewhere else,
-// so a scheduling problem never gets confused with a probe-execution
-// problem.
 //
 // The task keeps the `polling:heartbeat` name for backwards compat with
 // nuxt.config, even though Monitoring alerts also flow through it.
@@ -27,7 +19,7 @@ import { scheduler } from "#shared/polling/scheduler";
 
 /** Both PollingParams and MonitorParams carry a cron `schedule` string
  *  and a `_lastPolledAt` epoch — the only two fields the heartbeat
- *  actually reads. Kept structural so callers don't have to widen. */
+ *  actually reads. */
 type ScheduledParams = { schedule?: string; _lastPolledAt?: number };
 
 export default defineTask({
@@ -47,9 +39,7 @@ export default defineTask({
 
 /**
  * Active scheduled alerts (Polling + Monitoring) whose cron has ticked
- * at least once since their last recorded poll. Purely a filter — no
- * side effects, no logs written here. The dispatcher owns everything
- * downstream.
+ * at least once since their last recorded polll
  */
 async function collectDueAlerts(): Promise<AlertModel[]> {
   const alerts = await alertRepository.getActiveScheduled();

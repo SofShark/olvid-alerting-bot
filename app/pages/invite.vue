@@ -26,14 +26,15 @@ const confirmPassword = ref("");
 watchEffect(() => (form.token = token.value));
 
 const error = ref<string | null>(null);
+const inviteInvalid = ref(false);
 
 // Peek at the invite (no side effect) to surface which account the user
 // is activating. useFetch handles cancellation when `token` changes, so
-// a stale response can't overwrite a newer one. Only a 4xx from the
-// server (token invalid / expired / used) should collapse the hint to
-// generic wording — a network drop is a distinct failure that the user
-// will notice on submit anyway, and we don't want to imply their invite
-// is bad when their wifi flaked.
+// a stale response can't overwrite a newer one. A 400/404 from the
+// server means the token is invalid / expired / already used — surface
+// that up front instead of only telling the user on submit. Any other
+// status (network drop, 5xx) leaves the peek silent so a transient
+// failure doesn't imply the invite is dead.
 const { data: inviteInfo } = await useFetch<{
   login: string;
   name: string | null;
@@ -42,9 +43,11 @@ const { data: inviteInfo } = await useFetch<{
   server: false,
   immediate: true,
   watch: [token],
-  // Suppress Nuxt's automatic error propagation — an invalid token
-  // shouldn't blow the whole page up; we just render without the login hint.
-  onResponseError() {},
+  onResponseError({ response }) {
+    if (response.status === 400 || response.status === 404) {
+      inviteInvalid.value = true;
+    }
+  },
 });
 const invitedLogin = computed(() => inviteInfo.value?.login ?? null);
 
@@ -82,10 +85,15 @@ async function submit() {
 
 <template>
   <AuthCard>
+    <template v-if="inviteInvalid">
+      <h4>{{ $t("auth.invite.invalidTitle") }}</h4>
+      <p class="msg msg--error">{{ $t("auth.invite.invalidBody") }}</p>
+    </template>
+    <template v-else>
     <h4>{{ $t("auth.invite.title") }}</h4>
     <p class="hint">
       <template v-if="invitedLogin">
-        <i18n-t keypath="auth.invite.hintPasswordWithLogin" tag="span">
+        <i18n-t keypath="auth.invite.hintPasswordWithLogin"  >
           <template #login>
             <strong class="hint-login">{{ invitedLogin }}</strong>
           </template>
@@ -117,6 +125,7 @@ async function submit() {
       </button>
     </form>
     <p v-if="error" class="msg msg--error">{{ error }}</p>
+    </template>
   </AuthCard>
 </template>
 
@@ -130,6 +139,7 @@ async function submit() {
 .hint {
   color: var(--color-text-muted);
   font-size: var(--text-sm);
+  font-style: italic;
   margin-top: var(--space-3);
 }
 .hint-login {

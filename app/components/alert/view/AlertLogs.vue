@@ -31,13 +31,11 @@ const { logs, isLoading, expandedIds, toggleExpanded } = useAlertLogs(
 
 const hasLogs = computed(() => logs.value.length > 0);
 
-// A row is expandable when it has ANY detail to reveal — a top-level
-// error string, or a per-channel breakdown. Clean SENT rows collapse to
-// the timeline entry only.
+// Only warning / error rows carry expandable details. Successful
+// dispatches collapse to the timeline entry — no chevron, no channel
+// table.
 function isExpandable(log: AlertLog): boolean {
-  if (log.status !== LogStatus.Success) return true;
-  const channels = log.details?.channels ?? [];
-  return channels.length > 0;
+  return log.status !== LogStatus.Success;
 }
 
 // Format matches the mockup: "HH:MM:SS DD/MM/YYYY". Locale-independent so

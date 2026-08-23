@@ -127,7 +127,7 @@ export const useBundleEditor = (inputs: BundleEditorInputs) => {
 
   const bundleName = computed<string>({
     get: () => draft.value?.name ?? "",
-    set: (val) => patch({ name: val.trim() || undefined }),
+    set: (val) => patch({ name: val.trim() ? val : undefined }),
   });
 
   // Kind reads from `activeKind`, not from outputs[0].type — so a

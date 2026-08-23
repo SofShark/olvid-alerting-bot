@@ -69,19 +69,12 @@ model AlertTable {
   id                Int                @id @default(autoincrement())
   title             String
   description       String?
-  // `input` stores the Source: "Polling Source" | "Webhook Source". It IS
-  // the alert's type discriminator — no separate column, no nested copy.
   input             String?
   status            String             @default("draft")
   // Kept top-level (not inside alertParams) so the webhook handler can
-  // `findUnique` by token without hitting JSON path operators.
+  // `findUnique` by token 
   token             String?            @unique @default(uuid())
   createdAt         DateTime           @default(now())
-  // Type-specific config only. The source is NOT duplicated here — see `input`.
-  //   Polling Source → { url, format, schedule, condition, triggerMode?,
-  //                      _baseline?, _lastHash?, _lastFired?, _lastPolledAt? }
-  //     - `schedule` is a cron string ("*/5 * * * *"); see shared/polling/schedule.ts.
-  //   Webhook Source → {}
   alertParams       Json?
 
   bundles           Bundle[]

@@ -135,4 +135,10 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   outline: 2px solid var(--color-accent);
   outline-offset: -2px;
 }
+.chevron{
+  transition: transform 0.15s;
+  .open & {
+    transform: rotate(180deg);
+  }
+}
 </style>

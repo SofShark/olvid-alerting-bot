@@ -1,19 +1,10 @@
 <script setup lang="ts">
-/*
-  Webhook-only toolbar that sits inside the PayloadPanel's code-header.
-  Emits semantic intents only — never owns state.
-
-  `open-load` carries the trigger button's DOMRect so the container can
-  position the teleported LoadTemplate dropdown without needing a ref
-  chain through PayloadPanel.
-*/
-
 defineProps<{
   loadOpen: boolean;
 }>();
 
 defineEmits<{
-  (e: "open-load", anchor: DOMRect): void;
+  (e: "toggle-load"): void;
   (e: "toggle-picker"): void;
   (e: "prettify"): void;
   (e: "clear"): void;
@@ -28,12 +19,7 @@ defineEmits<{
       :class="{ 'is-open': loadOpen }"
       :aria-expanded="loadOpen"
       :title="$t('formatEditor.toolbar.loadTemplateTitle')"
-      @click="
-        $emit(
-          'open-load',
-          ($event.currentTarget as HTMLElement).getBoundingClientRect(),
-        )
-      "
+      @click="$emit('toggle-load')"
     >
       <span>{{ $t('formatEditor.toolbar.loadTemplate') }}</span>
       <span class="caret" aria-hidden="true" />
@@ -72,12 +58,7 @@ defineEmits<{
   margin-left: auto;
   align-items: center;
 }
-.toolbar-divider {
-  width: 1px;
-  height: 18px;
-  background: var(--color-border-subtle);
-  margin: 0 var(--space-1);
-}
+
 .toolbar-icon {
   width: 14px;
   height: 14px;

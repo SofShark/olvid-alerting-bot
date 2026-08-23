@@ -13,9 +13,6 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   devtools: { enabled: false },
 
-  // DATABASE_URL is read directly by server/db/prisma.ts at boot — no
-  // runtimeConfig hop needed. See that module for the SQLite-default /
-  // Postgres-opt-in switch.
 
   // Global stylesheet — design tokens + shared component classes. Loaded
   // before any component-scoped <style>, so scoped rules can still override.
@@ -46,11 +43,7 @@ export default defineNuxtConfig({
     "@": resolve(__dirname, "/"),
   },
 
-  // Auto-import the layered server-side architecture. Matches the implicit
-  // auto-import that `server/utils/` already had (bdManager / alertManager
-  // / daemonClient were used without explicit imports) — extended to the
-  // new repositories / services / clients folders so the existing
-  // convention keeps working after the split.
+  // Auto-import the layered server-side architecture. 
   nitro: {
     imports: {
       dirs: [
@@ -66,12 +59,12 @@ export default defineNuxtConfig({
       ],
     },
 
-    /*
-    experimental: { tasks: true }, // Internal heartbeat that conditionally triggers the activation of scheduled alerts
+    
+    experimental: { tasks: true, openAPI: false }, // Internal heartbeat that conditionally triggers the activation of scheduled alerts
     scheduledTasks: {
       "* * * * *": ["polling:heartbeat"],
     },
-    */
+    
 
   },
 
@@ -86,6 +79,14 @@ export default defineNuxtConfig({
       name: 'alert-session',
       cookie: {
         maxAge: 60 * 60 * 8, // 8 hours
+        // nuxt-auth-utils forces `secure: true` when NODE_ENV=production.
+        // Modern browsers refuse Secure cookies over plain HTTP, with
+        // `localhost` as the sole exception — so a prod-mode container
+        // accessed from a LAN IP would silently drop the cookie and login
+        // does nothing. Set to `false` for LAN / HTTP dev; put TLS in
+        // front (Caddy / nginx) for real deployments and flip this back
+        // to `true` (or drop the override entirely).
+        secure: false,
       },
     },
     public: {

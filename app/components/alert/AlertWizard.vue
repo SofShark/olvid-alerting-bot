@@ -27,10 +27,10 @@ import { getErrorMessage, getErrorData } from "~/utils/errors";
 
 const props = withDefaults(
   defineProps<{
-    alertaInicial?: AlertModel | null;
+    initialAlert?: AlertModel | null;
   }>(),
   {
-    alertaInicial: null,
+    initialAlert: null,
   },
 );
 
@@ -39,7 +39,7 @@ const { t } = useI18n();
 const { availableDiscussions, discussionsLoading, fetchAlerts } = useAlerts();
 
 const { form, isExisting, isPolling, hasEmptyBundle } = useAlertForm(
-  toRef(props, "alertaInicial"),
+  toRef(props, "initialAlert")
 );
 
 const { saving, saveAlert } = useAlertActions();
@@ -66,10 +66,6 @@ const {
   back,
 } = useWizardSteps(form);
 
-// Last parsed payload from ConditionEditor — piped into the bundle
-// dialog's polling-default preview on the bundles step. Not persisted.
-const lastPollPayload = ref<any>(null);
-
 // ── Save semantics ────────────────────────────────────────────────────────
 const canSaveDraft = computed(() => !!form.value.title);
 
@@ -84,13 +80,20 @@ const wouldBeComplete = computed(
     form.value.bundles.length > 0 &&
     !hasEmptyBundle.value,
 );
+// Auto-status policy on save:
+//   - Incomplete (no title / no source / no bundles / an empty bundle) → Draft.
+//   - Existing alerts preserve their explicit status (Active stays Active,
+//     Inactive stays Inactive) — the toggle on AlertView is the sole way
+//     to flip a runnable alert on/off after creation.
+//   - New alerts (and existing Drafts that just became complete) go straight
+//     to Active: the user configured bundles, they want it running.
+// The "save as draft" button in the footer bypasses this via forceDraft.
 const effectiveFinalStatus = computed<AlertStatus>(() => {
   if (!wouldBeComplete.value) return AlertStatus.Draft;
-  if (isExisting.value && form.value.status === AlertStatus.Active) {
-    return AlertStatus.Active;
+  if (isExisting.value && form.value.status === AlertStatus.Inactive) {
+    return AlertStatus.Inactive;
   }
-  // TODO determine whether newly-created alerts should auto-activate.
-  return AlertStatus.Inactive;
+  return AlertStatus.Active;
 });
 
 const buildPayload = (status: AlertStatus) => {
@@ -211,14 +214,12 @@ const onSaveDraftAndLeave = async () => {
       <StepTrigger
         v-else-if="currentStepKey === 'trigger'"
         v-model="form"
-        @update:payload="lastPollPayload = $event"
       />
       <StepBundles
         v-else-if="currentStepKey === 'bundle'"
         v-model="form"
         :available-discussions="availableDiscussions"
         :discussions-loading="discussionsLoading"
-        :poll-payload="lastPollPayload"
       />
     </div>
 

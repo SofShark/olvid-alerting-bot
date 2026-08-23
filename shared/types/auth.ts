@@ -4,11 +4,7 @@
 import type { User, UserRole } from "./user";
 
 /**
- * Minimum password length enforced across the auth surface:
- *   - server zod schemas (accept-invite, setup, reset-password)
- *   - html `minlength=` attributes on password inputs
- *   - client-side comparators before submit
- * Single source of truth so raising the bar is a one-file change.
+ * Minimum password length
  */
 export const PASSWORD_MIN_LEN = 8;
 
@@ -19,16 +15,32 @@ export interface CredentialsForm {
   password: string;
 }
 
-// First-run admin setup. `adminKey` must match the ADMIN_KEY env var
-// — it's how the operator proves they control the deploy. `email` is
-// optional so the deploy can boot without SMTP configured; when
-// supplied it enables the verification-email path.
+// First-run admin setup. Two steps in the UI, one server payload:
+//   1. `adminKey` proves the operator controls the deploy (matched
+//      against the `ADMIN_KEY` env var).
+//   2. Everything else is the operator inviting THEMSELVES — same
+//      shape as an admin-issued invite (channel + delivery target +
+//      login + name), with role implicitly set to "admin" server-side.
+// No password here: the operator sets it by opening the received
+// invite URL, exactly like every other user does after being invited.
 export interface SetupForm {
   adminKey: string;
   login: string;
-  email?: string;
-  password: string;
   name?: string;
+  channel: InviteChannel;
+  /** Required when `channel === "mail"`. */
+  email?: string;
+  /** Required when `channel === "olvid"`. BigInt stringified. */
+  olvidDiscussionId?: string;
+}
+
+/** Response for POST /auth/setup. Same envelope as InviteResponse —
+ *  the client shows the same reveal / feedback UX as the admin's
+ *  regular invite flow. */
+export interface SetupResponse {
+  inviteUrl: string;
+  channel: InviteChannel;
+  delivered: boolean;
 }
 
 // Accept-invite is just a password step — the admin already set login,

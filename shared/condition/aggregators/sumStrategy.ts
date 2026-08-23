@@ -1,6 +1,4 @@
-// `Sum` — numeric reducer: Σ of every numeric observed value. The
-// operator then evaluates the total ("fire when the sum of all queue
-// depths exceeds 100").
+// `Sum` — numeric reducer: sum of every numeric observed value.
 
 import { ConditionAggregation } from "../../types/condition";
 import type { NumericAggregatorStrategy } from "../../types/aggregatorStrategy";

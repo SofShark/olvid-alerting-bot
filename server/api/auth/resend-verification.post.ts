@@ -29,6 +29,6 @@ export default defineEventHandler(async (event) => {
 
   const token = await issueToken(user.id, "email_verify");
   const { subject, html } = verifyEmailTemplate(resolveOrigin(event), token);
-  await mailClient.send([user.email], subject, html);
+  await mailClient.send([user.email!], subject, html);
   return { ok: true };
 });

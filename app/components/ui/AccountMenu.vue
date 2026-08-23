@@ -13,13 +13,16 @@
 
 const emit = defineEmits<{ (e: "logout"): void }>();
 
+const { t } = useI18n();
 const { user } = useUserSession();
 const isOpen = ref(false);
 const containerRef = ref<HTMLElement | null>(null);
 
 // Prefer name → login → "Account". Kept short so the trigger doesn't
 // stretch the nav bar for users with long email addresses.
-const displayName = computed(() => user.value?.name || user.value?.login || "Account");
+const displayName = computed(
+  () => user.value?.name || user.value?.login || t("accountMenu.account"),
+);
 
 function toggle() {
   isOpen.value = !isOpen.value;
@@ -60,7 +63,7 @@ onBeforeUnmount(() => {
         :class="{ open: isOpen }"
         :aria-haspopup="true"
         :aria-expanded="isOpen"
-        title="Account"
+        :title="$t('accountMenu.account')"
         @click="toggle"
       >
         <LucideUser :stroke-width="2" />
@@ -72,15 +75,15 @@ onBeforeUnmount(() => {
         <div class="account-info" role="presentation">
           <div v-if="user.name" class="info-name">{{ user.name }}</div>
           <div class="info-line">
-            <span class="info-label">Login</span>
+            <span class="info-label">{{ $t("accountMenu.login") }}</span>
             <span class="info-value">{{ user.login }}</span>
           </div>
           <!--div v-if="user.email" class="info-line">
-            <span class="info-label">Email</span>
+            <span class="info-label">{{ $t("accountMenu.email") }}</span>
             <span class="info-value">{{ user.email }}</span>
           </div-->
           <div class="info-line">
-            <span class="info-label">Role</span>
+            <span class="info-label">{{ $t("accountMenu.role") }}</span>
             <span class="info-value">{{ user.role }}</span>
           </div>
         </div>
@@ -92,7 +95,7 @@ onBeforeUnmount(() => {
             role="menuitem"
             @click="onLogout"
           >
-            Logout
+            {{ $t("accountMenu.logout") }}
           </button>
         </div>
       </div>
@@ -113,8 +116,6 @@ onBeforeUnmount(() => {
 }
 .chevron {
   transition: transform 0.15s ease;
-  font-size: 0.75em;
-  color: var(--color-text-dim);
 }
 .chevron.open {
   transform: rotate(180deg);

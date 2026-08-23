@@ -16,10 +16,10 @@ import { getErrorMessage } from "~/utils/errors";
 
 const props = withDefaults(
   defineProps<{
-    alertaInicial?: AlertModel | null;
+    initialAlert?: AlertModel | null;
   }>(),
   {
-    alertaInicial: null,
+    initialAlert: null,
   },
 );
 
@@ -27,7 +27,7 @@ const { t } = useI18n();
 const { alerts, availableDiscussions, discussionsLoading, fetchAlerts } =
   useAlerts();
 const { form, isExisting, isPolling, isMonitoring, isWebhook } = useAlertForm(
-  toRef(props, "alertaInicial"),
+  toRef(props, "initialAlert"),
 );
 const { saving, saveAlert, deleteAlert, setStatus } = useAlertActions();
 
@@ -37,14 +37,15 @@ const canActivate = computed(() => form.value.bundles.length > 0);
 // Source name surfaced in the view-mode "Source" row. With the binary
 // Source enum, this IS just `form.input`.
 const inputTitle = computed(() => {
-  if (isPolling.value) return "Data Polling Alert";
-  if (isMonitoring.value) return "Monitoring Alert";
-  if (isWebhook.value) return "Webhook Alert";
-  return form.value.input ? `${form.value.input} Alert` : "Alert";
+  if (isPolling.value) return t("editor.view.inputTitle.polling");
+  if (isMonitoring.value) return t("editor.view.inputTitle.monitoring");
+  if (isWebhook.value) return t("editor.view.inputTitle.webhook");
+  return form.value.input
+    ? t("editor.view.inputTitle.generic", { input: form.value.input })
+    : undefined;
 });
 
-// Description is truncated to ~100 chars so a long debugging description
-// doesn't blow up the head into three lines. Full text lives in the wizard.
+// Description is truncated to ~100 chars. Full text lives in the wizard.
 const DESCRIPTION_MAX = 100;
 const truncatedDescription = computed(() => {
   const d = (form.value.description ?? "").trim();
@@ -349,10 +350,6 @@ const onSaveBundle = async ({
       @update:status="onToggleStatus"
     />
 
-    <!-- One-time explainer + headless test runner driven imperatively
-             by the overflow menu. The runner owns the result modal; we
-             only call its `run()`. Source-agnostic — the server picks
-             polling vs monitoring behind the unified endpoint. -->
     <ConfirmDialog
       :open="showingTestIntro"
       size="default"

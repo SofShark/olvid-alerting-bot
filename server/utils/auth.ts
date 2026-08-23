@@ -120,6 +120,7 @@ type PrismaUserRow = {
   name: string | null;
   role: string;
   activatedAt: Date | null;
+  olvidDiscussionId: bigint | null;
 };
 
 export function toClientUser(row: PrismaUserRow): User {
@@ -130,6 +131,9 @@ export function toClientUser(row: PrismaUserRow): User {
     name: row.name,
     role: row.role as UserRole,
     activated: row.activatedAt !== null,
+    // Bigint → string at the wire boundary; JSON can't hold bigint.
+    olvidDiscussionId:
+      row.olvidDiscussionId !== null ? String(row.olvidDiscussionId) : null,
   };
 }
 

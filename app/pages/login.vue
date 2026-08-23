@@ -11,11 +11,20 @@ const error = ref<string | null>(null);
 const needsVerification = ref(false);
 const resent = ref(false);
 
-// Forgot-my-password inline flow. Kept on the same page (no route
-// change) so the user's typed login carries over automatically.
-const forgotOpen = ref(false);
+/*
+  The auth card has two modes:
+    - "login"  → the credentials form (default).
+    - "forgot" → login-only + a big centered "Re-send password" button.
+                 On submit, the card body flips to a channel-specific
+                 success / unreachable / network-error line.
+
+  Switching modes replaces the card content entirely (no mixed
+  affordances) so the user always sees one clear ask at a time.
+*/
+const mode = ref<"login" | "forgot">("login");
 const forgotBusy = ref(false);
 const forgotChannel = ref<ResetChannel | null>(null);
+const forgotError = ref<string | null>(null);
 
 async function login() {
   error.value = null;
@@ -35,9 +44,8 @@ async function login() {
   }
 }
 
-// Resend affordance only makes sense when SMTP is on — the endpoint
-// is a no-op otherwise. And it's keyed by email, so we only offer it
-// when the login the user typed looks like an address.
+// Resend-verification affordance only makes sense when SMTP is on and
+// the login looks like an email.
 const canResend = computed(
   () => authConfig.value?.mailEnabled && credentials.login.includes("@"),
 );
@@ -58,23 +66,35 @@ const loginLabel = computed(() =>
 );
 
 // ── Forgot my password ────────────────────────────────────────────────
+
 function openForgot() {
-  forgotOpen.value = true;
+  mode.value = "forgot";
   forgotChannel.value = null;
+  forgotError.value = null;
+  // Clear the password field — it's not shown in forgot mode and it
+  // shouldn't survive a mode switch either way.
+  credentials.password = "";
+}
+
+function backToLogin() {
+  mode.value = "login";
+  forgotChannel.value = null;
+  forgotError.value = null;
+  forgotBusy.value = false;
 }
 
 async function requestReset() {
-  if (!credentials.login) return;
+  if (!credentials.login || forgotBusy.value) return;
   forgotBusy.value = true;
   forgotChannel.value = null;
+  forgotError.value = null;
   try {
     const res = await authService.requestPasswordReset(credentials.login);
     forgotChannel.value = res.channel;
   } catch {
-    // Endpoint returns 200 even for unknown logins — a caught throw
-    // here is a network error. Surface as "check your connection".
-    forgotChannel.value = null;
-    error.value = t("auth.login.resetNetworkError");
+    // Endpoint returns 200 for unknown logins on purpose — a caught
+    // throw here is a network error.
+    forgotError.value = t("auth.login.resetNetworkError");
   } finally {
     forgotBusy.value = false;
   }
@@ -92,60 +112,73 @@ const forgotMessage = computed(() => {
       return "";
   }
 });
+
+const forgotOutcomeKind = computed<"success" | "warning" | null>(() => {
+  if (!forgotChannel.value) return null;
+  return forgotChannel.value === "none" ? "warning" : "success";
+});
 </script>
 
 <template>
   <AuthCard>
-    <h4>{{ $t("auth.login.title") }}</h4>
-    <form class="login-form" @submit.prevent="login">
-      <input
-        v-model="credentials.login"
-        class="field-input"
-        type="text"
-        :placeholder="loginLabel"
-        required
-      />
-      <input
-        v-model="credentials.password"
-        class="field-input"
-        type="password"
-        :placeholder="$t('auth.login.password')"
-        required
-      />
-      <button type="submit" class="btn btn-primary">
-        {{ $t("auth.login.submit") }}
-      </button>
-    </form>
+    <!-- ── Login mode ────────────────────────────────────────────── -->
+    <template v-if="mode === 'login'">
+      <h4>{{ $t("auth.login.title") }}</h4>
+      <form class="login-form" @submit.prevent="login">
+        <input
+          v-model="credentials.login"
+          class="field-input"
+          type="text"
+          :placeholder="loginLabel"
+          required
+        />
+        <input
+          v-model="credentials.password"
+          class="field-input"
+          type="password"
+          :placeholder="$t('auth.login.password')"
+          required
+        />
+        <button type="submit" class="btn btn-primary">
+          {{ $t("auth.login.submit") }}
+        </button>
+      </form>
 
-    <p v-if="error" class="msg msg--error">{{ error }}</p>
+      <p v-if="error" class="msg msg--error">{{ error }}</p>
 
-    <!-- Resend verification email — only when we know the account
-         exists (server told us `account_not_activated`) and the login
-         looks like an email address. -->
-    <p v-if="needsVerification && canResend && !resent" class="msg">
-      <button type="button" class="link-btn" @click="resend">
-        {{ $t("auth.login.resendVerification") }}
-      </button>
-    </p>
-    <p v-if="resent" class="msg">{{ $t("auth.login.verificationSent") }}</p>
+      <p v-if="needsVerification && canResend && !resent" class="msg">
+        <button type="button" class="link-btn" @click="resend">
+          {{ $t("auth.login.resendVerification") }}
+        </button>
+      </p>
+      <p v-if="resent" class="msg">{{ $t("auth.login.verificationSent") }}</p>
 
-    <!-- Forgot my password — inline (no route change). Once submitted,
-         we render the channel-specific "check your inbox / DM" line
-         and leave the affordance hidden to avoid spamming. -->
-    <div class="forgot-block">
-      <template v-if="!forgotOpen">
+      <div class="forgot-link-row">
         <button type="button" class="link-btn" @click="openForgot">
           {{ $t("auth.login.forgot") }}
         </button>
-      </template>
+      </div>
+    </template>
 
-      <template v-else-if="!forgotChannel">
-        <p class="msg">{{ $t("auth.login.forgotHint") }}</p>
+    <!-- ── Forgot-password mode ─────────────────────────────────── -->
+    <template v-else>
+      <h4>{{ $t("auth.login.forgotTitle") }}</h4>
+      <p class="msg forgot-hint">{{ $t("auth.login.forgotHint") }}</p>
+
+      <form class="forgot-form" @submit.prevent="requestReset">
+        <input
+          v-model="credentials.login"
+          class="field-input"
+          type="text"
+          :placeholder="loginLabel"
+          :disabled="!!forgotChannel"
+          required
+        />
         <button
-          type="button"
-          class="btn btn-ghost btn-sm"
+          v-if="!forgotChannel"
+          type="submit"
+          class="btn btn-primary forgot-submit"
           :disabled="!credentials.login || forgotBusy"
-          @click="requestReset"
         >
           {{
             forgotBusy
@@ -153,22 +186,49 @@ const forgotMessage = computed(() => {
               : $t("auth.login.forgotSubmit")
           }}
         </button>
-      </template>
+      </form>
 
-      <p v-else class="msg" :class="{ 'msg--muted': forgotChannel === 'none' }">
+      <p
+        v-if="forgotOutcomeKind"
+        class="msg forgot-outcome"
+        :class="{
+          'msg--success': forgotOutcomeKind === 'success',
+          'msg--muted': forgotOutcomeKind === 'warning',
+        }"
+      >
         {{ forgotMessage }}
       </p>
-    </div>
+      <p v-if="forgotError" class="msg msg--error forgot-outcome">
+        {{ forgotError }}
+      </p>
+
+      <div class="forgot-link-row">
+        <button type="button" class="link-btn" @click="backToLogin">
+          {{ $t("auth.login.forgotBackToLogin") }}
+        </button>
+      </div>
+    </template>
   </AuthCard>
 </template>
 
 <style scoped>
-.login-form {
+.login-form,
+.forgot-form {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   margin-top: var(--space-4);
 }
+
+.forgot-hint {
+  margin-top: var(--space-3);
+}
+
+.forgot-submit {
+  align-self: center;
+  min-width: 180px;
+}
+
 .msg {
   margin-top: var(--space-3);
   font-size: var(--text-sm);
@@ -180,6 +240,14 @@ const forgotMessage = computed(() => {
 .msg--muted {
   color: var(--color-text-faint);
 }
+.msg--success {
+  color: var(--color-success-text, var(--color-success));
+}
+
+.forgot-outcome {
+  text-align: center;
+}
+
 .link-btn {
   background: none;
   border: none;
@@ -192,11 +260,10 @@ const forgotMessage = computed(() => {
 .link-btn:hover {
   color: var(--color-accent-hover);
 }
-.forgot-block {
+
+.forgot-link-row {
   margin-top: var(--space-4);
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  justify-content: center;
 }
-
 </style>

@@ -22,24 +22,25 @@ const OUTBOUND: datatypes.MessageId["type"] = 2;
 
 export const olvidClient = {
   async sendMessage(discussions: bigint[], message: string) {
-    try {
-      for (const discussionId of discussions) {
-        await client.messageSend({
+
+    let allOk = true;
+    Promise.all(discussions.map((discussionId) =>
+        client.messageSend({
           discussionId: discussionId,
-          body: message,
-        });
-        console.log(`✅ [Olvid] Message sent to discussion: ${discussionId}`);
-      }
-      return true;
-      // TODO : Consider returning an array of message IDs for tracking and
-      // potential future edits representing recent updates to the alert.
-    } catch (error: any) {
-      console.error(
-        "❌ [Olvid] An error occurred while sending a message:",
-        error,
-      );
-      return false;
-    }
+          body: message, 
+        }).then(() => {
+          console.log(`[olvidClient] Message sent to discussion: ${discussionId}`);
+        }).catch((error: any) => {
+          allOk = false;
+          console.error(
+            `[olvidClient] Failed to send to discussion ${discussionId}:`,
+            error?.message ?? error,
+          );
+        })
+      )
+    );
+
+    return allOk;
   },
 
   /**
@@ -83,7 +84,7 @@ export const olvidClient = {
   async deleteOutboundMessage(id: bigint): Promise<boolean> {
     try {
       await client.messageDelete({
-        messageId: { type: OUTBOUND, id },
+        messageId : { type: OUTBOUND, id },
         deleteEverywhere: true,
       });
       console.log(`✅ [Olvid] Message ${id} deleted`);

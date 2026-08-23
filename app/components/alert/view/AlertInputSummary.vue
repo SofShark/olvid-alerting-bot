@@ -19,7 +19,6 @@ import { ConditionKind, ConditionOperator } from "#shared/types/condition";
 */
 
 const props = defineProps<{
-  inputTitle: string; //TODO deprecated
   source?: string;
   alertParams?: AlertParams;
   webhookUrl?: string;
@@ -27,6 +26,7 @@ const props = defineProps<{
 
 const {
   scheduleLabel,
+  lastPolledAtLabel,
   statusMatchLabel,
   triggerModeLabel: triggerModeLabelFor,
 } = useAlertLabels();
@@ -35,7 +35,7 @@ const isPolling = computed(() => props.source === Source.Polling);
 const isMonitoring = computed(() => props.source === Source.Monitoring);
 const isWebhook = computed(() => props.source === Source.Webhook);
 
-// Typed accessors — TS narrows AlertParams by the source discriminator,
+// Narrow AlertParams by the source discriminator,
 // which lives outside the union in `props.source`, so we cast at read
 // time. Cheap: same shape either way.
 const pollingParams = computed(() =>
@@ -49,8 +49,9 @@ const monitorParams = computed(() =>
     : undefined,
 );
 
+
 const pollingInterval = computed(
-  () => scheduleLabel(props.alertParams?.schedule), // todo
+  () => scheduleLabel(props.alertParams?.schedule), 
 );
 
 // Trigger-mode row only renders when it's meaningful — edge-native conditions
@@ -87,7 +88,7 @@ onMounted(() => {
 
 <template>
   <div class="data-block">
-    <h4 class="section-eyebrow">Configuration</h4>
+    <h4 class="section-eyebrow">{{ $t("editor.view.eyebrowConfiguration") }}</h4>
 
     <dl class="data-grid">
       <template v-if="isWebhook">
@@ -120,7 +121,7 @@ onMounted(() => {
           </dd>
         </div>
         <div v-if="triggerModeMeaningful" class="data-row">
-          <dt class="data-label">Trigger</dt>
+          <dt class="data-label">{{ $t("editor.view.fields.trigger") }}</dt>
           <dd class="data-value">{{ triggerModeLabel }}</dd>
         </div>
       </template>
@@ -138,7 +139,8 @@ onMounted(() => {
         <div class="data-row">
           <dt class="data-label">{{ $t("editor.view.fields.polling") }}</dt>
           <dd class="data-value">
-            <span class="dim">{{ pollingInterval }}</span>
+            {{ pollingInterval }}
+            <span class="dim">  {{$t("editor.schedule.lastPolledAt", { time: lastPolledAtLabel(alertParams?._lastPolledAt) }) }}</span>
           </dd>
         </div>
         <div class="data-row">
@@ -148,7 +150,7 @@ onMounted(() => {
           </dd>
         </div>
         <div v-if="triggerModeMeaningful" class="data-row">
-          <dt class="data-label">Trigger</dt>
+          <dt class="data-label">{{ $t("editor.view.fields.trigger") }}</dt>
           <dd class="data-value">{{ triggerModeLabel }}</dd>
         </div>
       </template>
@@ -200,7 +202,8 @@ onMounted(() => {
   padding-bottom: 0;
 }
 .data-label {
-  width: 80px;
+  min-width: 75px;
+  width:fit-content;
   margin: 0;
   font-size: 11px;
   font-weight: 700;

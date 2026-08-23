@@ -35,11 +35,12 @@ const confirmPassword = ref("");
 watchEffect(() => (form.token = token.value));
 
 const error = ref<string | null>(null);
+const resetInvalid = ref(false);
 
-// Peek at the token to surface which account is being reset. Same
-// pattern as invite.vue — useFetch handles cancellation, an
-// unrecognised token silently falls back to the account-agnostic
-// wording rather than crashing the page.
+// Peek at the token to surface which account is being reset. A 400/404
+// means the token is invalid / expired / used — surface that up front
+// with a dedicated screen so the user doesn't waste time typing a new
+// password. Other statuses leave the peek silent.
 const { data: resetInfo } = await useFetch<{
   login: string;
   name: string | null;
@@ -48,7 +49,11 @@ const { data: resetInfo } = await useFetch<{
   server: false,
   immediate: true,
   watch: [token],
-  onResponseError() {},
+  onResponseError({ response }) {
+    if (response.status === 400 || response.status === 404) {
+      resetInvalid.value = true;
+    }
+  },
 });
 const resetLogin = computed(() => resetInfo.value?.login ?? null);
 
@@ -86,6 +91,11 @@ async function submit() {
 
 <template>
   <AuthCard>
+    <template v-if="resetInvalid">
+      <h4>{{ $t("auth.resetPassword.invalidTitle") }}</h4>
+      <p class="msg msg--error">{{ $t("auth.resetPassword.invalidBody") }}</p>
+    </template>
+    <template v-else>
     <h4>{{ $t("auth.resetPassword.title") }}</h4>
     <p class="hint">
       <template v-if="resetLogin">
@@ -126,6 +136,7 @@ async function submit() {
     </form>
 
     <p v-if="error" class="msg msg--error">{{ error }}</p>
+    </template>
   </AuthCard>
 </template>
 

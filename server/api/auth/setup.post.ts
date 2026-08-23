@@ -1,33 +1,40 @@
-// First-run only: creates the first admin account.
+// First-run only: create the first admin as an INVITED user.
 //
-// Hard gates before any account is created:
-//   1. `ADMIN_KEY` env must be set — a missing key means the operator
-//      hasn't authorised initial setup, so we refuse (503).
-//   2. Submitted adminKey must match, using a constant-time compare
-//      so the endpoint can't be probed via response timing.
+// Rather than reading a password at /setup, the operator picks a
+// delivery channel (mail / olvid / link) and the server sends an
+// invite URL through it, exactly like the admin-invite flow used for
+// every subsequent user. The operator opens that URL, sets their
+// password, and is signed in — one activation path across the whole
+// product.
+//
+// Hard gates before anything is created:
+//   1. `ADMIN_KEY` env must be set (503) — a missing key means the
+//      operator hasn't authorised initial setup.
+//   2. Submitted adminKey must match, constant-time (401).
 //   3. No admin may already exist (409). Setup is one-shot.
-//
-// Two flavours after the gates pass:
-//   - With SMTP and an email supplied: verification email is sent,
-//     account stays inactive until the link is clicked.
-//   - Without SMTP or without an email: account is activated
-//     immediately and the admin is signed in. Knowledge of ADMIN_KEY
-//     IS the verification in that path.
+//   4. Channel prerequisites match (email + SMTP for mail, discussion
+//      id for olvid).
 
 import { z } from "zod";
 import { timingSafeEqual } from "node:crypto";
 import { userRepository } from "#server/repositories/userRepository";
 import { issueToken, resolveOrigin, toClientUser } from "#server/utils/auth";
-import { verifyEmail as verifyEmailTemplate } from "#server/utils/authMessages";
+import {
+  inviteEmail,
+  inviteOlvidMessage,
+} from "#server/utils/authMessages";
 import { mailClient } from "#server/clients/mailClient";
-import type { SetupForm } from "#shared/types/auth";
+import { olvidClient } from "#server/clients/olvidClient";
+import { readBodyOr400, toHttpError } from "#server/utils/httpError";
+import type { SetupForm, SetupResponse } from "#shared/types/auth";
 
 const bodySchema = z.object({
   adminKey: z.string().min(1),
   login: z.string().trim().min(1),
-  email: z.email().optional(),
-  password: z.string().min(8),
   name: z.string().trim().min(1).optional(),
+  channel: z.enum(["mail", "link", "olvid"]),
+  email: z.email().optional(),
+  olvidDiscussionId: z.string().regex(/^\d+$/).optional(),
 }) satisfies z.ZodType<SetupForm>;
 
 function secretsMatch(a: string, b: string): boolean {
@@ -37,7 +44,7 @@ function secretsMatch(a: string, b: string): boolean {
   return timingSafeEqual(ba, bb);
 }
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<SetupResponse> => {
   const expected = process.env.ADMIN_KEY;
   if (!expected) {
     throw createError({
@@ -46,12 +53,11 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const parsed = await readValidatedBody(event, bodySchema.parse);
+  const body = await readBodyOr400(event, bodySchema);
 
-  if (!secretsMatch(parsed.adminKey, expected)) {
+  if (!secretsMatch(body.adminKey, expected)) {
     throw createError({ statusCode: 401, statusMessage: "invalid_admin_key" });
   }
-
   if (await userRepository.findFirstAdmin()) {
     throw createError({
       statusCode: 409,
@@ -59,29 +65,130 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const email = parsed.email ?? null;
-  // With an email supplied the login is normalised to it (so the admin
-  // types the same thing everywhere). Without email, the typed login stands.
-  const login = email ?? parsed.login;
-  const passwordHash = await hashPassword(parsed.password);
-  const mailAvailable = mailClient.isAvailable() && Boolean(email);
-
-  const user = await userRepository.create({
-    login,
-    email,
-    passwordHash,
-    name: parsed.name ?? null,
-    role: "admin",
-    activatedAt: mailAvailable ? null : new Date(),
-  });
-
-  if (mailAvailable && email) {
-    const token = await issueToken(user.id, "email_verify");
-    const { subject, html } = verifyEmailTemplate(resolveOrigin(event), token);
-    await mailClient.send([email], subject, html);
-    return { ok: true, requiresVerification: true };
+  // ── Channel-specific precondition checks (same as /users/invite) ──
+  if (body.channel === "mail") {
+    if (!body.email) {
+      throw createError({ statusCode: 400, statusMessage: "email_required" });
+    }
+    if (!mailClient.isAvailable()) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: "mail_not_configured",
+      });
+    }
+  } else if (body.channel === "olvid") {
+    if (!body.olvidDiscussionId) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: "olvid_discussion_required",
+      });
+    }
   }
 
-  await setUserSession(event, { user: toClientUser(user) });
-  return { ok: true, requiresVerification: false, user: toClientUser(user) };
+  try {
+    const login = body.login;
+    const email = body.email ?? null;
+    const olvidDiscussionId =
+      body.channel === "olvid" ? BigInt(body.olvidDiscussionId!) : null;
+
+    // Setup is one-shot — no user rows exist yet, so no collision to
+    // check. Skip the /users/invite-style getByLogin/Email/Olvid dance.
+    const user = await userRepository.create({
+      login,
+      email,
+      role: "admin",
+      name: body.name ?? null,
+      olvidDiscussionId,
+    });
+
+    const token = await issueToken(user.id, "invite");
+    const origin = resolveOrigin(event);
+    const inviteUrl = `${origin}/invite?token=${encodeURIComponent(token)}`;
+    const inviter = user.name ?? user.login;
+
+    const delivery = await deliver(body.channel, {
+      email,
+      olvidDiscussionId,
+      token,
+      origin,
+      inviter,
+      login: user.login,
+    });
+
+    // Persist the outbound Olvid message id so a later re-run or admin
+    // deletion can revoke the pending DM. Mirrors the invite endpoint.
+    if (delivery.olvidMessageId != null) {
+      await userRepository.update(user.id, {
+        inviteOlvidMessageId: delivery.olvidMessageId,
+      });
+    }
+
+    // Fire-and-forget the client-shape user in case a future caller
+    // wants it — for now we only return what the UI needs.
+    void toClientUser(user);
+
+    return {
+      inviteUrl,
+      channel: body.channel,
+      delivered: delivery.delivered,
+    };
+  } catch (error) {
+    throw toHttpError(error, "POST /api/auth/setup");
+  }
 });
+
+// ── Delivery strategies ─────────────────────────────────────────────
+// Copy of the /users/invite dispatcher. Kept local rather than
+// factored out because there are exactly two call sites and a shared
+// helper would need to be parameterized by too many things (token
+// purpose, template selection, message-id tracking) to stay simple.
+
+interface Delivery {
+  delivered: boolean;
+  olvidMessageId?: bigint;
+}
+
+interface DeliveryContext {
+  email: string | null;
+  olvidDiscussionId: bigint | null;
+  token: string;
+  origin: string;
+  inviter: string;
+  login: string;
+}
+
+async function deliver(
+  channel: "mail" | "link" | "olvid",
+  ctx: DeliveryContext,
+): Promise<Delivery> {
+  switch (channel) {
+    case "mail":
+      return deliverByMail(ctx);
+    case "olvid":
+      return deliverByOlvid(ctx);
+    case "link":
+      return { delivered: false };
+  }
+}
+
+async function deliverByMail(ctx: DeliveryContext): Promise<Delivery> {
+  if (!ctx.email) return { delivered: false };
+  const { subject, html } = inviteEmail(ctx.origin, ctx.token, ctx.inviter);
+  const delivered = await mailClient.send([ctx.email], subject, html);
+  return { delivered };
+}
+
+async function deliverByOlvid(ctx: DeliveryContext): Promise<Delivery> {
+  if (ctx.olvidDiscussionId == null) return { delivered: false };
+  const body = inviteOlvidMessage(
+    ctx.origin,
+    ctx.token,
+    ctx.inviter,
+    ctx.login,
+  );
+  const { ok, messageId } = await olvidClient.sendMessageOne(
+    ctx.olvidDiscussionId,
+    body,
+  );
+  return { delivered: ok, olvidMessageId: messageId };
+}

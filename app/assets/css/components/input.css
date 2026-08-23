@@ -26,6 +26,12 @@
   line-height: 1.5;
 }
 
+.hint {
+  color: var(--color-text-faint);
+  font-size: var(--text-sm);
+  font-style: italic;
+}
+
 .field-required {
   color: var(--color-danger);
 }

@@ -55,7 +55,7 @@
 
 /* `editor` — the widest shell we ship. */
 .overlay-box--editor {
-  max-width: 1600px;
+  width: 96vw;
   height: 96vh;
   padding: 0;
   display: flex;
@@ -77,13 +77,6 @@
 .overlay-actions {
   display: flex;
   gap: var(--space-4);
-  /* Distribute across the row so an optional "extra" button (e.g. wizard's
-   * "Save as draft") lands on the left while cancel/confirm sit on the
-   * right — same visual convention as GitHub / Linear delete prompts.
-   * `flex-wrap` is a safety net: if a caller with very long labels
-   * (French, German…) or a narrow viewport can't fit everything on one
-   * row, the primary-actions group breaks to a new line instead of
-   * overflowing the modal. */
   justify-content: space-between;
   flex-wrap: wrap;
   row-gap: var(--space-3);

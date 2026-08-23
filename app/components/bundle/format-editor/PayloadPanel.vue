@@ -2,17 +2,13 @@
 import { computed } from "vue";
 
 /*
-  Source-pane host. Four render modes, dispatched by source:
+  Four render modes, dispatched by source:
+    - polling           → payload interactive tree of the fetched source (⟳ refresh)
+    - monitoring        → JSON interactivetree of the probe result   (⟳ refresh)
+    - webhook + picker  → JSON interactive tree of last received payload
+    - webhook (default) → editable JSON textarea (to alllow copy/paste or manual edits)
 
-    - polling           → XML tree of the fetched source (⟳ refresh)
-    - monitoring        → JSON tree of the probe result   (⟳ refresh)
-    - webhook + picker  → JSON tree of last received payload
-    - webhook (default) → editable JSON textarea
-
-  Owns no state; everything routes back to the container via emits. The
-  Load-Templates toolbar is a webhook-only affordance — there are no
-  bundled templates for polling or monitoring, so those branches show a
-  plain ⟳ refresh button in the same header slot instead.
+  Owns no state; everything routes back to the container via emits.
 */
 
 const props = defineProps<{
@@ -45,7 +41,7 @@ defineEmits<{
   (e: "select-path", path: string): void;
   (e: "retrieve"): void;
   (e: "retrieve-monitor"): void;
-  (e: "open-load", anchor: DOMRect): void;
+  (e: "toggle-load"): void;
   (e: "toggle-picker"): void;
   (e: "prettify"): void;
   (e: "clear"): void;
@@ -74,8 +70,8 @@ const parsedJson = computed(() => {
             })
           }}
         </template>
-        <template v-else-if="isMonitoring"> monitor-probe.json </template>
-        <template v-else>payload.json (Test Data)</template>
+        <template v-else-if="isMonitoring">{{ $t("formatEditor.sourceTitleMonitor") }}</template>
+        <template v-else>{{ $t("formatEditor.sourceTitleWebhook") }}</template>
       </span>
 
       <!-- Polling + Monitoring share the same refresh affordance: a plain
@@ -106,7 +102,7 @@ const parsedJson = computed(() => {
       <PayloadToolbar
         v-else
         :load-open="loadOpen"
-        @open-load="(rect) => $emit('open-load', rect)"
+        @toggle-load="$emit('toggle-load')"
         @toggle-picker="$emit('toggle-picker')"
         @prettify="$emit('prettify')"
         @clear="$emit('clear')"
@@ -206,6 +202,7 @@ const parsedJson = computed(() => {
 </template>
 
 <style scoped>
+
 /* Refresh button — small chrome action, shared by polling + monitoring.
  * Tokenised over the previous hard-coded hex ladder so the button reads
  * like every other chrome control (bundle picker, payload toolbar). */

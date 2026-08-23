@@ -22,7 +22,6 @@ const form = defineModel<AlertModel>({ required: true });
 defineProps<{
   availableDiscussions: any[];
   discussionsLoading: boolean;
-  pollPayload: any;
 }>();
 
 // ── Dialog state ──────────────────────────────────────────────────────────
@@ -123,7 +122,6 @@ const hasEmptyBundle = computed(() =>
       :input-source="form.input"
       :available-discussions="availableDiscussions"
       :discussions-loading="discussionsLoading"
-      :poll-payload="pollPayload"
       @save="onSave"
       @cancel="closeDialog"
     />

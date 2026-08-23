@@ -11,6 +11,11 @@ export interface User {
   email: string | null;
   name: string | null;
   role: UserRole;
-  // Has the account been actjvated. Pending users still need to open their invite.
+  // Has the account been activated. Pending users still need to open their invite.
   activated: boolean;
+  /** Olvid discussion bound to this user for auth deliveries (invite &
+   *  password-reset). Bigint on the server, stringified over the wire
+   *  because JSON can't serialize bigint. `null` when no channel is
+   *  linked yet — see /account to add one. */
+  olvidDiscussionId: string | null;
 }

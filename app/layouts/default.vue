@@ -69,14 +69,14 @@ const selectedId = computed(() => {
             @click="navigateTo(`/users`)"
           >
             <LucideUserCog :stroke-width="2" />
-            Users
+            {{ $t("topNav.users") }}
           </button>
 
           <!-- Signed in → account dropdown with session info + logout.
                Signed out → plain login shortcut. -->
           <AccountMenu v-if="user" @logout="logout" />
           <button v-else class="nav-toggle" @click="goLogin">
-            <LucideUser :stroke-width="2" /> Login
+            <LucideUser :stroke-width="2" /> {{ $t("topNav.login") }}
           </button>
           <ThemeToggle />
         </div>

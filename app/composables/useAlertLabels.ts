@@ -57,6 +57,13 @@ export const useAlertLabels = () => {
     }
   };
 
+
+  const lastPolledAtLabel = (_lastPolledAt: number | undefined | null): string => {
+    if (!_lastPolledAt) return "—";
+    const date = new Date(_lastPolledAt);
+    return date.toLocaleString();
+  };
+
   // ── Monitor status match ───────────────────────────────────────────
   const statusMatchLabel = (
     match: StatusMatch | undefined | null,
@@ -110,6 +117,7 @@ export const useAlertLabels = () => {
   return {
     formatLabel,
     scheduleLabel,
+    lastPolledAtLabel,
     statusMatchLabel,
     triggerModeLabel,
     triggerModeHint,

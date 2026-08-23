@@ -2,7 +2,17 @@
   "topNav": {
     "title": "Alerting System",
     "themeToggle": "Toggle Theme",
-    "languageToggle": "Change language"
+    "languageToggle": "Change language",
+    "users": "Users",
+    "login": "Login"
+  },
+
+  "accountMenu": {
+    "account": "Account",
+    "login": "Login",
+    "email": "Email",
+    "role": "Role",
+    "logout": "Logout"
   },
 
   "index": {
@@ -68,6 +78,7 @@
     "saveAsDraft": "Save as Draft",
     "cancel": "Cancel",
     "delete": "Delete",
+    "ok": "OK",
     "newAlert": "New Alert",
     "backToList": "Back to list",
     "back": "Back",
@@ -202,7 +213,8 @@
         "polling": "Polling",
         "condition": "Condition",
         "discussions": "Discussions",
-        "format": "Format"
+        "format": "Format",
+        "trigger": "Trigger"
       },
       "dividers": {
         "triggerConfiguration": "Trigger configuration",
@@ -214,25 +226,34 @@
       "noBundlesEditAlert": "Edit",
       "bundleTag": "BUNDLE {n}",
       "bundleEdit": "Edit",
-      "discussionsEmpty": "— none —"
+      "discussionsEmpty": "— none —",
+      "eyebrowConfiguration": "Configuration",
+      "eyebrowBundles": "Bundles",
+      "inputTitle": {
+        "polling": "Data Polling Alert",
+        "monitoring": "Monitoring Alert",
+        "webhook": "Webhook Alert",
+        "generic": "{input} Alert"
+      }
     },
 
     "schedule": {
       "interval": {
-        "everyDay": "every {n} day",
-        "everyDays": "every {n} days",
-        "everyHour": "every {n} hour",
-        "everyHours": "every {n} hours",
-        "everyMinute": "every {n} minute",
-        "everyMinutes": "every {n} minutes",
-        "everySeconds": "every {n} seconds",
-        "dailyAt": "daily at {time}",
+        "everyDay": "Every {n} day",
+        "everyDays": "Every {n} days",
+        "everyHour": "Every {n} hour",
+        "everyHours": "Every {n} hours",
+        "everyMinute": "Every {n} minute",
+        "everyMinutes": "Every {n} minutes",
+        "everySeconds": "Every {n} seconds",
+        "dailyAt": "Daily at {time}",
         "empty": "—"
       },
       "mode": {
         "basic": "basic",
         "advanced": "advanced"
-      }
+      },
+      "lastPolledAt": "Last polled at {time}"
     },
 
     "condition": {
@@ -293,7 +314,9 @@
       "discardWarning": "⚠ Discard unsaved changes to this bundle?",
       "keepEditingButton": "Keep editing",
       "discardButton": "Discard",
-      "untitled": "Untitled"
+      "untitled": "Untitled",
+      "titleLabel": "Bundle Title",
+      "namePlaceholder": "Bundle {n}"
     },
 
     "errors": {
@@ -301,6 +324,11 @@
       "testFailed": "Test failed",
       "duplicating": "Error duplicating alert:"
     }
+  },
+
+  "testVerdict": {
+    "fired": "FIRED",
+    "notFired": "DID NOT FIRE"
   },
 
   "alertActions": {
@@ -424,8 +452,11 @@
     "watchedPathsInsertTitle": "Insert {token}",
     "sourceTitlePollingFormat": "source.{format}",
     "sourceTitleWebhook": "payload.json (Test Data)",
+    "sourceTitleMonitor": "monitor-probe.json",
     "sourceRefreshTitle": "Re-fetch the source",
     "monitorProbeTitle": "Probe the monitor URL now",
+    "errorInvalidJsonPrettify": "Invalid JSON: Cannot prettify.",
+    "errorAlertNotSaved": "This alert hasn't been saved yet. No payloads in database.",
     "sourceExampleButton": "Example",
     "sourceLastReceivedButton": "Last received",
     "sourceLoadingPolling": "Loading source…",
@@ -487,6 +518,15 @@
 
   "bundleRow": {
     "tag": "BUNDLE {n}",
+    "untitled": "Untitled bundle",
+    "noDestinations": "No destinations",
+    "editTooltip": "Edit bundle",
+    "removeTooltip": "Remove bundle",
+    "status": {
+      "ready": "Ready",
+      "noDestinations": "No destinations",
+      "noScript": "Custom format set but no script"
+    },
     "destSummary": {
       "None": "— no discussions —",
       "Plural": "{firstTwoNames} + {remaining} more discussions",
@@ -505,7 +545,6 @@
       "pollingCustom": "Custom script"
     },
     "scriptButton": "Script",
-    "previewPlaceholder": "Default polling message — fills in the watched paths and their observed values when the alert fires.",
     "removeTitle": "Remove bundle",
     "editTitle": "Edit this bundle",
     "editButton": "Edit"
@@ -560,6 +599,16 @@
       "minutes": "minutes",
       "hours": "hours",
       "daily": "daily"
+    },
+    "cron": {
+      "legend": {
+        "minute": "minute",
+        "hour": "hour",
+        "dayOfMonth": "day-of-month",
+        "month": "month",
+        "dayOfWeek": "day-of-week"
+      },
+      "invalid": "Invalid cron expression"
     }
   },
 
@@ -664,9 +713,11 @@
       "resendVerification": "Resend verification email",
       "verificationSent": "Verification email sent. Check your inbox.",
       "forgot": "Forgot my password?",
-      "forgotHint": "We'll send a reset link to whichever channel is bound to this account.",
-      "forgotSubmit": "Send reset link",
+      "forgotTitle": "Reset your password",
+      "forgotHint": "Enter your login. We'll send a reset link to whichever channel is bound to this account.",
+      "forgotSubmit": "Re-send password",
       "forgotBusy": "Sending…",
+      "forgotBackToLogin": "Back to login",
       "resetSentOlvid": "Reset link sent through Olvid. Check your bot conversation.",
       "resetSentMail": "Reset link sent by email. Check your inbox.",
       "resetUnreachable": "This account has no linked delivery channel. Ask an administrator to send you a fresh invitation.",
@@ -683,7 +734,9 @@
       "errorPasswordsDoNotMatch": "Passwords do not match",
       "errorTokenInvalid": "This invitation is invalid, expired, or already used.",
       "errorBadPassword": "Please pick a password of at least 8 characters.",
-      "errorNetwork": "Couldn't reach the server — please try again."
+      "errorNetwork": "Couldn't reach the server — please try again.",
+      "invalidTitle": "Invitation invalid or expired",
+      "invalidBody": "This invitation link is invalid, expired, or already used. Ask your administrator for a fresh invitation."
     },
     "resetPassword": {
       "title": "Reset your password",
@@ -696,7 +749,9 @@
       "errorPasswordsDoNotMatch": "Passwords do not match",
       "errorTokenInvalid": "This reset link is invalid, expired, or already used.",
       "errorBadPassword": "Please pick a password of at least 8 characters.",
-      "errorNetwork": "Couldn't reach the server — please try again."
+      "errorNetwork": "Couldn't reach the server — please try again.",
+      "invalidTitle": "Reset link invalid or expired",
+      "invalidBody": "This password reset link is invalid, expired, or already used. Request a new one from the login page."
     },
     "verify": {
       "pending": "Verifying…",
@@ -708,22 +763,37 @@
       "errorCta": "Back to login"
     },
     "setup": {
-      "title": "Create the first admin",
-      "hint": "Paste the ADMIN_KEY from your .env to prove you deployed this instance, then fill in your details.",
+      "title": "First-run setup",
+      "hint": "Paste the ADMIN_KEY from your .env to prove you deployed this instance.",
       "adminKey": "ADMIN_KEY",
-      "namePlaceholder": "Name (optional)",
-      "emailPlaceholder": "Email",
-      "usernamePlaceholder": "Username",
-      "passwordPlaceholder": "Password (min 8 chars)",
-      "submit": "Create admin",
-      "noSmtpHint": "SMTP is not configured on this deploy — you'll be signed in directly after creating the account (no email verification).",
-      "doneTitle": "Check your inbox",
-      "doneBody": "A verification link has been sent to {email}. Click it to activate the account, then sign in.",
+      "keyNext": "Next",
+      "keyBusy": "Checking…",
+
+      "inviteTitle": "Invite yourself as the first admin",
+      "inviteHint": "Pick a delivery channel — the same one you'd use to invite anyone else — and we'll send you the activation link. You'll set your password by opening it.",
+      "fieldLogin": "Username",
+      "loginPlaceholder": "The name you'll type at sign-in",
+      "fieldName": "Display name (optional)",
+      "namePlaceholder": "Name shown in the app",
+      "fieldEmail": "Email",
+      "emailPlaceholder": "Where to send the activation link",
+      "inviteSubmit": "Send the activation link",
+      "inviteBusy": "Sending…",
+      "back": "Back",
+
+      "doneTitle": "Setup started",
+      "doneMail": "Activation link sent by email. Open it to set your password and sign in.",
+      "doneOlvid": "Activation link sent through Olvid. Open the DM from the bot to set your password.",
+      "doneLink": "Open the activation link below to set your password and sign in.",
       "doneCta": "Go to login",
+
       "errorAdminKeyNotConfigured": "ADMIN_KEY is not set on the server. Configure it in .env and restart.",
       "errorInvalidAdminKey": "That admin key doesn't match the one configured on the server.",
       "errorAlreadyComplete": "An admin already exists on this deploy.",
-      "errorFallback": "Could not create the admin account. Check the inputs and try again."
+      "errorEmailRequired": "An email address is required for the mail channel.",
+      "errorMailNotConfigured": "SMTP isn't configured on this deploy — pick another channel.",
+      "errorOlvidRequired": "Pick an Olvid contact discussion for the delivery.",
+      "errorFallback": "Could not start setup. Check the inputs and try again."
     },
     "users": {
       "inviteButton": "Invite user",
@@ -734,24 +804,16 @@
         "status": "Status"
       },
       "loginTagEmail": "Login is an email address",
-      
-      "loginTagLocal": "Local username (no email delivery)",
-      "loginTagLocalShort": "Local username",
+      "loginTagOlvid": "Login is an Olvid discussion",
+      "loginTagLocal": "Local username",
       "copyLinkTitle": "Generate & copy an invite link",
       "resendTitle": "Resend invitation",
       "confirmDeletePrompt": "Delete user {login}?",
-      "feedbackEmailed": "Invitation emailed to {recipient}.",
-      "feedbackReSent": "Invitation re-sent to {recipient}.",
-      "feedbackSent": "Invitation sent to {recipient} via {channel}.",
-      "feedbackReSentVia": "Invitation re-sent to {recipient} via {channel}.",
-      "feedbackRefreshed": "Invitation refreshed. Copy the link to share it manually.",
-      "channelMail": "email",
-      "channelOlvid": "Olvid",
-      "errorResend": "Could not resend the invitation.",
-      "errorGenerateLink": "Could not generate a fresh invite link.",
-      "errorCannotDeleteSelf": "You cannot delete your own account.",
-      "errorCannotDeleteLastAdmin": "There must be at least one admin.",
-      "errorDeleteFallback": "Could not delete this user."
+      "confirmResendPrompt": "Re-send the invitation to {recipient} via {channel}?",
+      "confirmResendConfirm": "Re-send",
+      "resendSuccessTitle": "Invitation sent",
+      "resendSuccessMessage": "A fresh invitation has been sent to {recipient} via {channel}.",
+      "channelMail": "email"
     },
     "inviteModal": {
       "title": "Invite a new user",

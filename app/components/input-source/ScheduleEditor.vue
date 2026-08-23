@@ -136,7 +136,8 @@ const onAdvancedInput = (raw: string) => {
     advancedError.value = "";
     emit("update:modelValue", raw);
   } catch (e) {
-    advancedError.value = (e as Error).message || "Invalid cron expression";
+    advancedError.value =
+      (e as Error).message || t("alertParamsEditor.cron.invalid");
   }
 };
 </script>
@@ -192,10 +193,15 @@ const onAdvancedInput = (raw: string) => {
         @input="onAdvancedInput(($event.target as HTMLInputElement).value)"
       />
       <div class="cron-legend" aria-hidden="true">
-        <span>minute</span><span class="sep">·</span> <span>hour</span
-        ><span class="sep">·</span> <span>day-of-month</span
-        ><span class="sep">·</span> <span>month</span><span class="sep">·</span>
-        <span>day-of-week</span>
+        <span>{{ $t("alertParamsEditor.cron.legend.minute") }}</span
+        ><span class="sep">·</span>
+        <span>{{ $t("alertParamsEditor.cron.legend.hour") }}</span
+        ><span class="sep">·</span>
+        <span>{{ $t("alertParamsEditor.cron.legend.dayOfMonth") }}</span
+        ><span class="sep">·</span>
+        <span>{{ $t("alertParamsEditor.cron.legend.month") }}</span
+        ><span class="sep">·</span>
+        <span>{{ $t("alertParamsEditor.cron.legend.dayOfWeek") }}</span>
       </div>
       <p v-if="advancedError" class="cron-error">⚠ {{ advancedError }}</p>
     </div>

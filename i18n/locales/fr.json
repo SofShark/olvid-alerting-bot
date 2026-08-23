@@ -2,7 +2,17 @@
   "topNav": {
     "title": "Bots d'alerting",
     "themeToggle": "Changer le thème",
-    "languageToggle": "Changer la langue"
+    "languageToggle": "Changer la langue",
+    "users": "Utilisateurs",
+    "login": "Connexion"
+  },
+
+  "accountMenu": {
+    "account": "Compte",
+    "login": "Identifiant",
+    "email": "E-mail",
+    "role": "Rôle",
+    "logout": "Déconnexion"
   },
 
   "index": {
@@ -68,18 +78,19 @@
     "saveAsDraft": "Enregistrer en brouillon",
     "cancel": "Annuler",
     "delete": "Supprimer",
+    "ok": "OK",
     "newAlert": "Nouvelle alerte",
     "backToList": "Retour à la liste",
     "back": "Retour",
     "continue": "Continuer →",
-    "addBundles": "Ajouter des lots →",
+    "addBundles": "Ajouter des bundles →",
     "editAlert": "Modifier",
     "close": "Fermer",
     "done": "Terminé",
     "discard": "Abandonner",
     "keepEditing": "Continuer l'édition",
     "continueEditing": "Continuer l'édition",
-    "saveBundle": "Enregistrer le lot"
+    "saveBundle": "Enregistrer le bundle"
   },
 
   "selector": {
@@ -98,7 +109,7 @@
 
     "deleteModal": {
       "title": "Supprimer cette alerte ?",
-      "message": "Cela supprime l'alerte et tous ses lots. Cette action est irréversible."
+      "message": "Cela supprime l'alerte et tous ses bundles. Cette action est irréversible."
     },
 
     "steps": {
@@ -112,7 +123,7 @@
         "description": "Quand déclencher"
       },
       "bundle": {
-        "title": "Lots",
+        "title": "Bundles",
         "description": "Ajouter des cibles de notification"
       }
     },
@@ -136,10 +147,10 @@
 
     "bundleStep": {
       "intro": "Un {bundle} est une cible de notification : un ensemble de discussions et un format de message.",
-      "bundleWord": "lot",
-      "startAdding": "Commencer à ajouter des lots",
-      "newBundle": "Nouveau lot",
-      "warnHint": "⚠ Certains lots n'ont aucune discussion sélectionnée — cette alerte sera enregistrée en {draft} tant que chaque lot ne contient pas au moins une discussion.",
+      "bundleWord": "bundle",
+      "startAdding": "Commencer à ajouter des bundles",
+      "newBundle": "Nouveau bundle",
+      "warnHint": "⚠ Certains bundles n'ont aucune discussion sélectionnée — cette alerte sera enregistrée en {draft} tant que chaque bundle ne contient pas au moins une discussion.",
       "draftWord": "brouillon"
     },
 
@@ -202,37 +213,47 @@
         "polling": "Polling",
         "condition": "Condition",
         "discussions": "Discussions",
-        "format": "Format"
+        "format": "Format",
+        "trigger": "Déclencheur"
       },
       "dividers": {
         "triggerConfiguration": "Configuration du déclencheur",
-        "bundles": "Lots ({count})",
+        "bundles": "Bundles ({count})",
         "testPolling": "Tester le polling",
-        "messagesPerBundle": "Messages par lot"
+        "messagesPerBundle": "Messages par bundle"
       },
-      "noBundles": "Aucun lot configuré. Cliquez sur {editAlert} pour en ajouter un.",
+      "noBundles": "Aucun bundle configuré. Cliquez sur {editAlert} pour en ajouter un.",
       "noBundlesEditAlert": "Modifier",
-      "bundleTag": "LOT {n}",
+      "bundleTag": "BUNDLE {n}",
       "bundleEdit": "Modifier",
-      "discussionsEmpty": "— aucune —"
+      "discussionsEmpty": "— aucune —",
+      "eyebrowConfiguration": "Configuration",
+      "eyebrowBundles": "Bundles",
+      "inputTitle": {
+        "polling": "Alerte de polling",
+        "monitoring": "Alerte de monitoring",
+        "webhook": "Alerte webhook",
+        "generic": "Alerte {input}"
+      }
     },
 
     "schedule": {
       "interval": {
-        "everyDay": "tous les {n} jour",
-        "everyDays": "tous les {n} jours",
-        "everyHour": "toutes les {n} heure",
-        "everyHours": "toutes les {n} heures",
-        "everyMinute": "toutes les {n} minute",
-        "everyMinutes": "toutes les {n} minutes",
-        "everySeconds": "toutes les {n} secondes",
-        "dailyAt": "tous les jours à {time}",
+        "everyDay": "Tous les {n} jour",
+        "everyDays": "Tous les {n} jours",
+        "everyHour": "Toutes les {n} heure",
+        "everyHours": "Toutes les {n} heures",
+        "everyMinute": "Toutes les {n} minute",
+        "everyMinutes": "Toutes les {n} minutes",
+        "everySeconds": "Toutes les {n} secondes",
+        "dailyAt": "Tous les jours à {time}",
         "empty": "—"
       },
       "mode": {
         "basic": "basique",
         "advanced": "avancé"
-      }
+      },
+      "lastPolledAt": "Dernier polling à {time}"
     },
     "condition": {
       "summaryNone": "Se déclenche à chaque cycle de polling (aucune condition).",
@@ -265,7 +286,7 @@
     },
 
     "testPanel": {
-      "intro": "Déclenche le pipeline de polling une fois manuellement. L'alerte ne sera pas activée et aucun lot ne sera déclenché — le résultat ouvrira un panneau montrant le détail par champ et le message que chaque lot enverrait.",
+      "intro": "Déclenche le pipeline de polling une fois manuellement. L'alerte ne sera pas activée et aucun bundle ne sera déclenché — le résultat ouvrira un panneau montrant le détail par champ et le message que chaque bundle enverrait.",
       "runButton": "Lancer un test de polling",
       "pollingButton": "Polling…"
     },
@@ -283,23 +304,30 @@
     },
 
     "bundleModal": {
-      "title": "Modifier le lot {n}",
-      "newTitle": "Nouveau lot",
+      "title": "Modifier le bundle {n}",
+      "newTitle": "Nouveau bundle",
       "closeTitle": "Fermer",
       "savingButton": "Enregistrement…",
-      "saveButton": "Enregistrer le lot",
+      "saveButton": "Enregistrer le bundle",
       "cancelButton": "Annuler",
-      "discardWarning": "⚠ Abandonner les modifications non enregistrées de ce lot ?",
+      "discardWarning": "⚠ Abandonner les modifications non enregistrées de ce bundle ?",
       "keepEditingButton": "Continuer l'édition",
       "discardButton": "Abandonner",
-      "untitled": "Sans titre"
+      "untitled": "Sans titre",
+      "titleLabel": "Titre du bundle",
+      "namePlaceholder": "Bundle {n}"
     },
 
     "errors": {
-      "savingBundle": "Erreur lors de l'enregistrement du lot :",
+      "savingBundle": "Erreur lors de l'enregistrement du bundle :",
       "testFailed": "Échec du test",
       "duplicating": "Erreur lors de la duplication de l'alerte :"
     }
+  },
+
+  "testVerdict": {
+    "fired": "DÉCLENCHÉE",
+    "notFired": "NON DÉCLENCHÉE"
   },
 
   "alertActions": {
@@ -312,7 +340,7 @@
 
   "testIntroDialog": {
     "title": "À propos du test",
-    "body": "Un test exécute l'alerte une fois, immédiatement. Cela n'active pas l'alerte, ne persiste aucun état (dernier déclenchement, baseline, hash…) et n'envoie aucun message aux lots — le résultat s'ouvrira dans un panneau pour inspecter ce que l'alerte a observé et le message que chaque lot aurait envoyé.",
+    "body": "Un test exécute l'alerte une fois, immédiatement. Cela n'active pas l'alerte, ne persiste aucun état (dernier déclenchement, baseline, hash…) et n'envoie aucun message aux bundles — le résultat s'ouvrira dans un panneau pour inspecter ce que l'alerte a observé et le message que chaque bundle aurait envoyé.",
     "dontShowAgain": "Ne plus afficher ce message",
     "confirm": "Lancer le test"
   },
@@ -423,7 +451,10 @@
     "watchedPathsInsertTitle": "Insérer {token}",
     "sourceTitlePollingFormat": "source.{format}",
     "sourceTitleWebhook": "payload.json (Données de test)",
+    "sourceTitleMonitor": "monitor-probe.json",
     "sourceRefreshTitle": "Re-récupérer la source",
+    "errorInvalidJsonPrettify": "JSON invalide : impossible de formater.",
+    "errorAlertNotSaved": "Cette alerte n'a pas encore été enregistrée. Aucun payload en base.",
     "monitorProbeTitle": "Interroger l'URL du monitor",
     "sourceExampleButton": "Exemple",
     "sourceLastReceivedButton": "Dernier reçu",
@@ -477,7 +508,7 @@
   },
 
   "bundleKind": {
-    "groupLabel": "Canal du lot",
+    "groupLabel": "Canal du bundle",
     "fieldLabel": "Canal",
     "olvid": "Olvid",
     "mail": "Email",
@@ -485,9 +516,18 @@
   },
 
   "bundleRow": {
-    "tag": "LOT {n}",
+    "tag": "BUNDLE {n}",
+    "untitled": "Bundle sans titre",
+    "noDestinations": "Aucune destination",
+    "editTooltip": "Modifier le bundle",
+    "removeTooltip": "Supprimer le bundle",
+    "status": {
+      "ready": "Prêt",
+      "noDestinations": "Aucune destination",
+      "noScript": "Format personnalisé défini mais aucun script"
+    },
     "destSummary": {
-      "None": "— no discussions —",
+      "None": "— aucune discussion —",
       "Plural": "{firstTwoNames} + {remaining} autres discussions",
       "PlusOne": "{firstTwoNames} + 1 autre discussion"
     },
@@ -504,9 +544,8 @@
       "pollingCustom": "Script personnalisé"
     },
     "scriptButton": "Script",
-    "previewPlaceholder": "Message de polling par défaut — remplit les chemins surveillés et leurs valeurs observées lorsque l'alerte se déclenche.",
-    "removeTitle": "Supprimer le lot",
-    "editTitle": "Modifier ce lot",
+    "removeTitle": "Supprimer le bundle",
+    "editTitle": "Modifier ce bundle",
     "editButton": "✎ Modifier"
   },
 
@@ -559,6 +598,16 @@
       "minutes": "minutes",
       "hours": "heures",
       "daily": "chaque jour"
+    },
+    "cron": {
+      "legend": {
+        "minute": "minute",
+        "hour": "heure",
+        "dayOfMonth": "jour-du-mois",
+        "month": "mois",
+        "dayOfWeek": "jour-de-la-semaine"
+      },
+      "invalid": "Expression cron invalide"
     }
   },
 
@@ -663,9 +712,11 @@
       "resendVerification": "Renvoyer l'e-mail de vérification",
       "verificationSent": "E-mail de vérification envoyé. Consultez votre boîte de réception.",
       "forgot": "Mot de passe oublié ?",
-      "forgotHint": "Nous enverrons un lien de réinitialisation au canal associé à ce compte.",
-      "forgotSubmit": "Envoyer le lien",
+      "forgotTitle": "Réinitialiser le mot de passe",
+      "forgotHint": "Entrez votre identifiant. Nous enverrons un lien de réinitialisation au canal associé à ce compte.",
+      "forgotSubmit": "Renvoyer le mot de passe",
       "forgotBusy": "Envoi…",
+      "forgotBackToLogin": "Retour à la connexion",
       "resetSentOlvid": "Lien de réinitialisation envoyé sur Olvid. Consultez votre conversation avec le bot.",
       "resetSentMail": "Lien de réinitialisation envoyé par e-mail. Consultez votre boîte de réception.",
       "resetUnreachable": "Ce compte n'a aucun canal de contact associé. Demandez à un administrateur de vous renvoyer une invitation.",
@@ -682,7 +733,9 @@
       "errorPasswordsDoNotMatch": "Les mots de passe ne correspondent pas",
       "errorTokenInvalid": "Cette invitation est invalide, expirée ou déjà utilisée.",
       "errorBadPassword": "Choisissez un mot de passe d'au moins 8 caractères.",
-      "errorNetwork": "Impossible de joindre le serveur — veuillez réessayer."
+      "errorNetwork": "Impossible de joindre le serveur — veuillez réessayer.",
+      "invalidTitle": "Invitation invalide ou expirée",
+      "invalidBody": "Ce lien d'invitation est invalide, expiré ou déjà utilisé. Demandez à votre administrateur une nouvelle invitation."
     },
     "resetPassword": {
       "title": "Réinitialiser le mot de passe",
@@ -695,7 +748,9 @@
       "errorPasswordsDoNotMatch": "Les mots de passe ne correspondent pas",
       "errorTokenInvalid": "Ce lien de réinitialisation est invalide, expiré ou déjà utilisé.",
       "errorBadPassword": "Choisissez un mot de passe d'au moins 8 caractères.",
-      "errorNetwork": "Impossible de joindre le serveur — veuillez réessayer."
+      "errorNetwork": "Impossible de joindre le serveur — veuillez réessayer.",
+      "invalidTitle": "Lien de réinitialisation invalide ou expiré",
+      "invalidBody": "Ce lien de réinitialisation est invalide, expiré ou déjà utilisé. Demandez-en un nouveau depuis la page de connexion."
     },
     "verify": {
       "pending": "Vérification…",
@@ -707,22 +762,37 @@
       "errorCta": "Retour à la connexion"
     },
     "setup": {
-      "title": "Créer le premier administrateur",
-      "hint": "Collez la clé ADMIN_KEY de votre .env pour prouver que vous avez déployé cette instance, puis renseignez vos informations.",
+      "title": "Configuration initiale",
+      "hint": "Collez la clé ADMIN_KEY de votre .env pour prouver que vous avez déployé cette instance.",
       "adminKey": "ADMIN_KEY",
-      "namePlaceholder": "Nom (facultatif)",
-      "emailPlaceholder": "E-mail",
-      "usernamePlaceholder": "Nom d'utilisateur",
-      "passwordPlaceholder": "Mot de passe (min. 8 caractères)",
-      "submit": "Créer l'administrateur",
-      "noSmtpHint": "SMTP n'est pas configuré sur ce déploiement — vous serez connecté directement après la création du compte (pas de vérification par e-mail).",
-      "doneTitle": "Consultez votre boîte de réception",
-      "doneBody": "Un lien de vérification a été envoyé à {email}. Cliquez dessus pour activer le compte, puis connectez-vous.",
+      "keyNext": "Suivant",
+      "keyBusy": "Vérification…",
+
+      "inviteTitle": "Invitez-vous comme premier administrateur",
+      "inviteHint": "Choisissez un canal de livraison — le même que vous utiliseriez pour inviter n'importe qui — et nous vous enverrons le lien d'activation. Vous définirez votre mot de passe en l'ouvrant.",
+      "fieldLogin": "Nom d'utilisateur",
+      "loginPlaceholder": "Le nom que vous saisirez à la connexion",
+      "fieldName": "Nom affiché (facultatif)",
+      "namePlaceholder": "Nom affiché dans l'application",
+      "fieldEmail": "E-mail",
+      "emailPlaceholder": "Où envoyer le lien d'activation",
+      "inviteSubmit": "Envoyer le lien d'activation",
+      "inviteBusy": "Envoi…",
+      "back": "Retour",
+
+      "doneTitle": "Configuration démarrée",
+      "doneMail": "Lien d'activation envoyé par e-mail. Ouvrez-le pour définir votre mot de passe et vous connecter.",
+      "doneOlvid": "Lien d'activation envoyé via Olvid. Ouvrez le message du bot pour définir votre mot de passe.",
+      "doneLink": "Ouvrez le lien d'activation ci-dessous pour définir votre mot de passe et vous connecter.",
       "doneCta": "Aller à la connexion",
+
       "errorAdminKeyNotConfigured": "ADMIN_KEY n'est pas défini sur le serveur. Configurez-le dans .env puis redémarrez.",
       "errorInvalidAdminKey": "Cette clé d'administrateur ne correspond pas à celle configurée sur le serveur.",
       "errorAlreadyComplete": "Un administrateur existe déjà sur ce déploiement.",
-      "errorFallback": "Impossible de créer le compte administrateur. Vérifiez les champs et réessayez."
+      "errorEmailRequired": "Une adresse e-mail est requise pour le canal e-mail.",
+      "errorMailNotConfigured": "SMTP n'est pas configuré sur ce déploiement — choisissez un autre canal.",
+      "errorOlvidRequired": "Choisissez une discussion Olvid (contact) pour la livraison.",
+      "errorFallback": "Impossible de démarrer la configuration. Vérifiez les champs et réessayez."
     },
     "users": {
       "inviteButton": "Inviter un utilisateur",
@@ -733,23 +803,16 @@
         "status": "Statut"
       },
       "loginTagEmail": "L'identifiant est une adresse e-mail",
-      "loginTagLocal": "Nom d'utilisateur local (pas de livraison par e-mail)",
-      "loginTagLocalShort": "Nom d'utilisateur local",
+      "loginTagOlvid": "L'identifiant est une discussion Olvid",
+      "loginTagLocal": "Nom d'utilisateur local",
       "copyLinkTitle": "Générer et copier un lien d'invitation",
       "resendTitle": "Renvoyer l'invitation",
       "confirmDeletePrompt": "Supprimer l'utilisateur {login} ?",
-      "feedbackEmailed": "Invitation envoyée par e-mail à {recipient}.",
-      "feedbackReSent": "Invitation renvoyée à {recipient}.",
-      "feedbackSent": "Invitation envoyée à {recipient} via {channel}.",
-      "feedbackReSentVia": "Invitation renvoyée à {recipient} via {channel}.",
-      "feedbackRefreshed": "Invitation actualisée. Copiez le lien pour le partager manuellement.",
-      "channelMail": "e-mail",
-      "channelOlvid": "Olvid",
-      "errorResend": "Impossible de renvoyer l'invitation.",
-      "errorGenerateLink": "Impossible de générer un nouveau lien d'invitation.",
-      "errorCannotDeleteSelf": "Vous ne pouvez pas supprimer votre propre compte.",
-      "errorCannotDeleteLastAdmin": "Il doit rester au moins un administrateur.",
-      "errorDeleteFallback": "Impossible de supprimer cet utilisateur."
+      "confirmResendPrompt": "Renvoyer l'invitation à {recipient} via {channel} ?",
+      "confirmResendConfirm": "Renvoyer",
+      "resendSuccessTitle": "Invitation envoyée",
+      "resendSuccessMessage": "Une nouvelle invitation a été envoyée à {recipient} via {channel}.",
+      "channelMail": "e-mail"
     },
     "inviteModal": {
       "title": "Inviter un nouvel utilisateur",

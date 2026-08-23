@@ -19,7 +19,7 @@ import type { AlertStatus } from "#shared/types/alert";
 const props = defineProps<{
   title: string;
   description?: string;
-  inputTitle: string;
+  inputTitle?: string;
   status: AlertStatus;
   isExisting: boolean;
   canActivate: boolean;

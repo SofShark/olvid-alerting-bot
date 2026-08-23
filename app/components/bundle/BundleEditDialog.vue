@@ -7,21 +7,10 @@ import {
   type BundleModel,
 } from "#shared/types/bundle";
 import type { DiscussionModel } from "#shared/types/discussion";
-import { buildPollingDefaultMessage } from "#shared/polling/message";
 import { useBundleEditor } from "~/composables/useBundleEditor";
 
 /*
-  THE bundle editor — one modal for both flows:
-
-    - Edit    (index: number)  → seeded from the existing bundle.
-    - Create  (index: null)    → seeded from a source-appropriate blank;
-                                 the parent pushes the result on save.
-
-  Owns none of the state logic — draft lifecycle, dirty tracking,
-  per-kind stash, format normalization, and v-model bindings all live
-  in `useBundleEditor`. This file is layout + i18n copy + the two
-  cross-cutting concerns that stay here: format labels (i18n) and the
-  live polling-default preview (feeds off the parent's payload).
+  Bundle editor — used both in view and edit/creation modes:
 */
 
 const props = defineProps<{
@@ -34,9 +23,6 @@ const props = defineProps<{
   availableDiscussions: DiscussionModel[];
   discussionsLoading: boolean;
   saving?: boolean;
-  /** Live parsed payload from the wizard's trigger step — feeds the
-   *  polling-default preview. */
-  pollPayload?: unknown;
 }>();
 
 const emit = defineEmits<{
@@ -69,17 +55,6 @@ const {
   availableDiscussions: toRef(props, "availableDiscussions"),
 });
 
-// Presentation-only bits stay in the .vue file.
-
-const isCreate = computed(() => props.index === null);
-const modalTitle = computed(() =>
-  isCreate.value
-    ? t("editor.bundleModal.newTitle")
-    : t("editor.bundleModal.title", {
-        n: bundleName.value || t("editor.bundleModal.untitled"),
-      }),
-);
-
 // Format options depend on the alert's source. Kept in the .vue file
 // because the labels are i18n copy — the composable stays translation-free.
 const formatOptions = computed(() =>
@@ -103,17 +78,6 @@ const formatOptions = computed(() =>
         { value: Formatting.Custom, label: t("bundleRow.format.custom") },
       ],
 );
-
-// Polling-default preview. Kept here because it depends on the parent's
-// `pollPayload` prop — the composable is otherwise prop-shape-agnostic.
-const pollingPreview = computed(() => {
-  if (formating.value !== Formatting.PollingDefault) return "";
-  if (!props.alertContext) return "";
-  return buildPollingDefaultMessage(
-    props.alertContext,
-    props.pollPayload ?? {},
-  );
-});
 
 // ── Close / save flow ─────────────────────────────────────────────────────
 
@@ -162,12 +126,16 @@ const onSave = () => {
       <div v-if="draft" class="modal-body">
         <!-- Title — optional; rows fall back to "Untitled bundle". -->
         <div class="field">
-          <label class="field-label">Bundle Title</label>
+          <label class="field-label">{{ t("editor.bundleModal.titleLabel") }}</label>
           <input
             v-model="bundleName"
             type="text"
             class="field-input"
-            :placeholder="`Bundle ${(index ?? alertContext.bundles.length) + 1}`"
+            :placeholder="
+              t('editor.bundleModal.namePlaceholder', {
+                n: (index ?? alertContext.bundles.length) + 1,
+              })
+            "
           />
         </div>
 
@@ -182,9 +150,9 @@ const onSave = () => {
 
         <!-- Recipients — the picker above decides which one renders.
              Empty bundles show a soft hint asking the user to pick first. -->
-        <div v-if="kind === null" class="field field-hint">
+        <span v-if="kind === null" class="hint">
           {{ $t("bundleKind.pickPrompt") }}
-        </div>
+        </span>
 
         <div v-else-if="kind === BundleOutputType.Olvid" class="field">
           <label class="field-label">{{
@@ -224,12 +192,6 @@ const onSave = () => {
               {{ $t("bundleRow.scriptButton") }}
             </button>
           </div>
-
-          <pre
-            v-if="formating === Formatting.PollingDefault"
-            class="poll-preview"
-            >{{ pollingPreview || $t("bundleRow.previewPlaceholder") }}</pre
-          >
         </div>
       </div>
 
@@ -306,22 +268,6 @@ const onSave = () => {
 }
 .format-select {
   flex: 1;
-}
-
-.poll-preview {
-  margin: var(--space-3) 0 0;
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-bg-input);
-  border: 1px dashed var(--color-accent-border);
-  border-radius: var(--radius-md);
-  color: var(--color-accent-text);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 140px;
-  overflow-y: auto;
 }
 
 .modal-foot {
