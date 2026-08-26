@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { Source } from "#shared/types/source";
+import type { AlertParams } from "#shared/types/alert";
 import { BundleOutputType } from "#shared/types/bundle";
 import type { WebhookTemplateId } from "~~/shared/payloadTemplates";
 
@@ -26,24 +27,27 @@ import type { WebhookTemplateId } from "~~/shared/payloadTemplates";
   Callers pass `open` and listen to `close` — no bespoke overlay.
 */
 
-const props = defineProps({
-  open: { type: Boolean, default: false },
-  initialScript: { type: String, default: "" },
-  inputSource: { type: String, default: Source.Webhook },
-  alertParams: { type: Object, default: () => ({}) },
-  alertId: { type: Number as () => number | null, default: null },
-  /** Channel the bundle delivers to — drives the preview's flavor
-   *  (chat bubble vs email frame). Defaults to Olvid for callers that
-   *  don't yet pass it. */
-  previewMode: {
-    type: String as () => BundleOutputType,
-    default: BundleOutputType.Olvid,
+const props = withDefaults(
+  defineProps<{
+    open?: boolean;
+    initialScript?: string;
+    inputSource?: Source;
+    alertParams?: AlertParams;
+    alertId?: number | null;
+    previewMode?: BundleOutputType;
+    mailFrom?: string;
+    mailSubject?: string;
+  }>(),
+  {
+    open: false,
+    initialScript: "",
+    inputSource: Source.Webhook,
+    alertId: null,
+    previewMode: BundleOutputType.Olvid,
+    mailFrom: "",
+    mailSubject: "",
   },
-  /** Optional labels for the mail preview's From / Subject rows —
-   *  ignored when previewMode is olvid. */
-  mailFrom: { type: String, default: undefined },
-  mailSubject: { type: String, default: undefined },
-});
+);
 
 const emit = defineEmits(["save", "close"]);
 
@@ -145,7 +149,7 @@ const onClose = () => emit("close");
           :is-polling="isPolling"
           :is-monitoring="isMonitoring"
           :picker-mode="pickerMode"
-          :format="alertParams?.format ?? 'xml'"
+          :format="isPolling ? (alertParams as PollingParams)!.format : PollingFormat.JSON"
           :polling-loading="polling.pollingLoading.value"
           :polling-error="polling.pollingError.value"
           :root-entries="polling.rootEntries.value"

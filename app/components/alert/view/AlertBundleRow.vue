@@ -147,7 +147,7 @@ const destSummary = computed(() => {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   color: var(--color-text-dim);
   min-width: 0;
 }
@@ -176,7 +176,7 @@ const destSummary = computed(() => {
   color: var(--color-text-dim);
   width: 30px;
   height: 30px;
-  font-size: var(--text-l);
+  font-size: var(--text-xl);
   border-radius: var(--radius-sm);
   cursor: pointer;
   display: inline-flex;

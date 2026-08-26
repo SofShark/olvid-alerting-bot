@@ -28,11 +28,7 @@ const props = withDefaults(
     disabled?: boolean;
     placeholder?: string;
     size?: "md" | "sm";
-    // Initial open state. Only read at mount; further changes are
-    // ignored so the user can freely open/close after that. Used by
-    // callers that unmount+remount the Select to reopen it (e.g.
-    // InputSourceSelector's "Change" button clears the selection and
-    // wants the picker back on screen already expanded).
+    // Initial open state. Only read at mount
     defaultOpen?: boolean;
   }>(),
   {
@@ -249,7 +245,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 .size-sm .select-item {
   padding: 6px var(--space-3);
   border-radius: var(--radius-sm);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   white-space: nowrap;
 }
 </style>

@@ -23,7 +23,12 @@ const summary = computed(() => conditionSummary(props.condition));
   <div>
     <p class="condition-text">{{ summary.headline }}</p>
     <div v-if="summary.paths.length > 0" class="path-list">
-      <code v-for="p in summary.paths" :key="p" class="path-tag">{{ p }}</code>
+      <div class="chip" :title="summary.paths[0]">
+        <span class="chip-path">{{ summary.paths[0] }}</span>
+      </div>
+      <div v-if="summary.paths.length > 1" class="chip">
+        <span class="chip-path">+{{ summary.paths.length - 1 }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -39,15 +44,7 @@ const summary = computed(() => conditionSummary(props.condition));
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  color: var(--color-text-dim);
 }
-.path-tag {
-  display: inline-block;
-  background: var(--color-accent-soft);
-  border: 1px solid var(--color-accent-border);
-  color: var(--color-accent-text);
-  font-size: var(--text-md);
-  font-weight: 500;
-  padding: 2px var(--space-3);
-  border-radius: var(--radius-md);
-}
+
 </style>

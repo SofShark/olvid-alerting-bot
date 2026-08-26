@@ -116,6 +116,7 @@ const initial = (address: string): string => {
           >
             <LucideX :stroke-width="2" />
           </button>
+          
         </div>
         <span class="strip-name" :title="address">{{ address }}</span>
       </div>
@@ -132,8 +133,8 @@ const initial = (address: string): string => {
         v-model="input"
         type="email"
         :placeholder="t('emailRecipientSelector.addPlaceholder')"
-        class="text-input"
-        :class="{ 'has-error': error }"
+        class="field-input field-focus"
+        :class="{ 'error': error }"
         @keydown="onKeydown"
         @input="onInput"
         @blur="commit"
@@ -193,31 +194,43 @@ const initial = (address: string): string => {
   font-weight: 600;
   letter-spacing: 0.5px;
 }
+/* Remove badge sits on the top-right of the avatar. The SVG inside is
+ * a Lucide component that renders at its own intrinsic size unless
+ * constrained — a scoped :deep(svg) rule pins it so raising the
+ * button's own dimensions actually enlarges the icon too. */
 .strip-remove {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 16px;
-  height: 16px;
+  top: -1px;
+  right: -1px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  border: none;
+  border: 1px solid var(--color-border-subtle);
   background: var(--color-bg-panel);
   color: var(--color-text-secondary);
-  font-size: 9px;
-  line-height: 1;
+  padding: 0;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   transition:
     background-color 0.15s,
-    color 0.15s;
+    color 0.15s,
+    transform 0.05s ease;
+}
+.strip-remove :deep(svg) {
+  width: 8px;
+  height: 8px;
+  stroke-width: 2.5;
 }
 .strip-remove:hover {
-  background: var(--color-danger, #ef4444);
-  color: #fff;
+  background: var(--color-danger);
+  color: var(--white);
+  border-color: var(--color-danger);
+  transform: scale(1.05);
 }
+
 .strip-name {
   max-width: 56px;
   font-size: var(--text-xs);
@@ -232,45 +245,17 @@ const initial = (address: string): string => {
   position: relative;
   width: 100%;
 }
-.text-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 9px var(--space-4);
-  background: var(--color-bg-input);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  font-family: inherit;
-  font-size: var(--text-base);
-  outline: none;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
-}
-.text-input:focus {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
-}
-.text-input.has-error {
-  border-color: var(--color-danger, #ef4444);
-}
-.text-input.has-error:focus {
-  box-shadow: 0 0 0 3px
-    color-mix(in srgb, var(--color-danger, #ef4444) 20%, transparent);
-}
-.text-input::placeholder {
-  color: var(--color-border-default);
-}
+
 .error-msg {
   margin: var(--space-1) 0 0;
-  color: var(--color-danger-text, #b91c1c);
-  font-size: var(--text-sm);
+  color: var(--color-danger-text);
+  font-size: var(--text-s);
 }
 
 .empty-readonly {
   margin: 0;
   color: var(--color-text-faint);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-style: italic;
 }
 </style>

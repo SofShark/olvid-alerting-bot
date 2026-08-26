@@ -241,7 +241,7 @@ const initials = (title: string): string => {
 
 .row-title {
   font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -291,7 +291,7 @@ const initials = (title: string): string => {
 
 .sidebar-empty {
   color: var(--color-text-faint);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   text-align: center;
   padding: var(--space-8) var(--space-4);
   font-style: italic;

@@ -112,7 +112,7 @@ defineEmits<{ (e: "update:modelValue", v: number): void }>();
   background: var(--color-bg-card);
   border: 1.5px solid var(--color-border-default);
   color: var(--color-text-dim);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -165,7 +165,7 @@ defineEmits<{ (e: "update:modelValue", v: number): void }>();
   gap: 1px;
 }
 .stepper-title {
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   font-weight: 700;
   color: var(--color-text-dim);
   letter-spacing: 0.4px;

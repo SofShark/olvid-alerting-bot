@@ -9,7 +9,7 @@
 
   "accountMenu": {
     "account": "Compte",
-    "login": "Identifiant",
+    "login": "Login",
     "email": "E-mail",
     "role": "Rôle",
     "logout": "Déconnexion"
@@ -82,8 +82,8 @@
     "newAlert": "Nouvelle alerte",
     "backToList": "Retour à la liste",
     "back": "Retour",
-    "continue": "Continuer →",
-    "addBundles": "Ajouter des bundles →",
+    "continue": "Continuer",
+    "addBundles": "Ajouter des bundles",
     "editAlert": "Modifier",
     "close": "Fermer",
     "done": "Terminé",
@@ -104,7 +104,7 @@
 
     "discardModal": {
       "title": "Modifications non enregistrées",
-      "message": "Si vous quittez maintenant, votre progression sera perdue. Souhaitez-vous enregistrer cette alerte comme brouillon avant de partir ?"
+      "message": "Si vous quittez maintenant, votre progression sera perdue. Souhaitez-vous garder le progrès avant de partir?"
     },
 
     "deleteModal": {
@@ -136,9 +136,7 @@
       "pollingConfiguration": "Configuration du polling",
       "monitorConfiguration": "Configuration du monitoring"
     },
-
-    "communicationHint": "Communication : ",
-    "communicationHintSuffix": " — comment cette source communique avec le système d'alerte.",
+    "communicationHint": "Communication : comment cette source communique avec le système d'alerte.",
 
     "webhookInfo": {
       "title": "URL Webhook",
@@ -442,11 +440,10 @@
   "formatEditor": {
     "title": "Éditeur de format personnalisé",
     "intro": {
-      "polling": "Construisez le message envoyé lorsque cette alerte de polling se déclenche. Cliquez sur n'importe quelle valeur à droite pour insérer son chemin, ou utilisez les raccourcis de chemins surveillés sous le script.",
-      "monitoring": "Construisez le message envoyé lorsque ce monitor se déclenche. Appuyez sur ⟳ pour interroger l'URL ; cliquez sur n'importe quel champ à droite ({status}, {body}, {url}, {latencyMs}) pour insérer son chemin.",
+      "polling": "Cliquez les champs en bas pour insérer son chemin, ou utilisez les raccourcis de chemins surveillés sous le script.",
+      "monitoring": "Appuyez sur ⟳ pour interroger l'URL ; cliquez sur les champs en bas pour l'insérer",
       "webhook": "Configurez le message que les utilisateurs recevront sur Olvid."
     },
-    "scriptTitle": "script.hbs (Handlebars)",
     "watchedPathsLabel": "Chemins surveillés :",
     "watchedPathsInsertTitle": "Insérer {token}",
     "sourceTitlePollingFormat": "source.{format}",
@@ -460,7 +457,7 @@
     "sourceLastReceivedButton": "Dernier reçu",
     "sourceLoadingPolling": "Chargement de la source…",
     "sourceLoadingMonitor": "Interrogation du endpoint…",
-    "sourceEmptyPolling": "Aucune donnée pour le moment.",
+    "sourceEmptyPolling": "Appuyez sur ⟳ pour interroger l'URL.",
     "sourceEmptyMonitor": "Appuyez sur ⟳ pour interroger l'URL du monitor.",
     "sourceLoadingWebhook": "Chargement…",
     "sourceNoPayloads": "Aucune charge utile reçue depuis cette source d'entrée pour le moment.",
@@ -477,7 +474,9 @@
       "mailTitle": "Aperçu dans la boîte mail",
       "placeholder": "Le message formaté apparaîtra ici...",
       "sender": "Bot d'alerte",
-      "time": "maintenant"
+      "time": "maintenant",
+      "mailHint": "Mettez en forme votre message mail avec des balises HTML",
+      "olvidHint": "Mettez en forme votre message Olvid avec le markdown Olvid — voir https://olvid.io/faq/mettre-en-forme-vos-messages/"
     },
     "mailPreview": {
       "from": "De",
@@ -534,6 +533,7 @@
     "fields": {
       "discussions": "Discussions",
       "emailRecipients": "Destinataires email",
+      "mailSubject": "Objet du mail",
       "format": "Format du message"
     },
     "format": {
@@ -658,7 +658,7 @@
       }
     },
     "view": {
-      "triggersOn": "Se déclenche sur",
+      "triggersOn": "Condition",
       "codes": "Codes : {codes}",
       "range": "Toute réponse {range}",
       "notOk": "Toute réponse non-2xx"
@@ -717,9 +717,7 @@
       "forgotSubmit": "Renvoyer le mot de passe",
       "forgotBusy": "Envoi…",
       "forgotBackToLogin": "Retour à la connexion",
-      "resetSentOlvid": "Lien de réinitialisation envoyé sur Olvid. Consultez votre conversation avec le bot.",
-      "resetSentMail": "Lien de réinitialisation envoyé par e-mail. Consultez votre boîte de réception.",
-      "resetUnreachable": "Ce compte n'a aucun canal de contact associé. Demandez à un administrateur de vous renvoyer une invitation.",
+      "resetSubmitted": "Si nous reconnaissons cet identifiant, un lien de réinitialisation a été envoyé sur le canal associé. Consultez votre conversation Olvid ou votre boîte de réception — si rien n'arrive, demandez à un administrateur une nouvelle invitation.",
       "resetNetworkError": "Impossible de joindre le serveur — veuillez réessayer."
     },
     "invite": {
@@ -797,7 +795,7 @@
     "users": {
       "inviteButton": "Inviter un utilisateur",
       "table": {
-        "login": "Identifiant",
+        "login": "Login",
         "name": "Nom",
         "role": "Rôle",
         "status": "Statut"

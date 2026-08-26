@@ -1,4 +1,4 @@
-// `Any` — boolean combinator: at least one watched path's verdict fires.
+// `Any` — boolean aggregator: at least one watched path's verdict fires.
 
 import { ConditionAggregation } from "../../types/condition";
 import type { BooleanAggregatorStrategy } from "../../types/aggregatorStrategy";

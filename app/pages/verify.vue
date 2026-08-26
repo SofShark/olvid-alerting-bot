@@ -46,7 +46,7 @@ onMounted(async () => {
 <style scoped>
 .hint {
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   margin-top: var(--space-3);
   margin-bottom: var(--space-4);
 }

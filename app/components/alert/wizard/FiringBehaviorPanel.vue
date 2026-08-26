@@ -1,45 +1,26 @@
 <script setup lang="ts">
-import { ref } from "vue";
 import { TriggerMode } from "#shared/types/triggerMode";
 
 /*
-  Source-agnostic "Firing behavior" panel — the same block rendered
-  under both polling ConditionEditor and monitoring StatusMatchEditor
-  in wizard step 2. Concentrates the concepts of "WHEN does a match
-  actually notify?" separately from "WHAT counts as a match?".
-
-  Two rows today:
-    · Trigger mode  → segmented pills (Every time / Once / Once + recovery)
-    · Datapoints   → "Fire after N of last M evaluations match" (MOCKUP)
-
-  Datapoints is a UI-only mockup right now — the inputs live in local
-  state and are NOT persisted. The runtime keeps behaving as N=M=1.
-  Wiring persistence + the runtime confirmation window is a follow-up
-  task; the shape is here so we can iterate on the UX first.
-
-  The trigger-mode row can be hidden via `showTriggerMode=false` — used
-  by polling for edge-native conditions (kind=None or operator=Changed)
-  where the engine ignores the mode.
+  "Firing behavior" panel 
+  Two rows: trigger mode + datapoints (fire after N of last M matches).
+  Vmodels -> the parent binds them onto alertParams.
 */
 
-const model = defineModel<TriggerMode>({ required: true });
+const triggerMode = defineModel<TriggerMode>("triggerMode", { required: true });
+const datapointsN = defineModel<number>("datapointsN", { required: true });
+const datapointsM = defineModel<number>("datapointsM", { required: true });
 
 withDefaults(
   defineProps<{
     variant: "polling" | "monitoring";
-    /** Hide the trigger-mode row when the engine ignores it. */
     showTriggerMode?: boolean;
   }>(),
   { showTriggerMode: true },
 );
 
-// Datapoints — mockup only, local state. Bounded 1..10 to keep the UI
-// sane; real limit will live in the runtime when persistence lands.
-const datapointsN = ref(1);
-const datapointsM = ref(1);
-
-// N cannot exceed M — clamp on input so the sentence never reads
-// "3 of 2".
+// Clamp so the sentence never reads "3 of 2". 1..10 keeps the UI sane;
+// the real max is enforced by the runtime once datapoints history is wired.
 function onNInput(e: Event) {
   const v = Math.max(
     1,
@@ -50,7 +31,7 @@ function onNInput(e: Event) {
 function onMInput(e: Event) {
   const v = Math.max(
     1,
-    Math.min(10, Number((e.target as HTMLInputElement).value) || 1),
+    Math.min(50, Number((e.target as HTMLInputElement).value) || 1),
   );
   datapointsM.value = v;
   if (datapointsN.value > v) datapointsN.value = v;
@@ -61,18 +42,13 @@ function onMInput(e: Event) {
   <div class="wcard">
     <div class="wcard-head">{{ $t("wizard.firingBehavior.title") }}</div>
     <div class="wcard-body">
-      <!-- Trigger mode row -->
       <div v-if="showTriggerMode" class="wcard-row">
         <span class="wcard-label">{{
           $t("wizard.firingBehavior.triggerModeLabel")
         }}</span>
-        <TriggerModePicker v-model="model" :variant="variant" />
+        <TriggerModePicker v-model="triggerMode" :variant="variant" />
       </div>
 
-      <!-- Datapoints row — MOCKUP, not persisted yet.
-           <i18n-t> weaves the two number inputs into the localised
-           sentence via named slots {n} and {m}, so translators can
-           reorder the placeholders as needed without breaking the UI. -->
       <div class="wcard-row">
         <span class="wcard-label">{{
           $t("wizard.firingBehavior.datapointsLabel")
@@ -97,7 +73,7 @@ function onMInput(e: Event) {
               <input
                 type="number"
                 min="1"
-                max="10"
+                max="50"
                 class="dp-input"
                 :value="datapointsM"
                 @input="onMInput"
@@ -114,11 +90,6 @@ function onMInput(e: Event) {
 </template>
 
 <style scoped>
-/* Card chrome delegated to the shared .wcard/.wcard-head/.wcard-body/
- * .wcard-row/.wcard-label classes (see app/assets/css/components/wcard.css)
- * — same shape as ConditionEditor + StatusMatchEditor. */
-
-/* Datapoints — inline number inputs woven into a sentence. */
 .datapoints {
   display: flex;
   flex-direction: column;
@@ -131,7 +102,7 @@ function onMInput(e: Event) {
   flex-wrap: wrap;
   gap: var(--space-2);
   color: var(--color-text-primary);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
 }
 .dp-input {
   width: 56px;
@@ -142,7 +113,7 @@ function onMInput(e: Event) {
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-sm);
   font-family: inherit;
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-weight: 600;
 }
 .dp-input:focus {
@@ -152,7 +123,7 @@ function onMInput(e: Event) {
 .datapoints-hint {
   margin: 0;
   color: var(--color-text-dim);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   line-height: 1.5;
 }
 </style>

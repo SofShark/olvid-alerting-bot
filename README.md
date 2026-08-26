@@ -263,17 +263,18 @@ silently rejected.
 ## 🔨 Build & deployment
 
 ```bash
-docker compose up -d app
+docker compose build app
 ```
 
 Once logs hace stopped scrolling it means your docker container has been successfully built. 
-You can now run the alerting-bot app.
+You can now run the alerting-bot app. Make sure your daemon is also up so the connexion
+can be correctly established.
 
 ```bash
 docker compose up -d app
 ```
 
-That's it — the stack is live at <http://localhost:3000>.
+That's it — the alerting-bot app is live at <http://localhost:3000>, or change localhost by your deviceIP to allow LAN access.
 
 ### 📢 Expose the app publicly
 

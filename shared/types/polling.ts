@@ -21,21 +21,17 @@ export type PollingFormat = (typeof PollingFormat)[keyof typeof PollingFormat];
 export type PollingParams = {
   url: string;
   format: PollingFormat;
-
-  //Cron expression describing the polling cadence.
   schedule: string;
   condition: PollingCondition;
-  // When the alert should re-fire. default = EveryTime
   triggerMode?: TriggerMode;
+  /** Fire after `datapointsN` of the last `datapointsM` evaluations
+   *  match. Default 1/1 (fire immediately). */
+  datapointsN?: number;
+  datapointsM?: number;
 
-  // Runtime engine state — not user-edited ─────────────────────────────
+  // Runtime engine state — not user-edited.
   _lastHash?: string;
   _baseline?: unknown;
-  /**
-   * Was the condition true on the last poll? Required for OneShot /
-   * WithRecovery edge detection. The engine writes this after every poll.
-   */
   _lastFired?: boolean;
-  /** Epoch ms of the last completed poll attempt (success or failure). */
   _lastPolledAt?: number;
 };

@@ -2,11 +2,6 @@ import type { AlertModel } from "#shared/types/alert";
 import type { DiscussionModel } from "#shared/types/discussion";
 import { alertService } from "~/utils/alertService";
 
-/*Why useState instead of Vue's standard ref?
-If you just used const alerts = ref([]), the state would be localized to the specific component. 
-Furthermore, in an SSR environment like Nuxt, using ref for global state can cause memory leaks
-across different users' requests or cause the client browser to lose the data the server just fetched. 
-useState solves both problems by caching the data under the unique string key. */
 
 export const useAlerts = () => {
   const alerts = useState<AlertModel[]>("alerts", () => []);

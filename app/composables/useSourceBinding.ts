@@ -5,7 +5,7 @@ import { PollingFormat, type PollingParams } from "#shared/types/polling";
 import { TriggerMode } from "#shared/types/triggerMode";
 import type { MonitorParams } from "#shared/types/monitor";
 import { DEFAULT_SCHEDULE } from "#shared/polling/scheduler";
-import { blankCondition } from "#shared/condition/migrate";
+import { paramCleaner } from "~~/shared/condition/paramCleaner";
 
 /**
  * v-model binding for the source picker. Reading is `form.input` verbatim.
@@ -60,8 +60,10 @@ export const useSourceBinding = (
           url: prev?.url ?? "",
           format: prev?.format ?? PollingFormat.XML,
           schedule: prev?.schedule ?? DEFAULT_SCHEDULE,
-          condition: prev?.condition ?? blankCondition(),
+          condition: prev?.condition ?? paramCleaner.blankCondition(),
           triggerMode: prev?.triggerMode ?? TriggerMode.EveryTime,
+          datapointsN: prev?.datapointsN ?? 1,
+          datapointsM: prev?.datapointsM ?? 1,
           // Preserve any runtime state the engine may have left behind.
           ...(prev?._baseline !== undefined
             ? { _baseline: prev._baseline }
@@ -85,6 +87,8 @@ export const useSourceBinding = (
           schedule: prev?.schedule ?? DEFAULT_SCHEDULE,
           match: prev?.match ?? { kind: "not-ok" },
           triggerMode: prev?.triggerMode ?? TriggerMode.EveryTime,
+          datapointsN: prev?.datapointsN ?? 1,
+          datapointsM: prev?.datapointsM ?? 1,
           ...(prev?._lastStatus !== undefined
             ? { _lastStatus: prev._lastStatus }
             : {}),

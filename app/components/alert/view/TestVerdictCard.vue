@@ -93,7 +93,7 @@ defineProps<{
 .verdict-reason {
   margin: var(--space-3) 0 0;
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   line-height: 1.5;
 }
 </style>

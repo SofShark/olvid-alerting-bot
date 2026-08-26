@@ -267,7 +267,7 @@ function onLineClick() {
  * container chrome. */
 .element {
   font-family: var(--font-mono);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   line-height: 1.55;
   white-space: nowrap;
   border-radius: var(--radius-sm);
@@ -291,7 +291,7 @@ function onLineClick() {
 
 .text-line {
   font-family: var(--font-mono);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   line-height: 1.55;
   padding: 2px var(--space-2);
   border-radius: var(--radius-sm);

@@ -78,7 +78,7 @@ const activeHint = computed(() =>
   background: var(--color-border-subtle);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   color: var(--color-text-secondary);
   cursor: pointer;
   transition:
@@ -90,7 +90,7 @@ const activeHint = computed(() =>
 .trigger-mode-hint {
   margin: 0;
   color: var(--color-text-dim);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   line-height: 1.5;
 }
 </style>

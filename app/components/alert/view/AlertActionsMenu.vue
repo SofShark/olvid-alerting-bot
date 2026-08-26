@@ -171,7 +171,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   padding: 8px var(--space-3);
   text-align: left;
   font-family: var(--font-sans);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-weight: 500;
   color: var(--color-text-secondary);
   cursor: pointer;

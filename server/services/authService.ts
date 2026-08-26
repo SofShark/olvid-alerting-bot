@@ -15,9 +15,6 @@ export const authService = {
    * Consume an invite token and activate the owning user with the given
    * (already-hashed) password. Throws a 400 token_invalid on any token
    * failure (unknown / wrong purpose / expired / already used).
-   *
-   * The password must be hashed by the caller BEFORE calling this —
-   * hashing is CPU-bound and doesn't belong inside a DB transaction.
    */
   async acceptInvite(
     rawToken: string,

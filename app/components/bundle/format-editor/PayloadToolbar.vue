@@ -15,7 +15,7 @@ defineEmits<{
   <div class="payload-toolbar">
     <button
       type="button"
-      class="toggle-btn toggle-btn-wide"
+      class="code-toggle-btn code-toggle-btn-wide"
       :class="{ 'is-open': loadOpen }"
       :aria-expanded="loadOpen"
       :title="$t('formatEditor.toolbar.loadTemplateTitle')"
@@ -26,7 +26,7 @@ defineEmits<{
     </button>
     <span class="toolbar-divider" aria-hidden="true" />
     <button
-      class="toggle-btn"
+      class="code-toggle-btn"
       :title="$t('formatEditor.toolbar.pickerMode')"
       :aria-label="$t('formatEditor.toolbar.pickerMode')"
       @click="$emit('toggle-picker')"
@@ -34,7 +34,7 @@ defineEmits<{
       <LucidePipette :stroke-width="2" class="toolbar-icon" />
     </button>
     <button
-      class="toggle-btn"
+      class="code-toggle-btn"
       :title="$t('formatEditor.toolbar.prettify')"
       :aria-label="$t('formatEditor.toolbar.prettify')"
       @click="$emit('prettify')"
@@ -42,7 +42,7 @@ defineEmits<{
       { }
     </button>
     <button
-      class="toggle-btn"
+      class="code-toggle-btn"
       :title="$t('formatEditor.toolbar.clear')"
       @click="$emit('clear')"
     >

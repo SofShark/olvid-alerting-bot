@@ -361,7 +361,7 @@ const doneCopy = computed(() => {
 }
 .hint {
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   margin-top: var(--space-3);
 }
 .field {
@@ -370,12 +370,12 @@ const doneCopy = computed(() => {
   gap: var(--space-2);
 }
 .field-label {
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   color: var(--color-text-muted);
 }
 .msg {
   margin-top: var(--space-3);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   color: var(--color-text-muted);
 }
 .msg--error {

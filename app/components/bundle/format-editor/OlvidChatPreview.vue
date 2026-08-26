@@ -1,14 +1,37 @@
 <script setup lang="ts">
+import { computed } from "vue";
+
 /*
-  Right-hand pane variant: chat-style bubble showing the rendered Handlebars
-  output. Extracted from the former PreviewPanel so a sibling `MailPreview`
-  can plug into the same slot for mail bundles. Purely visual — render text
-  comes in pre-computed from `useFormatEditorPreview`.
+  Chat-style bubble showing the rendered Handlebars
+  output. Sibling of `MailPreview`.
 */
 
-defineProps<{
+const props = defineProps<{
   data: { text: string; error: string | null };
 }>();
+
+
+// If we don't do this the on-line preview will allow html formatting but real messages will show the tags
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+// Small markdown helper that renders text as it would on an Olvid discussion
+function applyOlvidMarkup(s: string): string {
+  return s
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/_(.*?)_/g, "<i>$1</i>")
+    .replace(/\n-/g, "\n•");
+}
+
+const renderedText = computed(() =>
+// First escape, then add the correct html to the markup
+  applyOlvidMarkup(escapeHtml(props.data.text)),
+);
 </script>
 
 <template>
@@ -16,7 +39,7 @@ defineProps<{
     <div v-if="data.error" class="error-bubble">⚠️ {{ data.error }}</div>
     <div v-else class="chat-bubble">
       <div class="bubble-sender">{{ $t("formatEditor.preview.sender") }}</div>
-      <div class="bubble-text" v-html="data.text" />
+      <div class="bubble-text" v-html="renderedText" />
       <div class="bubble-time">{{ $t("formatEditor.preview.time") }}</div>
     </div>
   </div>
@@ -59,7 +82,7 @@ defineProps<{
 .bubble-time {
   text-align: right;
   color: var(--color-text-dim);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   margin-top: var(--space-2);
 }
 .error-bubble {

@@ -24,7 +24,7 @@ export const olvidClient = {
   async sendMessage(discussions: bigint[], message: string) {
 
     let allOk = true;
-    Promise.all(discussions.map((discussionId) =>
+    await Promise.allSettled(discussions.map((discussionId) =>
         client.messageSend({
           discussionId: discussionId,
           body: message, 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Post-invite reveal modal. Opens after a link-path invite (no mail) so
 // the admin sees the newly-created user's invite URL and copies it out
-// of band. Static shape — the copy affordance lives inside URLCopyBox.
+// of band.
 import type { InviteResponse } from "#shared/types/auth";
 
 defineProps<{ invite: InviteResponse | null }>();
@@ -49,7 +49,7 @@ defineEmits<{ (e: "close"): void }>();
 }
 .reveal-message {
   color: var(--color-text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   margin: 0;
 }
 </style>

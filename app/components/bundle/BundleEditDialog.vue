@@ -1,25 +1,34 @@
 <script setup lang="ts">
-import { computed, toRef } from "vue";
+import { toRef } from "vue";
 import type { AlertModel, AlertParams } from "#shared/types/alert";
-import {
-  Formatting,
-  BundleOutputType,
-  type BundleModel,
-} from "#shared/types/bundle";
+import { BundleOutputType, type BundleModel } from "#shared/types/bundle";
 import type { DiscussionModel } from "#shared/types/discussion";
+import type { Source } from "#shared/types/source";
 import { useBundleEditor } from "~/composables/useBundleEditor";
 
 /*
-  Bundle editor — used both in view and edit/creation modes:
+  Bundle editor modal. Layout + wiring only — every piece of state or
+  logic is owned by a composable:
+
+    useBundleEditor         → draft, isDirty, discard prompt, kind/format
+                              bindings, saveScript, …
+    useBundleFormatOptions  → i18n-labelled Format select options.
+
+  The only local functions are two thin emit wrappers (`requestClose`,
+  `onSave`) because emit is component-scoped.
 */
 
 const props = defineProps<{
   open: boolean;
   bundle: BundleModel | null; // null with open=true ⇒ create mode
-  index: number | null; //     null              ⇒ create mode
+  index: number | null; //      null               ⇒ create mode
   alertContext: AlertModel;
   alertParams?: AlertParams;
-  inputSource?: string;
+  // Nullable to match `AlertModel.input` on the wire. `useBundleEditor`
+  // already treats an undefined source as "not polling" — the picker in
+  // the modal will show the webhook / mail-family formats, which is the
+  // right default when a caller opens the dialog before a source is set.
+  inputSource?: Source;
   availableDiscussions: DiscussionModel[];
   discussionsLoading: boolean;
   saving?: boolean;
@@ -41,6 +50,7 @@ const {
   kind,
   isCustomFormat,
   bundleName,
+  mailSubject,
   discussions,
   mailAddresses,
   formating,
@@ -55,36 +65,12 @@ const {
   availableDiscussions: toRef(props, "availableDiscussions"),
 });
 
-// Format options depend on the alert's source. Kept in the .vue file
-// because the labels are i18n copy — the composable stays translation-free.
-const formatOptions = computed(() =>
-  isPolling.value
-    ? [
-        {
-          value: Formatting.PollingDefault,
-          label: t("bundleRow.format.pollingDefault"),
-        },
-        {
-          value: Formatting.PollingCustom,
-          label: t("bundleRow.format.pollingCustom"),
-        },
-      ]
-    : [
-        {
-          value: Formatting.Unformatted,
-          label: t("bundleRow.format.unformatted"),
-        },
-        { value: Formatting.Simple, label: t("bundleRow.format.simple") },
-        { value: Formatting.Custom, label: t("bundleRow.format.custom") },
-      ],
-);
-
-// ── Close / save flow ─────────────────────────────────────────────────────
+const { formatOptions } = useBundleFormatOptions(isPolling);
 
 const requestClose = () => {
   if (isDirty.value) {
     confirmDiscard.value = true;
-    return; 
+    return;
   }
   emit("cancel");
 };
@@ -112,13 +98,12 @@ const onSave = () => {
         :alert-params="alertParams ?? alertContext?.alertParams"
         :alert-id="alertContext?.id ?? null"
         :preview-mode="kind ?? BundleOutputType.Olvid"
-        :mail-subject="alertContext?.title"
+        :mail-subject="mailSubject"
         @save="saveScript"
         @close="isEditorOpen = false"
       />
 
       <ModalHead
-       
         :close-label="t('editor.bundleModal.closeTitle')"
         @close="requestClose"
       />
@@ -172,6 +157,15 @@ const onSave = () => {
           <EmailRecipientSelector v-model="mailAddresses" />
         </div>
 
+        <div v-if="kind === BundleOutputType.Mail" class="field">
+          <label class="field-label">{{ $t("bundleRow.fields.mailSubject") }} </label>
+          <input
+            v-model="mailSubject"
+            type="text"
+            class="field-input"
+            :placeholder="alertContext?.title ?? ''"
+          />
+        </div>
         <!-- Format + optional custom-script editor + preview. -->
         <div class="field">
           <label class="field-label">{{ $t("bundleRow.fields.format") }}</label>
@@ -285,7 +279,7 @@ const onSave = () => {
 .discard-msg {
   flex: 1;
   color: var(--color-warning-text);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-weight: 600;
 }
 </style>

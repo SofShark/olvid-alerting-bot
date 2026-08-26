@@ -82,8 +82,8 @@
     "newAlert": "New Alert",
     "backToList": "Back to list",
     "back": "Back",
-    "continue": "Continue →",
-    "addBundles": "Add bundles →",
+    "continue": "Continue",
+    "addBundles": "Add bundles",
     "editAlert": "Edit",
     "close": "Close",
     "done": "Done",
@@ -137,8 +137,7 @@
       "monitorConfiguration": "Monitoring configuration"
     },
 
-    "communicationHint": "Communication: ",
-    "communicationHintSuffix": " — how this source talks to the alert system.",
+    "communicationHint": "Communication: how this source talks to the alert system.",
 
     "webhookInfo": {
       "title": "Webhook URL",
@@ -261,12 +260,12 @@
       "summaryRule": "Fires when {subject} {phrase}.",
       "summaryRuleMissingValue": "Fires when {subject} {phrase} (value missing — edit to set).",
       "subject": {
-        "all": "all of these fields",
-        "any": "any of these fields",
-        "sum": "the sum of these fields",
-        "average": "the average of these fields",
-        "minimum": "the minimum of these fields",
-        "maximum": "the maximum of these fields"
+        "all": "all of the watched fields",
+        "any": "any of the watched fields",
+        "sum": "the sum of the watched fields",
+        "average": "the average of the watched fields",
+        "minimum": "the minimum of the watched fields",
+        "maximum": "the maximum of the watched fields"
       },
       "phrase": {
         "changed": "change between polls",
@@ -443,11 +442,10 @@
   "formatEditor": {
     "title": "Custom Format Editor",
     "intro": {
-      "polling": "Build the message that fires when this polling alert triggers. Click any value on the right to insert its path, or use the watched-path shortcuts below the script.",
-      "monitoring": "Build the message that fires when this monitor triggers. Press ⟳ to probe the URL; click any field on the right ({status}, {body}, {url}, {latencyMs}) to insert its path.",
+      "polling": "Click on the paths bellow to insert, or use the .. wildcard shortcuts in the script.",
+      "monitoring": "Press ⟳ to probe the URL; click on the fields bellow to insert their value.",
       "webhook": "Configure the message that users will receive on Olvid."
     },
-    "scriptTitle": "script.hbs (Handlebars)",
     "watchedPathsLabel": "Watched paths:",
     "watchedPathsInsertTitle": "Insert {token}",
     "sourceTitlePollingFormat": "source.{format}",
@@ -478,7 +476,9 @@
       "mailTitle": "Preview in inbox",
       "placeholder": "Formatted message will appear here...",
       "sender": "Alerting Bot",
-      "time": "now"
+      "time": "now",
+      "mailHint": "Format this Mail message using HTML tags",
+      "olvidHint": " Format this Olvid message using Olvid markdown — see https://olvid.io/faq/format-your-messages/"
     },
     "mailPreview": {
       "from": "From",
@@ -535,6 +535,7 @@
     "fields": {
       "discussions": "Discussions",
       "emailRecipients": "Email recipients",
+      "mailSubject": "Mail subject",
       "format": "Message Format"
     },
     "format": {
@@ -659,7 +660,7 @@
       }
     },
     "view": {
-      "triggersOn": "Triggers on",
+      "triggersOn": "Condition",
       "codes": "Codes: {codes}",
       "range": "Any {range} response",
       "notOk": "Any non-2xx response"
@@ -718,9 +719,7 @@
       "forgotSubmit": "Re-send password",
       "forgotBusy": "Sending…",
       "forgotBackToLogin": "Back to login",
-      "resetSentOlvid": "Reset link sent through Olvid. Check your bot conversation.",
-      "resetSentMail": "Reset link sent by email. Check your inbox.",
-      "resetUnreachable": "This account has no linked delivery channel. Ask an administrator to send you a fresh invitation.",
+      "resetSubmitted": "If we recognize this login, we've sent reset instructions to the associated channel. Check your Olvid conversation or your inbox — if nothing arrives, ask an administrator to send you a fresh invitation.",
       "resetNetworkError": "Couldn't reach the server — please try again."
     },
     "invite": {

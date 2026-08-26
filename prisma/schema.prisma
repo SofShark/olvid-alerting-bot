@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,58 +6,30 @@ datasource db {
   provider = "sqlite"
 }
 
-
-// Auth — one User row per person able to log in. The first user created
-// on a fresh deploy goes through /setup and gets role="admin"; further
-// users are created by an admin via /users (invite-by-email flow) and
-// default to role="user". `passwordHash` is null until the user completes
-// their password setup (invite acceptance or first-run setup form).
-// A User is identified by `login` — the string they type at the sign-in
-// screen. When SMTP is configured `login` is normally an email address
-// and `email` mirrors it (so we know where to send invites / resets).
-// When SMTP is off `login` is a plain username the admin picks and
-// `email` stays null. `activatedAt` records when the account became
-// usable — set by the setup form (first admin), the accept-invite
-// endpoint (user opens their invite link), or the verify-email endpoint.
 model User {
-  id            Int       @id @default(autoincrement())
-  login         String    @unique
-  email         String?   @unique
-  passwordHash  String?
-  name          String?
-  role          String    @default("user") // "admin" | "user"
-  activatedAt   DateTime?
-  // Persistent binding to the user's Olvid discussion. Set at invite
-  // time when the admin picks the Olvid channel, or later when we
-  // grow a "link Olvid to my account" affordance. Used by:
-  //   1. Password-reset delivery (preferred over email when set).
-
-  olvidDiscussionId BigInt?
-  // Id of the last outbound invite message the bot sent to this user's
-  // discussion. Type is always OUTBOUND — the bot is always the sender —
-  // so we only persist the numeric id. Populated on invite (and reset on
-  // resend); cleared once the invite is accepted or the row is deleted.
-  // Used by the delete-user flow to revoke the pending invite from the
-  // invitee's chat so a dangling link doesn't linger.
+  id                   Int                 @id @default(autoincrement())
+  login                String              @unique
+  email                String?             @unique
+  passwordHash         String?
+  name                 String?
+  role                 String              @default("user")
+  activatedAt          DateTime?
+  olvidDiscussionId    BigInt?
   inviteOlvidMessageId BigInt?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  tokens        VerificationToken[]
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  tokens               VerificationToken[]
 }
 
-// Single-use tokens for invite / email verification / password reset.
-// We store sha256(rawToken) — the raw token exists only inside the email
-// we send. `usedAt` implements one-shot semantics; `expiresAt` bounds TTL.
 model VerificationToken {
   id        Int       @id @default(autoincrement())
   tokenHash String    @unique
   userId    Int
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  purpose   String    // "invite" | "email_verify" | "password_reset"
+  purpose   String
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, purpose])
 }
@@ -71,52 +40,47 @@ model AlertTable {
   description       String?
   input             String?
   status            String             @default("draft")
-  // Kept top-level (not inside alertParams) so the webhook handler can
-  // `findUnique` by token 
   token             String?            @unique @default(uuid())
   createdAt         DateTime           @default(now())
   alertParams       Json?
-
+  logs              AlertLog[]
   bundles           Bundle[]
   lastPayload       LastAlertPayload?
   lastFailedPayload LastFailedPayload?
-  logs              AlertLog[]
 }
 
 model Bundle {
-  id              Int        @id @default(autoincrement())
-  name            String?
-  alertId         Int
-  
-  formating       String     @default("Unformatted")
-  custom_script   String?
-  createdAt       DateTime   @default(now())
-
-  alert           AlertTable     @relation(fields: [alertId], references: [id], onDelete: Cascade)
-  outputs         BundleOutput[]
+  id            Int            @id @default(autoincrement())
+  name          String?
+  alertId       Int
+  formating     String         @default("Unformatted")
+  custom_script String?
+  createdAt     DateTime       @default(now())
+  mailSubject   String?
+  alert         AlertTable     @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  outputs       BundleOutput[]
 }
 
-model BundleOutput{
+model BundleOutput {
   id        Int      @id @default(autoincrement())
   bundleId  Int
-  type      String   // "olvid" (único tipo por ahora). Futuro: "email", "slack", "discord".
-  params    Json     // Shape depende de `type`. Ver §Contrato de `params` por tipo.
+  type      String
+  params    Json
   createdAt DateTime @default(now())
-
-  bundle    Bundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  bundle    Bundle   @relation(fields: [bundleId], references: [id], onDelete: Cascade)
 
   @@index([bundleId])
 }
 
 model LastAlertPayload {
-  alertId    Int        @id
+  alertId    Int        @id @default(autoincrement())
   payload    Json
   receivedAt DateTime   @updatedAt
   alert      AlertTable @relation(fields: [alertId], references: [id], onDelete: Cascade)
 }
 
 model LastFailedPayload {
-  alertId  Int        @id
+  alertId  Int        @id @default(autoincrement())
   raw      String?
   parsed   Json?
   error    String
@@ -125,7 +89,6 @@ model LastFailedPayload {
   alert    AlertTable @relation(fields: [alertId], references: [id], onDelete: Cascade)
 }
 
-
 /// One-to-many events log per alert. Every poll (success or failure) inserts
 /// one row; the heartbeat's failure branches populate `error` with a
 /// human-readable message. The 200-row cap per alertId is enforced in
@@ -133,11 +96,8 @@ model LastFailedPayload {
 model AlertLog {
   id        Int        @id @default(autoincrement())
   alertId   Int
-  status    String     // "success" | "warning" | "error"
-  error     String?    // populated only for warning / error rows
-  // Structured DispatchDetails ({ stage?, channels? }) serialised as JSON.
-  // Rendered inside the expandable row of the log panel; null when the
-  // run had nothing structured to report.
+  status    String
+  error     String?
   details   Json?
   createdAt DateTime   @default(now())
   alert     AlertTable @relation(fields: [alertId], references: [id], onDelete: Cascade)

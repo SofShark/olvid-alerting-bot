@@ -1,4 +1,4 @@
-/* Chips — small inline tokens. Used by the wizard (watched-field paths,
+/* Chips. Used by the wizard (watched-field paths,
  * sidebar bundle summaries, status indicators).
  */
 
@@ -6,13 +6,25 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
+  max-width: 100%;
+  overflow: hidden;
   background: var(--color-accent-soft);
   border: 1px solid var(--color-accent-border);
   color: var(--color-accent-text);
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   padding: 3px var(--space-3);
   border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+
+.chip-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .chip-remove {
@@ -35,7 +47,7 @@
   background: transparent;
   border: 1px dashed var(--color-border-default);
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   font-family: var(--font-mono);
   padding: 3px var(--space-3);
   border-radius: var(--radius-sm);

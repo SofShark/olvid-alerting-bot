@@ -146,13 +146,13 @@ onBeforeUnmount(() => {
 .info-name {
   font-weight: 600;
   color: var(--color-text-primary);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   margin-bottom: var(--space-1);
 }
 .info-line {
   display: flex;
   gap: var(--space-2);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
 }
 .info-label {
   color: var(--color-text-muted);
@@ -179,7 +179,7 @@ onBeforeUnmount(() => {
   padding: 7px var(--space-3);
   border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-family: inherit;
   cursor: pointer;
   transition:

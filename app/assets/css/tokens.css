@@ -82,11 +82,15 @@ Theme switch handled by in app/plugins/theme.client.ts
 
   /* Code blocks (special-purpose, kept out of the elevation scale so
    * they always look like an embedded IDE surface) */
-  --color-bg-code: #121213;
+
+  /*--color-bg-code: #121213;
   --color-bg-code-header: #19191b;
+  */
+  --color-bg-code-header: var(--neutral-95);
+  --color-bg-code: var(--black);
   --color-bg-code-soft: var(--black);
   --color-text-code: #d4d4d4;
-  --color-border-code: var(--neutral-85);
+  --color-border-code: var(--neutral-90);
   --color-text-url: #80e0e4; /* informational sky blue */
 
   /* Syntax colors — palette used by the JSON/XML tree previews and,
@@ -158,24 +162,19 @@ Theme switch handled by in app/plugins/theme.client.ts
 
   /* Typography — system stacks (fast + native feel).
    * The mono stack prefers modern coding fonts if the OS has them; if
-   * you install "JetBrains Mono" or "Fira Code" they'll take over. */
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
-  --font-mono:
-    "JetBrains Mono", "Fira Code", ui-monospace, "SFMono-Regular", "Consolas",
-    "Courier New", monospace;
+   * you install  */
+  --font-sans: Arial, Helvetica, Roboto;
+  --font-mono: "Consolas",  monospace,  "Courier New";
 
   /* Font sizes — small by design (tech-tool density). `lg` is the new
    * reading step used by preview bodies and long-form fields. */
   --text-xs: 10px;
-  --text-sm: 11px;
-  --text-md: 12px;
+  --text-s: 11px;
+  --text-m: 12px;
   --text-base: 13px;
   --text-lg: 15px;
-  --text-l: 18px;
-  --text-xl: 20px;
-  --text-2xl: 24px;
+  --text-xl: 18px;
+  --text-2xl: 20px;
 
   /* Font weights — one alias per intent, no numeric literals scattered
    * across component CSS. */

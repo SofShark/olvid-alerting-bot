@@ -123,7 +123,7 @@
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-pill);
   cursor: pointer;
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   color: var(--color-text-secondary);
   background: transparent;
   transition:
@@ -163,7 +163,7 @@ input[type="radio"] {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-family: inherit;
   line-height: 1;
   transition:
@@ -193,5 +193,5 @@ input[type="radio"] {
 /* ── Sizes ──────────────────────────────────────────────────────── */
 .btn-sm {
   padding: var(--space-2) var(--space-3);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
 }

@@ -72,7 +72,7 @@ function copyUrl() {
 
   color: var(--color-text-url);
   font-family: var(--font-mono);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
 
   text-overflow: clip;
 }

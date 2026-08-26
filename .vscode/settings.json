@@ -42,5 +42,6 @@
     "watchFile": "useFsEventsOnParentDirectory",
     "watchDirectory": "useFsEvents",
     "excludeDirectories": ["**/node_modules", "**/.nuxt", "**/.output"]
-  }
+  },
+  "i18n-ally.sourceLanguage": "fr"
 }

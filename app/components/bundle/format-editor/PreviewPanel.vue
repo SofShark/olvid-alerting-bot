@@ -1,16 +1,6 @@
 <script setup lang="ts">
 import { BundleOutputType } from "#shared/types/bundle";
 
-/*
-  Right-hand pane. Delegates the actual rendering to a variant component
-  based on `mode`:
-    · olvid → OlvidChatPreview (chat bubble)
-    · mail  → MailPreview      (email frame)
-
-  This file only owns the shared shell — the pane's column, the header
-  bar, and the mode-appropriate title. Adding a new channel means a new
-  Preview*.vue and one case here.
-*/
 
 const { t } = useI18n();
 
@@ -33,11 +23,27 @@ const headerTitle = computed(() =>
     ? t("formatEditor.preview.mailTitle")
     : t("formatEditor.preview.title"),
 );
+
+// Compact, mode-aware hint. Mail = HTML-native transport, Olvid renders
+// markup only. The tooltip lives on the header so users learn the rule
+// without cluttering the preview with an inline note.
+const headerHint = computed(() =>
+  props.mode === BundleOutputType.Mail
+    ? t("formatEditor.preview.mailHint")
+    : t("formatEditor.preview.olvidHint"),
+);
 </script>
 
 <template>
   <div class="preview-column">
-    <div class="chat-header">{{ headerTitle }}</div>
+    
+    <div class="chat-header">
+      <OlvidLogo v-if="mode === BundleOutputType.Olvid"/>
+      <LucideMail v-else/>
+      
+      {{ headerTitle }}
+      <HelpTooltip :message="headerHint" />
+    </div>
     <OlvidChatPreview v-if="mode === BundleOutputType.Olvid" :data="data" />
     <MailPreview
       v-else-if="mode === BundleOutputType.Mail"
@@ -50,10 +56,6 @@ const headerTitle = computed(() =>
 </template>
 
 <style scoped>
-/* Right column of the editor grid — the seam with the code column is
- * already drawn by .code-column's border-right; this column doesn't
- * add its own border to avoid a doubled 2px seam. Internal scroll on
- * min-height:0 so long previews don't push the footer off-screen. */
 .preview-column {
   display: flex;
   flex-direction: column;
@@ -63,11 +65,12 @@ const headerTitle = computed(() =>
   overflow-x: hidden;
 }
 
-/* Panel eyebrow, matching the section-eyebrow idiom used elsewhere
- * (see AlertLogs.vue). Uppercase tracking + muted text so it reads
- * as a label, not a title. */
 .chat-header {
-  padding: var(--space-4) var(--space-6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-4) 0;
+  gap: var(--space-4);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-semibold);
   letter-spacing: 0.6px;
@@ -75,5 +78,10 @@ const headerTitle = computed(() =>
   color: var(--color-text-dim);
   background: var(--color-bg-panel);
   border-bottom: 1px solid var(--color-border-subtle);
+}
+.chat-header:deep(svg){
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-faint);
 }
 </style>

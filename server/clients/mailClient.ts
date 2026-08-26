@@ -52,7 +52,7 @@ export const mailClient = {
     if (!c) return false;
 
     let allOk = true;
-    Promise.all(
+    await Promise.allSettled(
       addresses.map((address) =>
         c.sendEmail({
           from: FROM!,

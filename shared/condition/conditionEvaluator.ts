@@ -1,13 +1,4 @@
-// Centralized polling-condition evaluation. The single place that knows
-// how to: resolve dot-paths, expand wildcard patterns, and aggregate
-// per-path verdicts. Pure — no IO, no DOM — safe to call from the Vue
-// side (preview), the server side (engine), or anywhere else.
-//
-// Operator comparison itself is DELEGATED: `operatorFactory` returns the
-// strategy for the condition's operator (Strategy pattern) and evalOne
-// just invokes it. No operator switch lives here anymore — adding an
-// operator touches only shared/condition/operators/.
-//
+// Centralized polling-condition evaluation.
 // Consumers:
 //   - ConditionEditor              → per-path verdicts for the live preview.
 //   - buildPollingDefaultMessage   → which paths fired + observed values.
@@ -26,8 +17,8 @@ import {
   type EvaluationResult,
   type Verdict,
 } from "../types/condition";
-import { migrateCondition } from "./migrate";
-import { expandPath, hasWildcard } from "./pathExpand";
+import { paramCleaner } from "./paramCleaner";
+import { expandPath, hasWildcard, resolvePath } from "./pathExpand";
 import { operatorFactory } from "./operators/operatorFactory";
 import { aggregatorFactory } from "./aggregators/aggregatorFactory";
 
@@ -73,24 +64,6 @@ type Observation = {
 
 export const conditionEvaluator = {
   /**
-   * Walk an object by dot-path. Returns undefined when any segment is
-   * missing instead of throwing. Useful outside `evaluate()` too — e.g.
-   * the notifier reads observed values via this.
-   */
-  resolvePath(obj: any, path: string): any {
-    if (!path) return undefined;
-    // filter(Boolean) drops empty segments — important for wildcard patterns
-    // already expanded into concrete paths.
-    const parts = path.split(".").filter(Boolean);
-    let cur: any = obj;
-    for (const p of parts) {
-      if (cur == null) return undefined;
-      cur = cur[p];
-    }
-    return cur;
-  },
-
-  /**
    * Evaluate a polling condition against a parsed payload.
    *
    * @param rawCondition  Raw condition from alertParams (any shape — migrated internally).
@@ -99,7 +72,7 @@ export const conditionEvaluator = {
    *                      Omit for previews; required server-side for accurate Changed evaluation.
    */
   evaluate(rawCondition: any, payload: any, baseline?: any): EvaluationResult {
-    const condition = migrateCondition(rawCondition);
+    const condition = paramCleaner.migrateCondition(rawCondition);
 
     // No-condition case — fires every poll cycle by definition.
     if (condition.kind === ConditionKind.None) {
@@ -144,11 +117,11 @@ export const conditionEvaluator = {
           return [
             {
               path: pathOrPattern,
-              observed: this.resolvePath(payload, pathOrPattern),
+              observed: resolvePath(payload, pathOrPattern),
               baseline:
                 baseline === undefined
                   ? undefined
-                  : this.resolvePath(baseline, pathOrPattern),
+                  : resolvePath(baseline, pathOrPattern),
             },
           ];
         }
@@ -165,11 +138,11 @@ export const conditionEvaluator = {
         }
         return concretes.map((concretePath) => ({
           path: concretePath,
-          observed: this.resolvePath(payload, concretePath),
+          observed: resolvePath(payload, concretePath),
           baseline:
             baseline === undefined
               ? undefined
-              : this.resolvePath(baseline, concretePath),
+              : resolvePath(baseline, concretePath),
         }));
       },
     );

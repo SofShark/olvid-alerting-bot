@@ -4,10 +4,6 @@ const route = useRoute();
 const { alerts, fetchAlerts, fetchDiscussions } = useAlerts();
 const { collapsed: sidebarCollapsed } = useSidebar();
 
-// `definePageMeta` is a compile-time helper that ONLY works inside a page —
-// putting it here logs a "no effect" warning at runtime. Middleware for
-// protected routes lives on each page's own <script setup> (see pages/index.vue).
-
 const { user, clear: clearSession } = useUserSession();
 
 async function logout() {
@@ -204,7 +200,7 @@ const selectedId = computed(() => {
  * wizard) flexes to fill it exactly. NO scroll here — each routed
  * component owns its own internal scroll (AlertLogs, wizard-content). */
 .split-right {
-  padding: 10px;
+  padding: 14px;
   min-height: 0;
   height: 100%;
   display: flex;

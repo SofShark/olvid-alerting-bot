@@ -31,15 +31,15 @@ const { logs, isLoading, expandedIds, toggleExpanded } = useAlertLogs(
 
 const hasLogs = computed(() => logs.value.length > 0);
 
-// Only warning / error rows carry expandable details. Successful
-// dispatches collapse to the timeline entry — no chevron, no channel
-// table.
+// Only warning / error rows carry expandable details
 function isExpandable(log: AlertLog): boolean {
   return log.status !== LogStatus.Success;
 }
 
-// Format matches the mockup: "HH:MM:SS DD/MM/YYYY". Locale-independent so
-// admins reading logs across timezones see the same shape.
+function isExpanded(log: AlertLog): boolean {
+  return expandedIds.value.has(log.id)
+}
+
 function formatTimestamp(iso: string): string {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -65,7 +65,7 @@ function stateLabel(status: string): string {
 
 <template>
   <div class="alert-logs">
-    <h4 class="section-eyebrow">{{ $t("alertLog.title") }}</h4>
+    <h4 class="alert-section-label">{{ $t("alertLog.title") }}</h4>
 
     <div v-if="!hasLogs && !isLoading" class="logs-empty">
       {{ $t("alertLog.empty") }}
@@ -81,7 +81,7 @@ function stateLabel(status: string): string {
         class="log-row"
         :class="[
           `log-${log.status}`,
-          { 'is-expanded': expandedIds.has(log.id) },
+          { 'is-expanded': isExpanded(log) },
         ]"
       >
         <button
@@ -90,24 +90,24 @@ function stateLabel(status: string): string {
           class="log-chevron"
           :aria-expanded="expandedIds.has(log.id)"
           :title="
-            expandedIds.has(log.id)
+            isExpanded(log)
               ? $t('alertLog.hideDetails')
               : $t('alertLog.showDetails')
           "
           @click="toggleExpanded(log.id)"
         >
-          ▸
+          <span class="chevron-icon"> ▸ </span>
         </button>
-        <span v-else class="log-chevron-placeholder" aria-hidden="true" />
+        <span v-else class="log-chevron-placeholder"/>
 
-        <span class="log-dot" :class="`dot-${log.status}`" aria-hidden="true" />
+        <span class="log-dot" :class="`dot-${log.status}`" />
         <time class="log-time" :datetime="log.createdAt">{{
           formatTimestamp(log.createdAt)
         }}</time>
         <span class="log-state">{{ stateLabel(log.status) }}</span>
 
         <div
-          v-if="isExpandable(log) && expandedIds.has(log.id)"
+          v-if="isExpanded(log)"
           class="log-details"
           role="region"
         >
@@ -176,21 +176,11 @@ function stateLabel(status: string): string {
   min-height: 0;
 }
 
-.section-eyebrow {
-  margin: 0 0 var(--space-3);
-  padding: 0;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--color-text-dim);
-}
-
 /* ── Empty state ────────────────────────────────────────────────────────── */
 .logs-empty {
   padding: var(--space-6) var(--space-4);
   color: var(--color-text-faint);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-style: italic;
   text-align: center;
   background: var(--color-bg-card);
@@ -205,7 +195,6 @@ function stateLabel(status: string): string {
   padding: var(--space-2);
   display: flex;
   flex-direction: column;
-  gap: 2px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
@@ -217,12 +206,12 @@ function stateLabel(status: string): string {
 /* ── Row ────────────────────────────────────────────────────────────────── */
 .log-row {
   display: grid;
-  grid-template-columns: 20px 10px 1fr auto;
+  grid-template-columns: 10px 10px 1fr auto;
   align-items: center;
-  gap: var(--space-2);
-  padding: 4px var(--space-3);
+  gap: var(--space-3);
+  padding: 4px var(--space-4);
   border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   transition: background-color 0.12s ease;
 }
 .log-row:hover {
@@ -232,29 +221,35 @@ function stateLabel(status: string): string {
   background: var(--color-bg-card-soft);
 }
 
+.log-chevron, 
+.log-chevron-placeholder {
+  width: 16px;
+  height: 16px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .log-chevron {
   appearance: none;
   background: transparent;
-  border: none;
+  border: 0;
+  
+  margin: 0;
   padding: 0;
   cursor: pointer;
-  color: var(--color-text-faint);
-  font-size: var(--text-base);
-  line-height: 1;
-  transition:
-    transform 0.15s ease,
-    color 0.12s ease;
 }
 .log-chevron:hover {
   color: var(--color-text-primary);
 }
-.log-row.is-expanded .log-chevron {
-  transform: rotate(90deg);
-  color: var(--color-text-primary);
+
+.chevron-icon {
+  color: var(--color-text-dim)
 }
-.log-chevron-placeholder {
-  display: inline-block;
-  width: 100%;
+.log-row.is-expanded .chevron-icon {
+  transform: rotate(90deg);
+  color: var(--color-text-muted);
 }
 
 /* ── Status dot ─────────────────────────────────────────────────────────── */

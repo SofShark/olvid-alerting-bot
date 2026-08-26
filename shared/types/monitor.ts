@@ -27,6 +27,10 @@ export type MonitorParams = {
   match: StatusMatch;
 
   triggerMode?: TriggerMode;
+  /** Fire after `datapointsN` of the last `datapointsM` evaluations
+   *  match. Default 1/1 (fire immediately). */
+  datapointsN?: number;
+  datapointsM?: number;
   _lastFired?: boolean;
   _lastStatus?: number;
   _lastPolledAt?: number;

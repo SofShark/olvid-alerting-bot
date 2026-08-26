@@ -4,11 +4,12 @@
 import type { Parser } from "../types";
 import { xmlParser } from "./xml";
 import { htmlParser } from "./html";
+import { jsonParser } from "./json";
 
 const parsers: Record<string, Parser> = {
   [xmlParser.format]: xmlParser,
   [htmlParser.format]: htmlParser,
-  // [jsonParser.format]:  jsonParser,
+  [jsonParser.format]: jsonParser,
 };
 
 export function getParser(format: string): Parser | null {

@@ -129,13 +129,13 @@ const verdictHeadline = computed(() => {
 
 .test-error {
   color: var(--color-danger-bright);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-family: var(--font-mono);
 }
 
 .test-raw {
   color: var(--color-text-dim);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   margin-top: var(--space-4);
 }
 .test-raw summary {
@@ -154,7 +154,7 @@ const verdictHeadline = computed(() => {
   border-radius: var(--radius-sm);
   color: var(--color-text-code);
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   max-height: 240px;
   overflow: auto;
 }

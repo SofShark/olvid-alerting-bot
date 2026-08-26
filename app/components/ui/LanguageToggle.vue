@@ -115,7 +115,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   padding: 7px var(--space-3);
   border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-family: inherit;
   cursor: pointer;
   transition:

@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import JsonTreeNode from "~/components/payload/JsonTreeNode.vue";
+import XmlTreeNode from "~/components/payload/XmlTreeNode.vue";
+import { PollingFormat } from "#shared/types/polling";
 
 /*
   Four render modes, dispatched by source:
@@ -80,7 +83,8 @@ const parsedJson = computed(() => {
       <button
         v-if="isPolling"
         type="button"
-        class="payload-refresh"
+        class="code-toggle-btn"
+        style="margin-left: auto"
         :disabled="pollingLoading"
         :title="$t('formatEditor.sourceRefreshTitle')"
         @click="$emit('retrieve')"
@@ -91,7 +95,8 @@ const parsedJson = computed(() => {
       <button
         v-else-if="isMonitoring"
         type="button"
-        class="payload-refresh"
+        class="code-toggle-btn"
+        style="margin-left: auto"
         :disabled="monitorLoading"
         :title="$t('formatEditor.monitorProbeTitle')"
         @click="$emit('retrieve-monitor')"
@@ -121,7 +126,11 @@ const parsedJson = computed(() => {
         {{ $t("formatEditor.sourceEmptyPolling") }}
       </div>
       <div v-else class="tree-panel">
-        <XmlTreeNode
+        <!-- Match the tree renderer to the polling format: JSON endpoints
+             render through JsonTreeNode (proper arrays/indices/values);
+             XML/HTML fall back to XmlTreeNode. -->
+        <component
+          :is="format === PollingFormat.JSON ? JsonTreeNode : XmlTreeNode"
           v-for="[k, v] in rootEntries"
           :key="k"
           :node-name="k"
@@ -200,34 +209,3 @@ const parsedJson = computed(() => {
     </template>
   </div>
 </template>
-
-<style scoped>
-
-/* Refresh button — small chrome action, shared by polling + monitoring.
- * Tokenised over the previous hard-coded hex ladder so the button reads
- * like every other chrome control (bundle picker, payload toolbar). */
-.payload-refresh {
-  background: var(--color-bg-menu);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border-default);
-  width: 28px;
-  height: 24px;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-lg);
-  cursor: pointer;
-  margin-left: auto;
-  transition:
-    background-color 0.12s,
-    color 0.12s,
-    border-color 0.12s;
-}
-.payload-refresh:hover:not(:disabled) {
-  background: var(--color-bg-card-soft);
-  color: var(--color-text-primary);
-  border-color: var(--color-border-strong);
-}
-.payload-refresh:disabled {
-  opacity: 0.4;
-  cursor: wait;
-}
-</style>

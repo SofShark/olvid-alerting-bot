@@ -9,18 +9,10 @@ import {
 /*
   Cron-backed polling schedule picker. Two modes:
 
-    - basic    : friendly controls (every N minutes / hours / daily at HH:MM).
-                 Serializes to cron via `scheduler.modeToCron`.
-    - advanced : raw cron expression. Direct input, live-validated, with a
-                 "Next run" preview below so the user sees what the cron
-                 actually means.
+    - basic    : human experssions serializes to cron via `scheduler.modeToCron`.
+    - advanced : raw cron expression
 
-  Mode is exposed as a v-model (`v-model:mode`) so the parent can render
-  the toggle wherever it wants (e.g. inline with a field-label). The
-  switch policy (reset cron on advanced→basic) is still enforced HERE so
-  the policy lives next to the data it touches.
-
-  Mode-switch policy (per project decision):
+  Mode-switch policy:
     - basic → advanced  : always allowed, advanced input pre-filled with the
                           current cron.
     - advanced → basic  : ALWAYS resets to DEFAULT_SCHEDULE. Any custom cron
@@ -249,14 +241,12 @@ const onAdvancedInput = (raw: string) => {
   flex-direction: column;
   gap: var(--space-2);
 }
+/* `.cron-input` layers a monospace typeface on top of `.field-input`.
+ * Border / focus ring / invalid state come from components/input.css. */
 .cron-input {
   font-family: var(--font-mono);
   font-size: var(--text-base);
   letter-spacing: 1px;
-}
-.cron-input.is-invalid {
-  border-color: var(--color-danger);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-danger) 18%, transparent);
 }
 .cron-legend {
   display: flex;
@@ -273,7 +263,7 @@ const onAdvancedInput = (raw: string) => {
 }
 .cron-error {
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   color: var(--color-danger-text);
 }
 </style>

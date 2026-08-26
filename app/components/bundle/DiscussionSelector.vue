@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
 import type { DiscussionModel } from "#shared/types/discussion";
 
 /*
@@ -53,6 +53,16 @@ const containerRef = ref<HTMLElement | null>(null);
 
 const selectedIds = computed(() => new Set(props.modelValue.map((d) => d.id)));
 
+// ── Single-mode locking ────────────────────────────────────────────────
+// Responds to a "one contact at a time" contract. 
+// When mode="single" and a pick is already in place, the search box +
+// dropdown collapse — the user has committed."Remove" clears
+// the model so the picker reappears.
+const isSinglePicked = computed(
+  () => props.mode === "single" && props.modelValue.length > 0,
+);
+
+
 const isSelected = (d: DiscussionModel) => selectedIds.value.has(d.id);
 
 const filtered = computed(() => {
@@ -102,22 +112,6 @@ const onClickOutside = (e: MouseEvent) => {
 onMounted(() => document.addEventListener("click", onClickOutside));
 onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 
-// ── Single-mode locking ────────────────────────────────────────────────
-// When mode="single" and a pick is already in place, the search box +
-// dropdown collapse — the user has committed. Clicking "Change" clears
-// the model so the picker reappears, ready for a fresh choice. This
-// matches the "one contact at a time" invite ergonomic and prevents
-// two picks from ever coexisting in the model in single mode.
-const isSinglePicked = computed(
-  () => props.mode === "single" && props.modelValue.length > 0,
-);
-
-const change = () => {
-  emit("update:modelValue", []);
-  // Focus the search field on the next tick so the user can type
-  // immediately without an extra click.
-  isDropdownOpen.value = true;
-};
 </script>
 
 <template>
@@ -156,7 +150,7 @@ const change = () => {
 
     <!-- Single-mode "locked" state: the pick lives in the strip above,
          search collapses to a Change button that clears + reopens. -->
-    <div v-if="!readonly && isSinglePicked" class="single-locked">
+    <!--div v-if="!readonly && isSinglePicked" class="single-locked">
       <button
         type="button"
         class="btn btn-ghost btn-sm change-btn"
@@ -164,7 +158,7 @@ const change = () => {
       >
         {{ $t("discussionSelector.change") }}
       </button>
-    </div>
+    </div-->
 
     <!-- ── Search + dropdown — hidden when readonly OR single-locked ── -->
     <div
@@ -183,7 +177,7 @@ const change = () => {
               : t('discussionSelector.search.addPlaceholder')
         "
         :disabled="isLoading"
-        class="search-input"
+        class="field-input field-focus"
         @focus="isDropdownOpen = true"
       />
       <div v-if="isDropdownOpen" class="dropdown">
@@ -323,32 +317,7 @@ const change = () => {
   position: relative;
   width: 100%;
 }
-.search-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 9px var(--space-4);
-  background: var(--color-bg-input);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  font-family: inherit;
-  font-size: var(--text-base);
-  outline: none;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
-}
-.search-input:focus {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
-}
-.search-input::placeholder {
-  color: var(--color-border-default);
-}
-.search-input:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+
 
 /* ── Dropdown ─────────────────────────────────────────────────────── */
 .dropdown {
@@ -411,7 +380,7 @@ const change = () => {
 }
 .item-check {
   color: var(--color-accent);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
 }
 
 .item-selected{
@@ -427,18 +396,8 @@ const change = () => {
 .empty-readonly {
   margin: 0;
   color: var(--color-text-faint);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-style: italic;
 }
 
-/* Single-mode "locked" row — just the Change affordance, aligned with
- * the strip above so the layout doesn't jump when we toggle. */
-.single-locked {
-  display: flex;
-  justify-content: flex-start;
-}
-.change-btn {
-  padding: var(--space-1) var(--space-4);
-  font-size: var(--text-sm);
-}
 </style>

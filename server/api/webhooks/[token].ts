@@ -52,8 +52,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  console.log("getting alert element from http request");
-  const alert = (await alertRepository.getByToken(token)) as any;
+  const alert = await alertRepository.getByToken(token);
 
   if (!alert) {
     throw createError({ statusCode: 404, statusMessage: "Webhook not found" });
@@ -61,8 +60,9 @@ export default defineEventHandler(async (event) => {
 
   // Read the body defensively. If the client posted non-JSON, readBody can
   // throw — capture the raw text so admins can see what came in even when we
-  // can't parse it.
-  let payload: any = null;
+  // can't parse it. `payload` stays `unknown` — the formatter strategies
+  // narrow / validate at their own boundary.
+  let payload: unknown = null;
   let rawBody: string | null = null;
   try {
     payload = await readBody(event);

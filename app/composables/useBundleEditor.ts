@@ -1,15 +1,10 @@
-// Editor-side logic for the BundleEditDialog modal — everything that
-// isn't template markup or CSS. The dialog was ~290 LOC of script mixing
-// draft lifecycle, format normalization, per-kind recipient stash, and
-// v-model getters/setters; extracting them here leaves the .vue file as
-// a thin wiring layer over reactive state exposed by this composable.
+// Editor-side logic for the BundleEditDialog modal
 //
 // Design:
-//   · Draft lives here — a deep-copied editable clone of the incoming
+//   · Draft lives here: a deep-copied editable clone of the incoming
 //     bundle, or a source-appropriate blank in create mode. Reseeds
 //     every time `open` flips true (watch fires on the tuple).
-//   · Dirty tracking is JSON-snapshot-based (cheap, no per-field
-//     comparators — the modal isn't large enough to warrant them).
+//   · Dirty tracking is JSON-snapshot-based 
 //   · Per-kind outputs stash: flipping olvid → mail → olvid restores
 //     the discussion picks. Reset every open, discarded on close.
 //   · No fetch calls. The parent owns `availableDiscussions` and the
@@ -93,7 +88,7 @@ export const useBundleEditor = (inputs: BundleEditorInputs) => {
   >({});
   const isEditorOpen = ref(false);
 
-  // (Re)seed the draft every time the modal opens.
+  // Reseed the draft every time the modal opens.
   watch(
     () => [inputs.open.value, inputs.bundle.value] as const,
     ([open, b]) => {
@@ -128,6 +123,16 @@ export const useBundleEditor = (inputs: BundleEditorInputs) => {
   const bundleName = computed<string>({
     get: () => draft.value?.name ?? "",
     set: (val) => patch({ name: val.trim() ? val : undefined }),
+  });
+
+  // Per-bundle mail subject. Reads either the stored value (if the user
+  // customized it) or falls back to the alert title. Writing back stores
+  // the exact string; clearing it (empty after trim) drops back to the
+  // alert-title fallback rather than persisting an empty subject.
+  const mailSubject = computed<string>({
+    get: () =>
+      draft.value?.mailSubject ?? inputs.alertContext.value?.title ?? "",
+    set: (val) => patch({ mailSubject: val.trim() ? val : undefined }),
   });
 
   // Kind reads from `activeKind`, not from outputs[0].type — so a
@@ -184,7 +189,7 @@ export const useBundleEditor = (inputs: BundleEditorInputs) => {
   });
 
   const formating = computed<Formatting>({
-    get: () => draft.value?.formating ?? Formatting.Unformatted,
+    get: () => draft.value?.formating ?? Formatting.WebhookRaw,
     set: (val) => patch({ formating: val }),
   });
 
@@ -218,6 +223,7 @@ export const useBundleEditor = (inputs: BundleEditorInputs) => {
     isCustomFormat,
     // bindings
     bundleName,
+    mailSubject,
     discussions,
     mailAddresses,
     formating,

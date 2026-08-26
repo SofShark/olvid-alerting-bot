@@ -26,7 +26,7 @@ const isWebhook = computed(() => form.value.input === Source.Webhook);
 // Localised label for the source hint line (matches what the selector shows).
 const { t } = useI18n();
 const inputSourceHint = computed(() => {
-  return t("wizard.communicationHint") + t("wizard.communicationHintSuffix");
+  return t("wizard.communicationHint");
 });
 const sourceLabel = computed(() => {
   if (!form.value.input) return "";
@@ -87,7 +87,7 @@ function setAlertParams(value: PollingParams | MonitorParams) {
     <!-- Polling sources expose URL / format / timing inline. -->
     <div v-if="isPolling" class="field">
       <TriggerParamsEditor
-        :trigger-type="form.input"
+        :trigger-type="form.input ?? ''"
         :model-value="form.alertParams ?? {}"
         @update:model-value="setAlertParams($event as PollingParams)"
       />
@@ -139,7 +139,7 @@ function setAlertParams(value: PollingParams | MonitorParams) {
 }
 .info-icon {
   color: var(--color-accent-text);
-  font-size: var(--text-xl);
+  font-size: var(--text-2xl);
   line-height: 1;
   flex-shrink: 0;
   margin-top: 1px;
@@ -153,7 +153,7 @@ function setAlertParams(value: PollingParams | MonitorParams) {
 .info-text {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   line-height: 1.4;
 }
 </style>

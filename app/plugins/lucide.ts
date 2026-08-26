@@ -39,10 +39,10 @@ import {
   User,
   Bell,
   CircleQuestionMark,
-
   Link,
   Pipette,
-
+  ArrowLeft,
+  ArrowRight,
 } from "@lucide/vue";
 
 const icons = {
@@ -61,6 +61,8 @@ const icons = {
   LucideCopy: Copy,
   LucideEllipsisVertical: EllipsisVertical,
   LucideArrowLeftRight: ArrowLeftRight,
+  LucideArrowLeft: ArrowLeft,
+  LucideArrowRight: ArrowRight,
   LucidePlay: Play,
   LucideMail: Mail,
   LucideLink: Link,

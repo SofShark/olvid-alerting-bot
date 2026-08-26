@@ -127,7 +127,7 @@ const showKey = () => !props.isRoot && !props.isArrayItem;
  * regression — put new colors in tokens.css. */
 .node {
   font-family: var(--font-mono);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   line-height: 1.6;
   color: var(--color-text-code);
 }

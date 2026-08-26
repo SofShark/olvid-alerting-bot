@@ -93,14 +93,14 @@ function clear() {
 }
 .check {
   color: var(--color-success);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
 }
 
 .btn-change {
   background: none;
   border: none;
   color: var(--color-accent);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   cursor: pointer;
   text-decoration: underline;
   padding: 0;

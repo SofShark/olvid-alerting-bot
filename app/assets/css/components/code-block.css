@@ -28,10 +28,17 @@
 .code-title {
   color: #858585;
   font-family: var(--font-mono);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   margin-left: var(--space-4);
 }
-
+.code-title-link{
+  color: #858585;
+  font-family: var(--font-mono);
+  font-size: var(--text-m);
+}
+.code-title-link:hover{
+  color: #323844;
+}
 .code-body {
   padding: var(--space-4);
   overflow-y: auto;
@@ -111,7 +118,7 @@
 .payload-notice {
   background: var(--color-bg-code-header);
   color: var(--color-warning);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-family: var(--font-mono);
   padding: var(--space-3) var(--space-5);
   border-top: 1px solid #3a3a3a;
@@ -127,36 +134,35 @@
 }
 
 /* ── Toolbar buttons for the dark IDE surface ─────────────────────────────
- * Two flavours: the compact icon-style `.toggle-btn` (utility actions
- * like prettify / clear) and `.toggle-btn-wide` for the primary "Load
- * Template" affordance with a rotating caret. Tone is monochrome until
- * focus / open — accent appears only on intentional interaction.
+ * Compact icon-style `.code-toggle-btn` (utility actions
+ * like prettify / clear) and `.code-toggle-btn-wide` for the primary "Load
+ * Template". 
  */
-.toggle-btn {
+.code-toggle-btn {
   background: var(--color-bg-code);
   color: #a3a3a3;
-  border: 1px solid #555;
+  border: 1px solid #343535;
   border-radius: var(--radius-sm);
   padding: 3px var(--space-4);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   cursor: pointer;
   transition:
     background-color 0.15s,
     color 0.15s;
 }
-.toggle-btn:hover {
+.code-toggle-btn:hover {
   background: var(--color-bg-code-header);
   color: var(--color-text-code);
 }
 
-.toggle-btn-wide {
+.code-toggle-btn-wide {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 3px var(--space-3);
   letter-spacing: 0.1px;
 }
-.toggle-btn-wide .caret {
+.code-toggle-btn-wide .caret {
   width: 0;
   height: 0;
   border-left: 4px solid transparent;
@@ -168,12 +174,12 @@
     transform 0.15s ease,
     opacity 0.15s ease;
 }
-.toggle-btn-wide.is-open {
+.code-toggle-btn-wide.is-open {
   background: #4a4a4a;
   color: var(--color-text-code);
   border-color: #6b6b6b;
 }
-.toggle-btn-wide.is-open .caret {
+.code-toggle-btn-wide.is-open .caret {
   transform: rotate(180deg);
   opacity: 1;
 }

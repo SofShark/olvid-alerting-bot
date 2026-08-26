@@ -98,7 +98,7 @@ defineEmits<{
         :disabled="!canAdvance || saving"
         @click="$emit('next')"
       >
-        {{ $t("button.addBundles") }}
+        {{ $t("button.addBundles") }} <LucideArrowRight/>
       </button>
       <button
         v-else
@@ -107,7 +107,7 @@ defineEmits<{
         :disabled="!canAdvance || saving"
         @click="$emit('next')"
       >
-        {{ $t("button.continue") }}
+        {{ $t("button.continue") }} <LucideArrowRight/>
       </button>
     </template>
   </div>

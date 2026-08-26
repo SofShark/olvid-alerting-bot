@@ -22,7 +22,7 @@ export const useAlertLabels = () => {
   // ── Bundle format ──────────────────────────────────────────────────
   const formatLabel = (f: Formatting | string): string => {
     switch (f) {
-      case Formatting.Unformatted:
+      case Formatting.WebhookRaw:
         return t("bundleRow.format.unformatted");
       case Formatting.Simple:
         return t("bundleRow.format.simple");
@@ -53,7 +53,7 @@ export const useAlertLabels = () => {
       case "daily":
         return t("editor.schedule.interval.dailyAt", { time: mode.dailyAt });
       case "custom":
-        return `Custom: ${mode.expression}`;
+        return `#${mode.expression}`; // # is a synthetic marker to discriminate custom cron expressions in `AlertInputSummary`
     }
   };
 

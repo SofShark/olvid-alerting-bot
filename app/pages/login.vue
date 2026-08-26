@@ -100,23 +100,17 @@ async function requestReset() {
   }
 }
 
-const forgotMessage = computed(() => {
-  switch (forgotChannel.value) {
-    case "olvid":
-      return t("auth.login.resetSentOlvid");
-    case "mail":
-      return t("auth.login.resetSentMail");
-    case "none":
-      return t("auth.login.resetUnreachable");
-    default:
-      return "";
-  }
-});
+// The server always resolves to `channel: "none"` to avoid leaking whether
+// the login exists or which channel it's bound to. The UI therefore shows
+// a single generic "if we know you, we've sent something" message once the
+// request completes — no branching by channel.
+const forgotMessage = computed(() =>
+  forgotChannel.value ? t("auth.login.resetSubmitted") : "",
+);
 
-const forgotOutcomeKind = computed<"success" | "warning" | null>(() => {
-  if (!forgotChannel.value) return null;
-  return forgotChannel.value === "none" ? "warning" : "success";
-});
+const forgotOutcomeKind = computed<"success" | "warning" | null>(() =>
+  forgotChannel.value ? "success" : null,
+);
 </script>
 
 <template>
@@ -231,7 +225,7 @@ const forgotOutcomeKind = computed<"success" | "warning" | null>(() => {
 
 .msg {
   margin-top: var(--space-3);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   color: var(--color-text-muted);
 }
 .msg--error {
@@ -255,7 +249,7 @@ const forgotOutcomeKind = computed<"success" | "warning" | null>(() => {
   padding: 0;
   cursor: pointer;
   text-decoration: underline;
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
 }
 .link-btn:hover {
   color: var(--color-accent-hover);

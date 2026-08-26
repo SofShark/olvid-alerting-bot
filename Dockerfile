@@ -16,7 +16,7 @@
 # the deps stage against the container's Linux/musl.
 
 # 1. Base — pinned Node, tiny footprint.
-FROM node:22-alpine AS base
+FROM node:26-alpine AS base
 WORKDIR /app
 
 # 2. Production dependencies stage.
@@ -27,6 +27,9 @@ FROM base AS deps
 RUN apk add --no-cache python3 make g++ openssl
 COPY --link package.json package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund
+
+COPY --link prisma            ./prisma
+COPY --link prisma.config.ts  ./prisma.config.ts
 RUN npx prisma generate
 
 # 3. Build stage. Full install (dev deps needed for `nuxt build`,

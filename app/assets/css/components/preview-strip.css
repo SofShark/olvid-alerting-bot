@@ -9,7 +9,7 @@ Used in condition editor and test-poll modal to show a summary of the polling re
   padding: var(--space-3) var(--space-5);
   border-radius: var(--radius-xl);
   border: 1px solid;
-  font-size: var(--text-md);
+  font-size: var(--text-m);
 }
 .preview-strip.ok {
   background: var(--color-success-soft);
@@ -22,7 +22,7 @@ Used in condition editor and test-poll modal to show a summary of the polling re
   color: var(--color-text-secondary);
 }
 .preview-strip .bullet {
-  font-size: var(--text-xl);
+  font-size: var(--text-2xl);
   line-height: 1;
 }
 .preview-strip.ok .bullet {
@@ -39,7 +39,7 @@ Used in condition editor and test-poll modal to show a summary of the polling re
 .preview-detail {
   margin-left: auto;
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   max-width: 100%;
 }
 .preview-detail summary {
@@ -64,7 +64,7 @@ Used in condition editor and test-poll modal to show a summary of the polling re
 }
 .preview-detail li {
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
 }
 .preview-detail li.ok {
   color: var(--color-success-bright);

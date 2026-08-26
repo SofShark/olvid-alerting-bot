@@ -149,7 +149,7 @@ async function submit() {
 }
 .hint {
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   margin-top: var(--space-3);
 }
 .hint-login {
@@ -158,7 +158,7 @@ async function submit() {
 }
 .msg {
   margin-top: var(--space-3);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   color: var(--color-text-muted);
 }
 .msg--error {

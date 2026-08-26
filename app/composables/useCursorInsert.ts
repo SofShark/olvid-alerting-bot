@@ -1,7 +1,7 @@
 import { nextTick } from "vue";
 
 /**
- * Imperative textarea cursor helper. Inserts text at the caret (replacing
+ * Textarea cursor helper. Inserts text at the caret (replacing
  * any selection), then restores focus and places the caret right after
  * the inserted text. Falls back to appending when no textarea is mounted.
  *

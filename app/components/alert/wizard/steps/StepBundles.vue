@@ -172,7 +172,7 @@ const hasEmptyBundle = computed(() =>
   color: var(--color-text-primary);
 }
 .row-add .plus {
-  font-size: var(--text-xl);
+  font-size: var(--text-2xl);
   line-height: 1;
 }
 
@@ -183,7 +183,7 @@ const hasEmptyBundle = computed(() =>
   border: 1px solid var(--color-warning-border);
   border-radius: var(--radius-lg);
   color: var(--color-warning-text);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   line-height: 1.5;
 }
 .warn-hint strong {

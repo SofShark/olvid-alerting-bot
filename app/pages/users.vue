@@ -269,7 +269,7 @@ async function handleInvited(res: Parameters<typeof onInvited>[0]) {
 .users-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
 }
 .users-table th,
 .users-table td {

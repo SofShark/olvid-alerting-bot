@@ -15,11 +15,13 @@
   right next to the FormatEditor, so surfacing it again here would be
   noise.
 
-  `data.text` arrives with Olvid-markup → HTML already applied by
-  `useFormatEditorPreview` (same contract as OlvidChatPreview), so we
-  render it via `v-html`. Delivery-time mailClient does its own
-  markup → HTML conversion so what shows here matches what MailPace
-  actually sends.
+  `data.text` is the RAW Handlebars output. Mail is an HTML transport,
+  so we render it via `v-html`: any `<strong>` / `<em>` / `<br>` the user
+  wrote in the script paints as real formatting. Plain-text markup like
+  `**bold**` shows literally, matching what MailPace actually sends for
+  a script that only uses markdown-lite syntax without HTML tags.
+  Delivery-time `notifierService` strips HTML for the Olvid dispatch of
+  the same bundle — the two previews render each channel accordingly.
 */
 
 defineProps<{
@@ -134,7 +136,7 @@ const { t } = useI18n();
 .mail-meta {
   margin: 0;
   color: var(--color-text-dim);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   display: flex;
   align-items: center;
   gap: var(--space-2);

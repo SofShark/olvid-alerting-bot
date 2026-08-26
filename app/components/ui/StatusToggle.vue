@@ -1,27 +1,26 @@
 <script setup lang="ts">
 import { AlertStatus } from "#shared/types/alert";
-// defineModel remplace à la fois la prop 'status' et l'emit associé !
 
-const status = defineModel<AlertStatus>("status", { required: true });
-
-defineProps<{
+// One-way prop + one event. The parent owns the status; a click here just
+// asks for a flip. Previously wired via defineModel("status") which forced
+// callers to expose a writable ref even when the flip is a server round-
+// trip anyway — the `update:state` event was already the real write path.
+const props = defineProps<{
+  status: AlertStatus;
   canActivate: boolean;
 }>();
+
+const emit = defineEmits<{ (e: "update:state"): void }>();
 
 const { t } = useI18n();
 
 const label = computed(() => {
-  if (status.value === AlertStatus.Active) return t("alertStatus.active");
-  if (status.value === AlertStatus.Inactive) return t("alertStatus.inactive");
+  if (props.status === AlertStatus.Active) return t("alertStatus.active");
+  if (props.status === AlertStatus.Inactive) return t("alertStatus.inactive");
   return t("alertStatus.draft");
 });
 
-const emit = defineEmits(["update:state"]);
-
-const toggleStatus = () => {
-  console.log("toggle toggle");
-  emit("update:state");
-};
+const toggleStatus = () => emit("update:state");
 </script>
 <template>
   <div class="toggle-wrap">
@@ -76,7 +75,7 @@ const toggleStatus = () => {
   transform: translateX(20px);
 }
 .toggle-label {
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   color: var(--color-text-muted);
   font-weight: 600;
   min-width: 54px;

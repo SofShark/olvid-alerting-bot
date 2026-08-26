@@ -92,12 +92,12 @@ const discussionCountLabel = (n: number) =>
   border-bottom: 1px solid var(--color-border-subtle);
 }
 .bundle-message-meta {
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   color: var(--color-text-muted);
 }
 .bundle-tag {
   font-weight: 600;
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
 }
 .bundle-message-body {
   margin: 0;
@@ -105,7 +105,7 @@ const discussionCountLabel = (n: number) =>
   background: var(--color-bg-code);
   color: var(--color-text-code);
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
@@ -118,7 +118,7 @@ const discussionCountLabel = (n: number) =>
   background: var(--color-danger-soft);
   color: var(--color-danger-bright);
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   white-space: pre-wrap;
 }
 </style>

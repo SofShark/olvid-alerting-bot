@@ -39,7 +39,7 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
 
   const fillFrom = (a: AlertModel | null | undefined) => {
     if (a && a.id) {
-      const incomingParams = (a as any).alertParams;
+      const incomingParams = a.alertParams;
       // Any scheduled source (Polling OR Monitoring) carries params; the
       // union member is discriminated by `input` downstream. Webhook
       // alerts carry none.
@@ -60,8 +60,9 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
         bundles: (a.bundles ?? []).map((b) => ({
           id: b.id,
           name: b.name,
-          formating: (b.formating as Formatting) || Formatting.Unformatted,
+          formating: (b.formating as Formatting) || Formatting.WebhookRaw,
           custom_script: b.custom_script || "",
+          mailSubject: b.mailSubject ?? undefined,
           outputs: (b.outputs ?? []) as BundleOutput[],
         })),
       };
@@ -75,7 +76,7 @@ export const useAlertForm = (source: Ref<AlertModel | null | undefined>) => {
   // ── Bundle helpers ────────────────────────────────────────────────────────
   const blankBundle = (): BundleModel => ({
     outputs: [],
-    formating: Formatting.Unformatted,
+    formating: Formatting.WebhookRaw,
     custom_script: "",
   });
 

@@ -347,7 +347,7 @@ const submitLabel = computed(() => {
 }
 .modal-feedback {
   color: var(--color-danger-text);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   margin: 0;
   padding: var(--space-2) var(--space-3);
   background: var(--color-danger-soft);
@@ -360,7 +360,7 @@ const submitLabel = computed(() => {
   gap: var(--space-2);
 }
 .field-label {
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   color: var(--color-text-muted);
 }
 

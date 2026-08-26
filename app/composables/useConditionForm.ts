@@ -4,7 +4,7 @@ import {
   OPERATORS_NEEDING_VALUE,
   type PollingCondition,
 } from "#shared/types/condition";
-import { migrateCondition } from "#shared/condition/migrate";
+import { paramCleaner } from "~~/shared/condition/paramCleaner";
 import { expandPath, hasWildcard } from "#shared/condition/pathExpand";
 
 /**
@@ -32,7 +32,7 @@ export const useConditionForm = (
   onChange: (next: PollingCondition) => void,
 ) => {
   const current: ComputedRef<PollingCondition> = computed(() =>
-    migrateCondition(sourceGetter()),
+    paramCleaner.migrateCondition(sourceGetter()),
   );
 
   const kind = computed(() => current.value.kind);
@@ -70,7 +70,7 @@ export const useConditionForm = (
   }
 
   /** Flip kind without touching other fields. Preserves the user's
-   *  in-progress selections when toggling None ⇄ Rule; compactCondition()
+   *  in-progress selections when toggling None ⇄ Rule; paramCleaner.compactCondition()
    *  at save time drops them if the final kind is None. */
   function setKind(next: ConditionKind) {
     if (kind.value === next) return;

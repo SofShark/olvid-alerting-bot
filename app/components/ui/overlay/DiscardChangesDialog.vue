@@ -4,21 +4,25 @@
   ConfirmDialog:
     · cancel   →  "Continue editing"  (dismiss)
     · confirm  →  "Discard"           (throw away the work, danger)
-    · #extra   →  "Save as draft"     (only when the form is savable)
-
-  All the modal / layout logic lives in ConfirmDialog + Modal now —
-  this file only provides the wizard-specific labels, event names, and
-  the save-draft button's disabled-while-saving affordance.
+    · #extra   →  "Save as draft" OR "Save alert" (only when the form is
+                  savable). The label — and the emitted event — depend on
+                  whether the alert is complete enough to save runnably:
+                    - incomplete → `save-draft` (label: "Save as draft")
+                    - complete   → `save-alert` (label: "Save alert")
+                  Callers wire each event to the right save path so the
+                  final status matches the button copy.
 */
 
 defineProps<{
   open: boolean;
   canSaveDraft: boolean;
+  wouldBeComplete: boolean;
   saving: boolean;
 }>();
 
 defineEmits<{
   (e: "save-draft"): void;
+  (e: "save-alert"): void;
   (e: "continue-editing"): void;
   (e: "discard"): void;
 }>();
@@ -37,6 +41,16 @@ defineEmits<{
   >
     <template v-if="canSaveDraft" #extra>
       <button
+        v-if="wouldBeComplete"
+        type="button"
+        class="btn btn-primary"
+        :disabled="saving"
+        @click="$emit('save-alert')"
+      >
+        {{ saving ? $t("common.saving") : $t("wizard.footer.saveAlert") }}
+      </button>
+      <button
+        v-else
         type="button"
         class="btn btn-secondary"
         :disabled="saving"

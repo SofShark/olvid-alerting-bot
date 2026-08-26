@@ -6,7 +6,7 @@ import { Formatting } from "#shared/types/bundle";
 import type { FormattingStrategy } from "./formattingStrategy";
 
 export const unformattedStrategy: FormattingStrategy = {
-  formatting: Formatting.Unformatted,
+  formatting: Formatting.WebhookRaw,
 
   render(_alert, _bundle, payload) {
     return `\`\`\`json\n${JSON.stringify(payload, null, 2)}\n\`\`\``;
