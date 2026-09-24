@@ -1,4 +1,4 @@
-// Pure predicate — turns a StatusMatch rule + an observed HTTP status into
+// Predicate — turns a StatusMatch rule + an observed HTTP status into
 // a fire/no-fire decision. No IO, no DOM, safe on both server and client.
 //
 // Used by:
@@ -34,9 +34,7 @@ export function statusMatches(match: StatusMatch, status: number): boolean {
  *  ("HTTP 404 matches codes [404, 500]"). English-only — the polling
  *  evaluator's `reason` strings follow the same convention, so this
  *  keeps the AlertTestResult envelope consistent across sources.
- *
- *  For a localized, user-facing label use `useStatusMatchLabel` on the
- *  client instead. */
+ */
 export function describeStatusMatch(match: StatusMatch): string {
   switch (match.kind) {
     case "codes":

@@ -18,9 +18,11 @@
 // row. See MONITOR_BODY_PREVIEW_MAX below for the exact limit.
 
 import type {
+  ChannelReport,
   DispatchStrategy,
   DispatchResult,
 } from "#shared/types/dispatchStrategy";
+import { summariseChannels } from "#shared/types/dispatchStrategy";
 import type { AlertModel } from "#shared/types/alert";
 import { getMonitorParams } from "#shared/types/alert";
 import type { PollingCondition } from "#shared/types/condition";
@@ -55,7 +57,11 @@ export const monitoringStrategy: DispatchStrategy = {
     const params = getMonitorParams(alert);
     if (!params) {
       return {
-        outcome: { status: "error", error: "Alert has no monitor params" },
+        outcome: {
+          status: "error",
+          error: "Alert has no monitor params",
+          details: { stage: "evaluate" },
+        },
         paramsPatch: {},
       };
     }
@@ -84,7 +90,14 @@ export const monitoringStrategy: DispatchStrategy = {
       console.error(
         `[monitoringStrategy] alert #${alert.id} fetch error: ${msg}`,
       );
-      return { outcome: { status: "error", error: msg }, paramsPatch: {} };
+      return {
+        outcome: {
+          status: "error",
+          error: msg,
+          details: { stage: "fetch" },
+        },
+        paramsPatch: {},
+      };
     }
     const latencyMs = Date.now() - t0;
 
@@ -101,6 +114,7 @@ export const monitoringStrategy: DispatchStrategy = {
     );
 
     // 4) Notify. Flat payload for Handlebars — see MonitorProbePayload.
+    let channels: ChannelReport[] = [];
     if (decision.fire) {
       const payload: MonitorProbePayload = {
         status: res.status,
@@ -121,11 +135,27 @@ export const monitoringStrategy: DispatchStrategy = {
           : null,
       };
 
-      await notifierService.processAlert(alert, payload, decision.kind);
+      channels = await notifierService.processAlert(
+        alert,
+        payload,
+        decision.kind,
+      );
     }
 
+    // Promote to partial/failed when the notifier reported channel
+    // failures — keeps monitoring outcomes symmetric with polling.
+    const status =
+      channels.length > 0 ? summariseChannels(channels) : "success";
+    const anyChannelError = channels.find((c) => !c.ok)?.error ?? null;
     return {
-      outcome: { status: "success", error: null },
+      outcome: {
+        status,
+        error: status === "success" ? null : anyChannelError,
+        details:
+          channels.length > 0
+            ? { stage: "dispatch", channels }
+            : undefined,
+      },
       paramsPatch: { _lastFired: fired, _lastStatus: httpStatus },
     };
   },

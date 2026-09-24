@@ -1,18 +1,11 @@
 // Single source of truth for "should this poll cause the alert to fire?"
-//
-// Same shape as alertRepository / notifierService: one exported object
-// (`firePolicy`) with the `decide` method. Lives in shared/ so the UI
-// preview and the server engine both pull from the exact same logic —
-// no risk of the wizard saying "would fire" while production says
-// otherwise. Pure: no IO, no DOM, no state — pass in everything the
-// decision needs and you get a verdict back.
 
 import {
   ConditionKind,
   ConditionOperator,
   type PollingCondition,
 } from "../types/condition";
-import { TriggerMode } from "../types/polling";
+import { TriggerMode } from "../types/triggerMode";
 
 /**
  * Outcome of a fire decision for one poll cycle.
@@ -47,11 +40,11 @@ export const firePolicy = {
    */
   decide(
     condition: PollingCondition,
-    triggerMode: TriggerMode | undefined,
+    triggerMode: TriggerMode,
     isCurrentlyTrue: boolean,
     wasPreviouslyTrue: boolean | undefined,
   ): FireDecision {
-    // Edge-native conditions bypass trigger-mode logic.
+    // No polling condition, always fires
     if (condition.kind === ConditionKind.None) {
       return { fire: true, kind: "alert" };
     }
@@ -59,9 +52,7 @@ export const firePolicy = {
       return isCurrentlyTrue ? { fire: true, kind: "alert" } : { fire: false };
     }
 
-    const mode = triggerMode ?? TriggerMode.EveryTime;
-
-    if (mode === TriggerMode.EveryTime) {
+    if (triggerMode === TriggerMode.EveryTime) {
       return isCurrentlyTrue ? { fire: true, kind: "alert" } : { fire: false };
     }
 
@@ -74,7 +65,7 @@ export const firePolicy = {
     if (
       !isCurrentlyTrue &&
       wasPreviouslyTrue === true &&
-      mode === TriggerMode.WithRecovery
+      triggerMode === TriggerMode.WithRecovery
     ) {
       return { fire: true, kind: "recovery" };
     }

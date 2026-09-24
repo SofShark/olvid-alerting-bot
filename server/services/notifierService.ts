@@ -3,8 +3,8 @@
 // Renamed from the misleading `alertManager`: this module doesn't "manage"
 // alerts (CRUD, status, lifecycle — that's alertService / alertRepository).
 // It does ONE thing: given an alert that just fired + the triggering
-// payload, format each of its bundles and dispatch the resulting message
-// to the configured Olvid discussions via the daemon.
+// payload, format each of its bundles and dispatch through the right
+// channel strategy.
 //
 // Entry points:
 //   - processAlert(alert, payload, kind?) — top of the chain (webhook
@@ -13,20 +13,28 @@
 //   - formatMessage(alert, bundle, payload, kind?) — builds the string for
 //     one bundle (also reused by the "test poll" endpoint to preview).
 //
-// `kind` is 'alert' by default — the normal fire path. The polling engine
+// On FireKind, alert is the default. The polling engine
 // passes 'recovery' when the WithRecovery trigger mode detects a falling
 // edge (condition was true on the last poll, now false). For recovery the
-// message gets a "✓ RECOVERED:" prefix; the per-bundle script doesn't need
-// to be recovery-aware.
+// message body gets a "✓ RECOVERED:" prefix; channel-specific headers
+// (mail subject, etc.) each strategy decides on its own.
 
-import { AlertStatus } from "#shared/types/alert";
-import {
-  BundleOutputType,
-  MailOutputParams,
-  OlvidOutputParams,
-} from "#shared/types/bundleOutput";
+import { AlertStatus, type AlertModel } from "#shared/types/alert";
+import type { BundleModel, BundleOutput } from "#shared/types/bundle";
+import type { ChannelReport } from "#shared/types/dispatchStrategy";
+import { channelFactory } from "./channels/channelFactory";
 
-export type FireKind = "alert" | "recovery";
+export type FireKind = "alert" | "recovery"; 
+
+// The notifier consumes the shared wire types verbatim — no shadow types.
+// `id` is nullable on the AlertModel but the notifier only runs after persistence
+// (webhook handler, polling dispatcher), so we runtime-guard on entry and
+// tell TS the narrowed shape via `FiredAlert` / `FiredBundle`.
+export type FiredBundle = BundleModel & { id: number };
+export type FiredAlert = AlertModel & {
+  id: number;
+  bundles: FiredBundle[];
+};
 
 const RECOVERY_PREFIX = "✓ RECOVERED:";
 
@@ -35,10 +43,24 @@ export const notifierService = {
     return await olvidClient.getDiscussions();
   },
 
-  // Entry point for an incoming webhook (or polling tick). The alert is
+  // Entry point for an incoming alert: webhook or polling tick). The alert is
   // resolved by token / id and carries its bundles. Each bundle is one
-  // output (audience + format).
-  async processAlert(alert: any, payload: any, kind: FireKind = "alert") {
+  // output (audience + format). Returns the flattened ChannelReport list
+  // aggregated across every bundle so the caller (webhook handler /
+  // dispatcher) can record what actually happened per channel.
+  async processAlert(
+    alert: AlertModel,
+    payload: unknown,
+    kind: FireKind = "alert",
+  ): Promise<ChannelReport[]> {
+    // Prevent running the notifier on un-persisted alerts
+    if (alert.id == null) {
+      console.warn(
+        "[notifierService] processAlert called with an non-saved alert (id=null)",
+      );
+      return [];
+    }
+
     console.log(
       `⚙️ Processing alert #${alert.id}: ${alert.title}${kind === "recovery" ? " (recovery)" : ""}`,
     );
@@ -47,88 +69,101 @@ export const notifierService = {
       console.log(
         `The alert is not active (status: ${alert.status}) — skipping`,
       );
-      return;
+      return [];
     }
 
-    const bundles = alert.bundles ?? [];
+    const bundles: FiredBundle[] = alert.bundles.filter(
+      (b): b is FiredBundle => b.id != null,
+    );
     if (bundles.length === 0) {
       console.warn(`⚠️ Alert #${alert.id} is active but has no bundles`);
-      return;
+      return [];
     }
 
-    // Fire every bundle in parallel.
-    await Promise.all(
-      bundles.map((bundle: any) =>
-        this.processBundle(alert, bundle, payload, kind),
+    const firedAlert: FiredAlert = { ...alert, id: alert.id, bundles };
+
+    // Fire every bundle in parallel. `allSettled` keeps each bundle's
+    // reports independent — a synchronous throw inside one `processBundle`
+    // (e.g. an unexpected format-strategy crash) must not hide the
+    // successes on the other bundles. Rejections are logged and dropped;
+    // per-channel failures inside a bundle are already captured as
+    // `ChannelReport { ok: false }` by `processBundle` itself.
+    const perBundle = await Promise.allSettled(
+      bundles.map((bundle) =>
+        this.processBundle(firedAlert, bundle, payload, kind),
       ),
     );
+    return perBundle.flatMap((res, i) => {
+      if (res.status === "fulfilled") return res.value;
+      console.error(
+        `[notifierService] bundle #${bundles[i]?.id} threw during processing:`,
+        res.reason,
+      );
+      return [];
+    });
   },
 
   async processBundle(
-    alert: any,
-    bundle: any,
-    payload: any,
+    alert: FiredAlert,
+    bundle: FiredBundle,
+    payload: unknown,
     kind: FireKind = "alert",
-  ) {
-    const outputs = (bundle.outputs ?? []) as Array<{
-      type: string;
-      params: any;
-    }>;
+  ): Promise<ChannelReport[]> {
+    const outputs = bundle.outputs;
 
     if (outputs.length === 0) {
       console.warn(
         `⚠️ Bundle #${bundle.id} of alert #${alert.id} has no outputs`,
       );
-      return;
+      return [];
     }
 
     const message = this.formatMessage(alert, bundle, payload, kind);
 
-    // Dispatch by output.type. Group per channel so we open one round-trip
-    // per channel, not per row. Future channels (slack / discord / …) slot in here without touching the caller.
-    const olvidDiscussions: bigint[] = [];
-    const mailAddresses: string[] = [];
+    // Group outputs by their channel kind. Bundles are homogeneous by
+    // policy (one kind per bundle), but grouping keeps legacy mixed rows
+    // round-tripping cleanly — one dispatcher round-trip per kind, never
+    // one per output row. Dispatchers themselves live in ./channels; the
+    // factory maps `BundleOutputType` → strategy. Adding a new channel is
+    // one strategy file + one registry line, no notifier change.
+    const byChannel = new Map<BundleOutput["type"], BundleOutput[]>();
     for (const output of outputs) {
-      if (output.type === BundleOutputType.Olvid) {
-        const raw = (output.params as OlvidOutputParams)?.discussionId;
-        if (raw === null || raw === undefined) continue;
-        try {
-          olvidDiscussions.push(BigInt(raw));
-        } catch {
-          console.warn(
-            `⚠️ Bundle #${bundle.id}: invalid Olvid discussionId ${JSON.stringify(raw)}`,
-          );
-        }
-      } else if (output.type === BundleOutputType.Mail) {
-        const raw = (output.params as MailOutputParams)?.address;
-        if (typeof raw === "string" && raw.trim() !== "") {
-          mailAddresses.push(raw.trim());
-        }
-      } else {
-        console.warn(
-          `⚠️ Bundle #${bundle.id}: unknown output type '${output.type}' — skipping`,
-        );
-      }
+      const list = byChannel.get(output.type);
+      if (list) list.push(output);
+      else byChannel.set(output.type, [output]);
     }
 
-    // Dispatch channels in parallel — one channel's failure can't block
-    // the other. Both clients swallow errors internally and return bool.
-    const subject =
-      kind === "recovery" ? `${RECOVERY_PREFIX} ${alert.title}` : alert.title;
-    await Promise.all([
-      olvidDiscussions.length > 0
-        ? olvidClient.sendMessage(olvidDiscussions, message)
-        : Promise.resolve(),
-      mailAddresses.length > 0
-        ? mailClient.send(mailAddresses, subject, message)
-        : Promise.resolve(),
-    ]);
+    const dispatches = [...byChannel.entries()].map(([type, os]) => {
+      const dispatcher = channelFactory.forChannel(type);
+      if (!dispatcher) {
+        console.warn(
+          `⚠️ Bundle #${bundle.id}: unknown channel '${type}' — skipping`,
+        );
+        return Promise.resolve<ChannelReport | null>(null);
+      }
+      return dispatcher
+        .dispatch(os, { alert, bundle, message, kind })
+        .catch(
+          (err): ChannelReport => ({
+            channel: type,
+            ok: false,
+            recipients: os.length,
+            error: errorMessage(err),
+          }),
+        );
+    });
+
+    const settled = await Promise.all(dispatches);
+    return settled.filter((r): r is ChannelReport => r !== null);
   },
 
+  // formatMessage is used by testers too, which pass a not-yet-persisted
+  // draft alert (id nullable). Formatting only reads text fields, so the
+  // wire types suffice.
   formatMessage(
-    alert: any,
-    bundle: any,
-    payload: any,
+    alert: AlertModel,
+    bundle: BundleModel,
+    payload: unknown,
     kind: FireKind = "alert",
   ): string {
     const body = renderBody(alert, bundle, payload);
@@ -139,8 +174,21 @@ export const notifierService = {
 // Internal: builds the bundle's message body (no recovery prefix). The
 // per-format logic lives in server/services/formatters/ — one strategy
 // per Formatting value, selected by the factory. Strategies never throw.
-function renderBody(alert: any, bundle: any, payload: any): string {
-  return formatterFactory
-    .forFormatting(bundle.formating)
-    .render(alert, bundle, payload);
+function renderBody(
+  alert: AlertModel,
+  bundle: BundleModel,
+  payload: unknown,
+): string {
+  const strategy = formatterFactory.forFormatting(bundle.formating);
+  return strategy.render(alert, bundle, payload);
+}
+
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return "unknown error";
+  }
 }

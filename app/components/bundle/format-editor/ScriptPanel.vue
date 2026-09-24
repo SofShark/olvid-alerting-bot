@@ -7,9 +7,8 @@ import { ref } from "vue";
   so the container's `useCursorInsert` composable can target it for
   click-to-insert from the source-tree panels.
 
-  Communicates via v-model on the script string + a `select-path` emit
-  when the user clicks a watched-path chip. No state owned — the
-  container holds `scriptContent`.
+  - v-model on the script string 
+  - `select-path` emit when the user clicks a watched-path chip. 
 */
 
 defineProps<{
@@ -33,6 +32,7 @@ const pathToHandlebars = (path: string): string =>
     .split(".")
     .map((seg) => (/^\d+$/.test(seg) ? `[${seg}]` : seg))
     .join(".");
+
 </script>
 
 <template>
@@ -41,7 +41,12 @@ const pathToHandlebars = (path: string): string =>
       <span class="dot dot-red" /><span class="dot dot-yellow" /><span
         class="dot dot-green"
       />
-      <span class="code-title">{{ $t("formatEditor.scriptTitle") }}</span>
+      <span class="code-title">
+        script.hbs 
+      (<a href="https://handlebarsjs.com/guide/" class="code-title-link">Handlebars</a>)
+
+      </span>
+     
     </div>
 
     <div v-if="isPolling && watchedPaths.length > 0" class="shortcuts">
@@ -52,7 +57,7 @@ const pathToHandlebars = (path: string): string =>
         v-for="p in watchedPaths"
         :key="p"
         type="button"
-        class="shortcut-chip"
+        class="shortcut-chip dark"
         :title="
           $t('formatEditor.watchedPathsInsertTitle', {
             token: `{{${pathToHandlebars(p)}}}`,
@@ -92,16 +97,16 @@ const pathToHandlebars = (path: string): string =>
   font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   margin-right: var(--space-1);
 }
 .shortcut-chip {
-  background: var(--color-accent-soft);
-  border: 1px solid var(--color-accent-border);
+  background: var(--blue-dark);
+  border: 1px solid var(--blue-90);
   color: var(--color-accent-text);
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  padding: 3px var(--space-3);
+  font-size: var(--text-s);
+  padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition:
@@ -109,7 +114,7 @@ const pathToHandlebars = (path: string): string =>
     color 0.15s;
 }
 .shortcut-chip:hover {
-  background: #1e3a8a;
+  background: var(--color-accent-hover);
   color: var(--color-text-on-accent);
 }
 </style>

@@ -151,8 +151,6 @@ export const alertRepository = {
     },
   ) {
     return await prisma.$transaction(async (tx) => {
-      await alertBundleRepository.deleteAllForAlert(tx, id);
-
       await tx.alertTable.update({
         where: { id },
         data: {
@@ -163,7 +161,18 @@ export const alertRepository = {
           status: data.status,
         },
       });
-      await alertBundleRepository.createForAlert(tx, id, data.bundles);
+
+      // Bundle replacement is INTENTIONAL: it only fires when the caller
+      // explicitly restates the bundle list. Previously the delete ran
+      // unconditionally and `createForAlert` bailed on undefined /
+      // empty — so any PUT that didn't restate bundles wiped them.
+      // Symptoms: changing a top-level field (title, condition, params,
+      // status) via any endpoint that omitted bundles nuked the alert's
+      // outputs on save.
+      if (Array.isArray(data.bundles)) {
+        await alertBundleRepository.deleteAllForAlert(tx, id);
+        await alertBundleRepository.createForAlert(tx, id, data.bundles);
+      }
 
       const full = await tx.alertTable.findUnique({
         where: { id },
@@ -196,58 +205,6 @@ export const alertRepository = {
     });
   },
 
-  // ── Last-payload sidecar tables ─────────────────────────────────────────
-  // Keyed by alertId. FK has onDelete: Cascade so deleting the alert cleans up.
-
-  //TODO:  MOVE TO SPECIALISED REPOSITORY : alertPayloadRepository.ts
-
-  async upsertLastAlertPayload(alertId: number, payload: any) {
-    await prisma.lastAlertPayload.upsert({
-      where: { alertId },
-      create: { alertId, payload },
-      update: { payload },
-    });
-  },
-
-  async getLastAlertPayload(alertId: number) {
-    const row = await prisma.lastAlertPayload.findUnique({
-      where: { alertId },
-      select: { payload: true, receivedAt: true },
-    });
-    return row ?? null;
-  },
-
-  /** Failures are tracked separately so a subsequent success doesn't erase
-   *  the diagnostic trail. `null`-able fields are allowed (e.g. the response
-   *  never arrived, so no raw text). */
-  async upsertLastFailedPayload(
-    alertId: number,
-    info: { raw?: string | null; parsed?: any; error: string; stage?: string },
-  ) {
-    const data = {
-      raw: info.raw ?? null,
-      parsed: info.parsed ?? null,
-      error: info.error,
-      stage: info.stage ?? null,
-    };
-    await prisma.lastFailedPayload.upsert({
-      where: { alertId },
-      create: { alertId, ...data },
-      update: data,
-    });
-  },
-
-  async getLastFailedPayload(alertId: number) {
-    const row = await prisma.lastFailedPayload.findUnique({
-      where: { alertId },
-      select: {
-        raw: true,
-        parsed: true,
-        error: true,
-        stage: true,
-        failedAt: true,
-      },
-    });
-    return row ?? null;
-  },
+  // Last-payload sidecar tables live in `alertPayloadRepository` — this
+  // aggregate only touches the alert graph itself.
 };

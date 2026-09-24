@@ -2,7 +2,8 @@
 import { computed } from "vue";
 import { Source } from "#shared/types/source";
 import type { AlertModel } from "#shared/types/alert";
-import { TriggerMode, type PollingParams } from "#shared/types/polling";
+import { TriggerMode } from "#shared/types/triggerMode";
+import type { PollingParams } from "#shared/types/polling";
 import type { MonitorParams } from "#shared/types/monitor";
 import { ConditionKind, ConditionOperator } from "#shared/types/condition";
 
@@ -20,14 +21,9 @@ import { ConditionKind, ConditionOperator } from "#shared/types/condition";
   Only the `variant` prop changes the hint wording.
 
   Webhook alerts skip this step entirely (useWizardSteps handles it).
-
-  Re-emits `update:payload` upward so the wizard can pipe the parsed
-  payload into the bundle dialog's preview on step 3.
 */
 
 const form = defineModel<AlertModel>({ required: true });
-
-defineEmits<{ (e: "update:payload", v: any): void }>();
 
 const isPolling = computed(() => form.value.input === Source.Polling);
 const isMonitoring = computed(() => form.value.input === Source.Monitoring);
@@ -53,25 +49,49 @@ const condition = computed({
 //     that case ("fire after N consecutive changes" is still valid).
 const showFiringBehavior = computed(() => {
   if (isMonitoring.value) return true;
-  return condition.value?.kind === ConditionKind.Rule;
+  if (isPolling.value){
+    const c = condition.value;
+    return (
+      c?.kind === ConditionKind.Rule && c.operator !== ConditionOperator.Changed
+    );
+  }
+  return false;
 });
 const showTriggerMode = computed(() => {
   if (isMonitoring.value) return true;
-  const c = condition.value;
-  return (
-    c?.kind === ConditionKind.Rule && c.operator !== ConditionOperator.Changed
-  );
+  if (isPolling.value){
+    const c = condition.value;
+    return (
+      c?.kind === ConditionKind.Rule && c.operator !== ConditionOperator.Changed
+    );
+  }
+  return false;
 });
 
-// v-model target for FiringBehaviorPanel's trigger mode — reads/writes
-// alertParams.triggerMode for whichever source is active.
+// FiringBehaviorPanel bindings — read/write alertParams.{triggerMode,
+// datapointsN, datapointsM} for whichever source is active.
+const paramsFor = () =>
+  form.value.alertParams as PollingParams | MonitorParams | undefined;
+
 const triggerModeModel = computed<TriggerMode>({
-  get: () =>
-    (form.value.alertParams as PollingParams | MonitorParams | undefined)
-      ?.triggerMode ?? TriggerMode.EveryTime,
+  get: () => paramsFor()?.triggerMode ?? TriggerMode.EveryTime,
   set: (v) => {
     if (!form.value.alertParams) return;
     form.value.alertParams = { ...form.value.alertParams, triggerMode: v };
+  },
+});
+const datapointsNModel = computed<number>({
+  get: () => paramsFor()?.datapointsN ?? 1,
+  set: (v) => {
+    if (!form.value.alertParams) return;
+    form.value.alertParams = { ...form.value.alertParams, datapointsN: v };
+  },
+});
+const datapointsMModel = computed<number>({
+  get: () => paramsFor()?.datapointsM ?? 1,
+  set: (v) => {
+    if (!form.value.alertParams) return;
+    form.value.alertParams = { ...form.value.alertParams, datapointsM: v };
   },
 });
 
@@ -89,7 +109,6 @@ const behaviorVariant = computed<"polling" | "monitoring">(() =>
         :url="(form.alertParams as PollingParams | undefined)?.url"
         :format="(form.alertParams as PollingParams | undefined)?.format"
         @update:model-value="condition = $event"
-        @update:payload="$emit('update:payload', $event)"
       />
     </template>
     <template v-else-if="isMonitoring">
@@ -102,7 +121,9 @@ const behaviorVariant = computed<"polling" | "monitoring">(() =>
          alerts have nothing to modulate). -->
     <FiringBehaviorPanel
       v-if="showFiringBehavior"
-      v-model="triggerModeModel"
+      v-model:trigger-mode="triggerModeModel"
+      v-model:datapoints-n="datapointsNModel"
+      v-model:datapoints-m="datapointsMModel"
       :variant="behaviorVariant"
       :show-trigger-mode="showTriggerMode"
     />

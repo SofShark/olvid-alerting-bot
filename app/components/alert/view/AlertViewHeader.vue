@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from "vue";
 import type { AlertStatus } from "#shared/types/alert";
 
 /*
@@ -16,10 +15,10 @@ import type { AlertStatus } from "#shared/types/alert";
       is the one place that knows what to do.
 */
 
-const props = defineProps<{
+defineProps<{
   title: string;
   description?: string;
-  inputTitle: string;
+  inputTitle?: string;
   status: AlertStatus;
   isExisting: boolean;
   canActivate: boolean;
@@ -37,10 +36,6 @@ defineEmits<{
   (e: "update:status"): void;
 }>();
 
-const statusModel = computed({
-  get: () => props.status,
-  set: () => {},
-});
 </script>
 
 <template>
@@ -48,12 +43,12 @@ const statusModel = computed({
     <div class="head-main">
       <h2 class="view-title">
         <span class="title-text">{{ title || $t("common.untitled") }}</span>
-        <span class="meta-tag">{{ inputTitle }}</span>
+        <span v-if="inputTitle" class="meta-tag">{{ inputTitle }}</span>
       </h2>
       <div class="head-actions">
         <StatusToggle
           v-if="isExisting"
-          v-model:status="statusModel"
+          :status="status"
           :can-activate="canActivate"
           @update:state="$emit('update:status')"
         />
@@ -109,7 +104,7 @@ const statusModel = computed({
   align-items: center;
   gap: var(--space-3);
   margin: 0;
-  font-size: var(--text-xl);
+  font-size: var(--text-2xl);
   font-weight: 700;
   color: var(--color-text-primary);
   line-height: 1.3;
@@ -124,10 +119,10 @@ const statusModel = computed({
 
 .view-subtitle {
   margin: 0;
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-weight: 400;
   font-style: italic;
-  color: var(--color-text-faint);
+  color: var(--color-text-dim);
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;

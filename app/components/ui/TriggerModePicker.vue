@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { TriggerMode } from "#shared/types/polling";
+import type { TriggerMode } from "#shared/types/triggerMode";
 
 /*
   Segmented pill radio for the three TriggerMode options. Visually
@@ -27,9 +27,12 @@ const props = withDefaults(
   { variant: "polling", showHint: true },
 );
 
-const { options, hintFor } = useTriggerModeOptions(props.variant);
+const { triggerModeOptions, triggerModeHint } = useAlertLabels();
+const options = triggerModeOptions(props.variant);
 
-const activeHint = computed(() => hintFor(model.value));
+const activeHint = computed(() =>
+  triggerModeHint(model.value, props.variant),
+);
 </script>
 
 <template>
@@ -75,7 +78,7 @@ const activeHint = computed(() => hintFor(model.value));
   background: var(--color-border-subtle);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   color: var(--color-text-secondary);
   cursor: pointer;
   transition:
@@ -87,7 +90,7 @@ const activeHint = computed(() => hintFor(model.value));
 .trigger-mode-hint {
   margin: 0;
   color: var(--color-text-dim);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   line-height: 1.5;
 }
 </style>

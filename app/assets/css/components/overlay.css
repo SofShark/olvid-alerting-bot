@@ -38,15 +38,29 @@
   width: min(92vw, 560px);
 }
 .overlay-box--wide {
-  width: min(92vw, 700px);
+  width: min(92vw, 650px);
 }
+/* `full` — a tall form shell (bundle-edit dialog, invite reveal…).
+ * The caller owns head + body + foot layout inside; the box just gives
+ * them a fixed-height flex column with hidden overflow so their inner
+ * scroll containers flex correctly. */
 .overlay-box--full {
-  width: 92vw;
-  max-width: 700px;
-  height: 80vh;
-  /* Padding removed so the modal owns its own scrolling shell — the
-   * caller (e.g. BundleEditDialog) handles head/body/foot layout. */
+  max-width: 650px;
+  height: 92vh;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* `editor` — the widest shell we ship. */
+.overlay-box--editor {
+  width: 96vw;
+  height: 96vh;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .overlay-box h4 {
@@ -63,13 +77,6 @@
 .overlay-actions {
   display: flex;
   gap: var(--space-4);
-  /* Distribute across the row so an optional "extra" button (e.g. wizard's
-   * "Save as draft") lands on the left while cancel/confirm sit on the
-   * right — same visual convention as GitHub / Linear delete prompts.
-   * `flex-wrap` is a safety net: if a caller with very long labels
-   * (French, German…) or a narrow viewport can't fit everything on one
-   * row, the primary-actions group breaks to a new line instead of
-   * overflowing the modal. */
   justify-content: space-between;
   flex-wrap: wrap;
   row-gap: var(--space-3);

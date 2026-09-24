@@ -26,6 +26,7 @@ function toBundleRow(bundle: any, alertId: number) {
     name: bundle?.name ?? null,
     formating: bundle?.formating ?? "Unformatted",
     custom_script: bundle?.custom_script ?? null,
+    mailSubject: bundle?.mailSubject ?? null,
   };
 }
 

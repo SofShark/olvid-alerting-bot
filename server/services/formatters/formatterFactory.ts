@@ -15,7 +15,7 @@ import { Formatting } from "#shared/types/bundle";
 import type { FormattingStrategy } from "./formattingStrategy";
 
 const strategies: Record<Formatting, FormattingStrategy> = {
-  [Formatting.Unformatted]: unformattedStrategy,
+  [Formatting.WebhookRaw]: unformattedStrategy,
   [Formatting.Simple]: simpleStrategy,
   [Formatting.Custom]: customStrategy,
   [Formatting.PollingCustom]: customStrategy,

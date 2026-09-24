@@ -1,7 +1,7 @@
 import { ref, computed } from "vue";
 import { ConditionKind } from "#shared/types/condition";
 import { PollingFormat } from "#shared/types/polling";
-import { migrateCondition } from "#shared/condition/migrate";
+import { paramCleaner } from "~~/shared/condition/paramCleaner";
 import { getErrorMessage } from "~/utils/errors";
 
 /**
@@ -33,7 +33,7 @@ export const useFormatEditorPolling = (
   );
 
   const watchedPaths = computed<string[]>(() => {
-    const c = migrateCondition(getAlertParams()?.condition);
+    const c = paramCleaner.migrateCondition(getAlertParams()?.condition);
     return c.kind === ConditionKind.Rule ? c.paths : [];
   });
 

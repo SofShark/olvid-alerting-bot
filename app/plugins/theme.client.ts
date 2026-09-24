@@ -29,7 +29,7 @@ function apply(theme: ThemeName) {
   try {
     localStorage.setItem(STORAGE_KEY, theme);
   } catch {
-    /* private mode */
+    
   }
 }
 

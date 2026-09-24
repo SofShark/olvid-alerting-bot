@@ -1,38 +1,41 @@
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
 import { Source } from "#shared/types/source";
-import { TriggerMode, type PollingParams } from "#shared/types/polling";
+import { TriggerMode } from "#shared/types/triggerMode";
+import type { PollingParams } from "#shared/types/polling";
 import type { MonitorParams } from "#shared/types/monitor";
 import { ConditionKind, ConditionOperator } from "#shared/types/condition";
 
 /*
   INPUT block in view mode. Renders the alert's source-side configuration:
     - Webhook    → just the endpoint URL.
-    - Polling    → URL, format · interval, condition summary, trigger mode.
-    - Monitoring → URL, interval, "Triggers on" summary, trigger mode.
+    - Polling    → URL, format,interval, condition summary, trigger mode
+    - Monitoring → URL, interval, "Triggers on" summary, trigger mode
 
   Layout-only — delegates rendering of the condition row to
-  AlertConditionSummary, and the status match label to
-  useStatusMatchLabel. Both hide themselves for edge-native cases so the
-  view never lies about the effective trigger mode.
+  AlertConditionSummary, and the schedule / status match / trigger mode
+  labels to useAlertLabels. Both hide themselves for edge-native cases
+  so the view never lies about the effective trigger mode.
 */
 
 const props = defineProps<{
-  inputTitle: string; //TODO deprecated
   source?: string;
   alertParams?: AlertParams;
   webhookUrl?: string;
 }>();
 
-const { scheduleLabel } = useScheduleLabel();
-const { statusMatchLabel } = useStatusMatchLabel();
-const { labelFor: triggerModeLabelFor } = useTriggerModeOptions();
+const {
+  scheduleLabel,
+  lastPolledAtLabel,
+  statusMatchLabel,
+  triggerModeLabel: triggerModeLabelFor,
+} = useAlertLabels();
 
 const isPolling = computed(() => props.source === Source.Polling);
 const isMonitoring = computed(() => props.source === Source.Monitoring);
 const isWebhook = computed(() => props.source === Source.Webhook);
 
-// Typed accessors — TS narrows AlertParams by the source discriminator,
+// Narrow AlertParams by the source discriminator,
 // which lives outside the union in `props.source`, so we cast at read
 // time. Cheap: same shape either way.
 const pollingParams = computed(() =>
@@ -46,8 +49,9 @@ const monitorParams = computed(() =>
     : undefined,
 );
 
+
 const pollingInterval = computed(
-  () => scheduleLabel(props.alertParams?.schedule), // todo
+  () => scheduleLabel(props.alertParams?.schedule), 
 );
 
 // Trigger-mode row only renders when it's meaningful — edge-native conditions
@@ -84,7 +88,7 @@ onMounted(() => {
 
 <template>
   <div class="data-block">
-    <h4 class="section-eyebrow">Configuration</h4>
+    <h4 class="alert-section-label">{{ $t("editor.view.eyebrowConfiguration") }}</h4>
 
     <dl class="data-grid">
       <template v-if="isWebhook">
@@ -104,10 +108,24 @@ onMounted(() => {
           </dd>
         </div>
         <div class="data-row">
-          <dt class="data-label">{{ $t("editor.view.fields.polling") }}</dt>
+          <dt class="data-label">{{ $t("editor.view.fields.format") }}</dt>
           <dd class="data-value">
-            {{ pollingParams?.format || $t("editor.interval.empty") }}
-            <span class="dim">· {{ pollingInterval }}</span>
+            {{ pollingParams?.format || "——" }}
+          </dd>
+        </div>
+        <div class="data-row">
+          <dt class="data-label">{{ $t("editor.view.fields.polling") }}</dt>
+          <dd class="data-value" style="display:flex">
+            <div v-if="pollingInterval.startsWith('#')" class="chip" :title="pollingInterval.slice(1)">
+              <span class="chip-path">{{ pollingInterval.slice(1) }}</span>
+            </div>
+            <div v-else>
+              {{ pollingInterval }}
+            </div>
+            <span class="dim">
+              {{$t("editor.schedule.lastPolledAt", { time: lastPolledAtLabel(alertParams?._lastPolledAt) }) }}
+        
+            </span>
           </dd>
         </div>
         <div class="data-row">
@@ -117,14 +135,11 @@ onMounted(() => {
           </dd>
         </div>
         <div v-if="triggerModeMeaningful" class="data-row">
-          <dt class="data-label">Trigger</dt>
+          <dt class="data-label">{{ $t("editor.view.fields.trigger") }}</dt>
           <dd class="data-value">{{ triggerModeLabel }}</dd>
         </div>
       </template>
 
-      <!-- Monitoring: URL + schedule + status-match summary + trigger mode.
-           No `condition` row (StatusMatch is the trigger definition), no
-           `format` row (Monitoring never parses a body). -->
       <template v-else-if="isMonitoring">
         <div class="data-row">
           <dt class="data-label">{{ $t("editor.view.fields.url") }}</dt>
@@ -135,7 +150,8 @@ onMounted(() => {
         <div class="data-row">
           <dt class="data-label">{{ $t("editor.view.fields.polling") }}</dt>
           <dd class="data-value">
-            <span class="dim">{{ pollingInterval }}</span>
+            {{ pollingInterval }}
+            <span class="dim">  {{$t("editor.schedule.lastPolledAt", { time: lastPolledAtLabel(alertParams?._lastPolledAt) }) }}</span>
           </dd>
         </div>
         <div class="data-row">
@@ -145,7 +161,7 @@ onMounted(() => {
           </dd>
         </div>
         <div v-if="triggerModeMeaningful" class="data-row">
-          <dt class="data-label">Trigger</dt>
+          <dt class="data-label">{{ $t("editor.view.fields.trigger") }}</dt>
           <dd class="data-value">{{ triggerModeLabel }}</dd>
         </div>
       </template>
@@ -161,18 +177,6 @@ onMounted(() => {
   margin-bottom: 0;
 }
 
-/* Small-caps eyebrow label — demoted so it doesn't compete with the
- * main h2 alert title in the view header. Common admin-UI pattern
- * (Linear, Vercel, Stripe). */
-.section-eyebrow {
-  margin: 0 0 var(--space-3);
-  padding: 0;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--color-text-dim);
-}
 
 .data-grid {
   margin: 0;
@@ -187,7 +191,7 @@ onMounted(() => {
 }
 .data-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   flex-direction: row;
   gap: var(--space-5);
   padding-bottom: var(--space-4);
@@ -196,21 +200,27 @@ onMounted(() => {
   border-bottom: none;
   padding-bottom: 0;
 }
+/* Eyebrow-style column label. `line-height` matches `.data-value`'s
+ * line-height so the two share a baseline on the first line of the
+ * value — even when the value wraps to multiple lines (e.g. the
+ * condition summary + its chip row). */
 .data-label {
-  width: 80px;
+  flex: 0 0 90px;
   margin: 0;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.5px;
+  line-height: 1.5;
   text-transform: uppercase;
   color: var(--color-text-muted);
 }
 .data-value {
   margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
   color: var(--color-text-primary);
   font-size: var(--text-base);
   line-height: 1.5;
-  min-width: 0;
 }
 .data-value .dim {
   color: var(--color-text-dim);

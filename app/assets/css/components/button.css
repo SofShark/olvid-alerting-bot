@@ -82,7 +82,7 @@
   border-color: var(--color-danger-border);
 }
 .btn-danger-ghost:hover:not(:disabled) {
-  background: var(--color-danger-border);
+  background: var(--color-danger);
   color: var(--color-text-on-accent);
 }
 
@@ -123,7 +123,7 @@
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-pill);
   cursor: pointer;
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   color: var(--color-text-secondary);
   background: transparent;
   transition:
@@ -131,9 +131,16 @@
     border-color 0.15s,
     color 0.15s;
 }
-.btn-pill input {
+.btn-pill input[type="radio"] {
   margin: 0;
+  accent-color: var(--color-accent); /* O usa una variable como var(--color-accent) si tu azul ya está definido ahí */
 }
+
+input[type="radio"] {
+  margin: 0;
+  accent-color: var(--color-accent); /* O usa una variable como var(--color-accent) si tu azul ya está definido ahí */
+}
+
 .btn-pill:hover {
   background: var(--color-bg-card-soft);
 }
@@ -142,6 +149,13 @@
   border-color: var(--color-accent);
   color: var(--color-text-primary);
 }
+
+.btn-pill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 
 /* Nav Toggle*/
 .nav-toggle {
@@ -156,7 +170,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-family: inherit;
   line-height: 1;
   transition:
@@ -186,5 +200,5 @@
 /* ── Sizes ──────────────────────────────────────────────────────── */
 .btn-sm {
   padding: var(--space-2) var(--space-3);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
 }

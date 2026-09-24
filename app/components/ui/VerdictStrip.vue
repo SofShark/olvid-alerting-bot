@@ -46,7 +46,7 @@ defineProps<{
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   border: 1px solid transparent;
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   line-height: 1.4;
 }
 .verdict-strip.ok {
@@ -65,7 +65,7 @@ defineProps<{
 }
 
 .verdict-icon {
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   flex-shrink: 0;
 }
 .verdict-strip.ok .verdict-icon {

@@ -1,260 +1,102 @@
 <script setup lang="ts">
 import { ref, computed, toRef } from "vue";
-import { AlertStatus, type AlertModel } from "#shared/types/alert";
-import type { BundleModel } from "#shared/types/bundle";
-import { getErrorMessage } from "~/utils/errors";
+import type { AlertModel } from "#shared/types/alert";
 
 /*
-  Smart container for the view-mode alert page. Owns the state via
-  composables and passes data down to leaf views; the leaves are pure
-  presentation. Two side-effect modals live here:
-    - ConfirmDialog for "delete alert"
-    - BundleEditDialog for in-place per-bundle edit (the only WRITE
-      affordance in view mode; the alert-level edit flow lives in the
-      wizard via `/alerts/[id]?edit=1`).
+  View-mode alert page. Layout + wiring only — every piece of behaviour
+  lives in a composable:
+
+    useAlertForm            → form + source flags
+    useAlertActions(form)   → openEdit / duplicate / toggleStatus / remove
+    useAlertViewDisplay     → inputTitle / truncatedDescription / webhookUrl
+    useAlertDuplicateDialog → duplicate confirm dialog + rename input
+    useAlertTestIntro       → test-runner intro dialog + localStorage flag
+    useAlertBundleEdit      → bundle-editor modal + save
+
+  Delete is a single ref because the flow is trivial — the confirm dialog
+  simply calls `removeAlert()` and closes.
 */
 
 const props = withDefaults(
   defineProps<{
-    alertaInicial?: AlertModel | null;
+    initialAlert?: AlertModel | null;
   }>(),
   {
-    alertaInicial: null,
+    initialAlert: null,
   },
 );
 
-const { t } = useI18n();
-const { alerts, availableDiscussions, discussionsLoading, fetchAlerts } =
-  useAlerts();
+const { availableDiscussions, discussionsLoading, fetchAlerts } = useAlerts();
 const { form, isExisting, isPolling, isMonitoring, isWebhook } = useAlertForm(
-  toRef(props, "alertaInicial"),
+  toRef(props, "initialAlert"),
 );
-const { saving, saveAlert, deleteAlert, setStatus } = useAlertActions();
+const {
+  saving,
+  saveAlert,
+  openEditAlert,
+  duplicateAlert,
+  toggleStatus,
+  removeAlert,
+} = useAlertActions(form);
 
-// ── Derived for header / sections ──────────────────────────────────────────
 const canActivate = computed(() => form.value.bundles.length > 0);
-
-// Source name surfaced in the view-mode "Source" row. With the binary
-// Source enum, this IS just `form.input`.
-const inputTitle = computed(() => {
-  if (isPolling.value) return "Data Polling Alert";
-  if (isMonitoring.value) return "Monitoring Alert";
-  if (isWebhook.value) return "Webhook Alert";
-  return form.value.input ? `${form.value.input} Alert` : "Alert";
-});
-
-// Description is truncated to ~100 chars so a long debugging description
-// doesn't blow up the head into three lines. Full text lives in the wizard.
-const DESCRIPTION_MAX = 100;
-const truncatedDescription = computed(() => {
-  const d = (form.value.description ?? "").trim();
-  if (d.length <= DESCRIPTION_MAX) return d;
-  return d.slice(0, DESCRIPTION_MAX).trimEnd() + "…";
-});
-
-const webhookUrl = computed(() => {
-  if (!form.value.token) return "";
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  return `${origin}/api/webhooks/${form.value.token}`;
-});
-
-// ── Edit / delete / status / duplicate ────────────────────────────────────
-const confirmingDelete = ref(false);
-const confirmingDuplicate = ref(false);
-
-// ── Test now (overflow menu → server-side dry-run) ────────────────────────
-// First run shows an explainer dialog; user can tick "don't show again"
-// which stores a bare flag in localStorage. Subsequent runs skip straight
-// to the result modal owned by AlertTestRunner.
-//
-// This container knows nothing about polling vs monitoring — that
-// decision lives in `alertTester` on the server. Locally we only ask
-// "is this a source we can test at all?" via `canTest`.
-const TEST_INTRO_SKIP_KEY = "alerting.dontShowAgain.alertTestIntro";
-const showingTestIntro = ref(false);
-const testRunnerRef = ref<{ run: () => Promise<void> } | null>(null);
-
 const canTest = computed(
   () => !!form.value.id && (isPolling.value || isMonitoring.value),
 );
 
-const testIntroSuppressed = () => {
-  if (typeof window === "undefined") return false;
-  try {
-    return window.localStorage.getItem(TEST_INTRO_SKIP_KEY) === "1";
-  } catch {
-    // Private mode / storage disabled — always show the intro.
-    return false;
-  }
-};
+const { inputTitle, truncatedDescription, webhookUrl } = useAlertViewDisplay(
+  form,
+  isPolling,
+  isMonitoring,
+  isWebhook,
+);
 
-const onTest = () => {
-  if (!canTest.value) return;
-  if (testIntroSuppressed()) {
-    testRunnerRef.value?.run();
-  } else {
-    showingTestIntro.value = true;
-  }
-};
-
-const onTestIntroConfirm = (dontShowAgain: boolean) => {
-  showingTestIntro.value = false;
-  if (dontShowAgain && typeof window !== "undefined") {
-    try {
-      window.localStorage.setItem(TEST_INTRO_SKIP_KEY, "1");
-    } catch {
-      // Best effort — if storage is unavailable the user just sees the
-      // intro again next time. Not worth surfacing an error.
-    }
-  }
-  testRunnerRef.value?.run();
-};
-
-const openEditAlert = () => {
-  if (!form.value.id) return;
-  navigateTo(`/alerts/${form.value.id}?edit=1`);
-};
-
-/**
- * POST /api/backend with a fresh copy of the current alert. We strip any
- * per-row identity (`id`, `token`, bundle ids) so Prisma generates fresh
- * ones, force the copy to `Inactive` regardless of the source status,
- * and drop the runtime-state keys from alertParams (`_lastFired`,
- * `_lastPolledAt`, `_lastHash`, `_baseline`, `_lastStatus`) so the copy
- * starts with a clean engine state instead of inheriting the original's
- * poll history.
- */
-const cleanAlertParamsForCopy = (params: any): any => {
-  if (!params || typeof params !== "object") return params ?? {};
-  const RUNTIME_KEYS = new Set([
-    "_lastFired",
-    "_lastPolledAt",
-    "_lastHash",
-    "_baseline",
-    "_lastStatus",
-  ]);
-  const cleaned: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(params)) {
-    if (!RUNTIME_KEYS.has(k)) cleaned[k] = v;
-  }
-  return cleaned;
-};
-
-const onDuplicate = async (newTitle: string) => {
-  if (!form.value.id) return;
-  const payload = {
-    id: null,
-    token: null,
-    title: newTitle,
-    description: form.value.description ?? "",
-    input: form.value.input,
-    status: AlertStatus.Inactive,
-    alertParams: cleanAlertParamsForCopy(form.value.alertParams),
-    bundles: form.value.bundles.map((b) => ({
-      // No `id` — the DB assigns a fresh one for each cloned bundle.
-      name: b.name,
-      formating: b.formating,
-      custom_script: b.custom_script,
-      outputs: b.outputs,
-    })),
-  };
-  try {
-    const saved = await saveAlert(payload, { isExisting: false });
-    confirmingDuplicate.value = false;
-    await fetchAlerts();
-    if (saved?.id) navigateTo(`/alerts/${saved.id}`);
-  } catch (error: any) {
-    console.error("Error duplicating alert:", error);
-    alert(
-      `${t("editor.errors.duplicating")}\n\n${getErrorMessage(error, t("common.unknownError"))}`,
-    );
-  }
-};
-
-const onToggleStatus = async () => {
-  if (!isExisting.value || !canActivate.value) return;
-  const next =
-    form.value.status === AlertStatus.Active
-      ? AlertStatus.Inactive
-      : AlertStatus.Active;
-  try {
-    const newStatus = await setStatus(form.value.id as number, next);
-    // Optimistic local update. Mutating the alert in-place in the shared
-    // alerts ref avoids re-evaluating the page's `alert` computed, which
-    // would otherwise cascade through fillFrom and flash the form.
-    form.value.status = newStatus;
-    const idx = alerts.value.findIndex((a) => a.id === form.value.id);
-    if (idx >= 0 && alerts.value[idx]) alerts.value[idx].status = newStatus;
-  } catch (error: any) {
-    console.error("Error toggling:", error);
-  }
-};
-
+// ── Delete (trivial confirm ↔ action) ──────────────────────────────────────
+const confirmingDelete = ref(false);
 const onDelete = async () => {
   try {
-    await deleteAlert(form.value.id as number);
+    await removeAlert();
     confirmingDelete.value = false;
-    await fetchAlerts();
-    navigateTo("/");
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error deleting:", error);
   }
 };
 
-// ── Per-bundle edit modal ──────────────────────────────────────────────────
-const editingBundleIndex = ref<number | null>(null);
-const editingBundle = computed<BundleModel | null>(() =>
-  editingBundleIndex.value !== null
-    ? (form.value.bundles[editingBundleIndex.value] ?? null)
-    : null,
-);
-
-const openBundleEditor = (index: number) => {
-  editingBundleIndex.value = index;
-};
-const closeBundleEditor = () => {
-  editingBundleIndex.value = null;
-};
-
-const onSaveBundle = async ({
-  index,
-  bundle,
-}: {
-  index: number | null;
-  bundle: BundleModel;
-}) => {
-  // View mode only edits existing bundles — create and delete is a
-  // wizard-only flow and can't be reached from here.
-  if (index === null || !form.value.id) return;
-  // Patch only this bundle on the local form; the payload below carries
-  // the user's intended state to the backend.
-  const updated = form.value.bundles.map((b, i) => (i === index ? bundle : b));
-  const payload = {
-    id: form.value.id,
-    title: form.value.title,
-    description: form.value.description,
-    input: form.value.input,
-    status: form.value.status,
-    alertParams: form.value.alertParams ?? {},
-    bundles: updated.map((b) => ({
-      id: b.id,
-      name: b.name,
-      formating: b.formating,
-      custom_script: b.custom_script,
-      outputs: b.outputs,
-    })),
-  };
+// ── Status toggle wrapper ─────────────────────────────────────────────────
+const onToggleStatus = async () => {
   try {
-    await saveAlert(payload, { isExisting: true });
-    await fetchAlerts();
-    closeBundleEditor();
-  } catch (error: any) {
-    console.error("Error saving bundle:", error);
-    alert(
-      `${t("editor.errors.savingBundle")}\n\n${getErrorMessage(error, t("common.unknownError"))}`,
-    );
+    await toggleStatus();
+  } catch (error) {
+    console.error("Error toggling:", error);
   }
 };
+
+// ── Duplicate + test-intro + bundle-edit dialogs ──────────────────────────
+const {
+  open: confirmingDuplicate,
+  draftTitle: duplicateDraftTitle,
+  inputRef: duplicateInputRef,
+  openDialog: openDuplicate,
+  cancel: cancelDuplicate,
+  confirm: onDuplicate,
+} = useAlertDuplicateDialog(form, duplicateAlert);
+
+const {
+  showingTestIntro,
+  testIntroDontShowAgain,
+  testRunnerRef,
+  onTest,
+  onTestIntroConfirm,
+  cancelTestIntro,
+} = useAlertTestIntro(canTest);
+
+const {
+  editingBundleIndex,
+  editingBundle,
+  openBundleEditor,
+  closeBundleEditor,
+  onSaveBundle,
+} = useAlertBundleEdit(form, saveAlert, fetchAlerts);
 </script>
 
 <template>
@@ -270,13 +112,30 @@ const onSaveBundle = async ({
       @cancel="confirmingDelete = false"
     />
 
-    <DuplicateAlertDialog
+    <ConfirmDialog
       :open="confirmingDuplicate"
-      :original-title="form.title"
-      :saving="saving"
+      :title="$t('duplicateModal.title')"
+      :message="$t('duplicateModal.message')"
+      :confirm-label="saving ? $t('common.saving') : $t('duplicateModal.confirm')"
+      :cancel-label="$t('button.cancel')"
       @confirm="onDuplicate"
-      @cancel="confirmingDuplicate = false"
-    />
+      @cancel="cancelDuplicate"
+    >
+      <div class="field duplicate-field">
+        <label class="field-label" for="duplicate-title-input">
+          {{ $t("duplicateModal.titleLabel") }}
+        </label>
+        <input
+          id="duplicate-title-input"
+          ref="duplicateInputRef"
+          v-model="duplicateDraftTitle"
+          type="text"
+          class="field-input"
+          :placeholder="$t('duplicateModal.titlePlaceholder')"
+          @keydown.enter.prevent="onDuplicate"
+        />
+      </div>
+    </ConfirmDialog>
 
     <BundleEditDialog
       :open="editingBundleIndex !== null"
@@ -303,20 +162,26 @@ const onSaveBundle = async ({
       :can-test="canTest"
       @edit="openEditAlert"
       @test="onTest"
-      @duplicate="confirmingDuplicate = true"
+      @duplicate="openDuplicate"
       @delete="confirmingDelete = true"
       @update:status="onToggleStatus"
     />
 
-    <!-- One-time explainer + headless test runner driven imperatively
-             by the overflow menu. The runner owns the result modal; we
-             only call its `run()`. Source-agnostic — the server picks
-             polling vs monitoring behind the unified endpoint. -->
-    <AlertTestIntroDialog
+    <ConfirmDialog
       :open="showingTestIntro"
+      size="default"
+      :title="$t('testIntroDialog.title')"
+      :message="$t('testIntroDialog.body')"
+      :confirm-label="$t('testIntroDialog.confirm')"
+      :cancel-label="$t('button.cancel')"
       @confirm="onTestIntroConfirm"
-      @cancel="showingTestIntro = false"
-    />
+      @cancel="cancelTestIntro"
+    >
+      <label class="dont-show-again">
+        <input v-model="testIntroDontShowAgain" type="checkbox" />
+        <span>{{ $t("testIntroDialog.dontShowAgain") }}</span>
+      </label>
+    </ConfirmDialog>
     <AlertTestRunner v-if="canTest" ref="testRunnerRef" :alert-id="form.id" />
 
     <div class="panel-body">
@@ -343,8 +208,30 @@ const onSaveBundle = async ({
 </template>
 
 <style scoped>
-.panel-body {
-  padding-top: var(--space-4);
+/* Duplicate-alert rename field — inlined inside <ConfirmDialog>'s slot. */
+.duplicate-field {
+  margin-top: var(--space-3);
+}
+.duplicate-field .field-label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  font-size: var(--text-s);
+}
+
+/* Test-intro "don't show again" checkbox — inlined inside <ConfirmDialog>'s slot. */
+.dont-show-again {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--text-s);
+  cursor: pointer;
+  user-select: none;
+}
+.dont-show-again input {
+  cursor: pointer;
 }
 
 .split {

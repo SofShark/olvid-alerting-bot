@@ -1,15 +1,9 @@
 // Factory: ConditionOperator → operator strategy.
-//
-// The lookup map below replaces the switch that used to live inside
-// `conditionEvaluator.evalOne`. Adding a new operator =
+// Adding a new operator =
 //   1. add its value to the ConditionOperator enum,
 //   2. write its strategy file in this folder,
 //   3. add one entry to the map.
 // The evaluator, the message builder and the UI never change (OCP).
-//
-// Explicit imports on purpose — this folder is consumed from shared/
-// code that runs on BOTH client and server, where Nitro auto-imports
-// don't exist.
 
 import { ConditionOperator } from "../../types/condition";
 import type { OperatorStrategy } from "../../types/operatorStrategy";
@@ -36,3 +30,13 @@ export const operatorFactory = {
     return strategies[operator] ?? null;
   },
 };
+
+
+export const orderedOperators: readonly ConditionOperator[] = [
+  ConditionOperator.Changed,
+  ConditionOperator.Equals,
+  ConditionOperator.GreaterThan,
+  ConditionOperator.LessThan,
+  ConditionOperator.Contains,
+  ConditionOperator.RegExp,
+];

@@ -4,18 +4,31 @@ import { AlertStatus, type AlertModel } from "#shared/types/alert";
 const { t } = useI18n();
 const { collapsed, toggle } = useSidebar();
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     alerts?: AlertModel[];
     selectedId?: number | null;
+    // When true (no session), the row list and "+ New Alert" button
+    // become read-only affordances; no fetches, no navigation.
+    disabled?: boolean;
   }>(),
   {
     alerts: () => [],
     selectedId: null,
+    disabled: false,
   },
 );
 
 const emit = defineEmits(["select", "new"]);
+
+function onSelect(a: AlertModel) {
+  if (props.disabled) return;
+  emit("select", a);
+}
+function onNew() {
+  if (props.disabled) return;
+  emit("new");
+}
 
 const statusClass = (status: string) => ({
   "st-active": status === AlertStatus.Active,
@@ -51,7 +64,7 @@ const initials = (title: string): string => {
         :aria-expanded="!collapsed"
         @click="toggle"
       >
-        <LucideChevronLeft class="chev-icon" stroke-width="5" aria-hidden="true" />
+        <LucideChevronLeft class="chev-icon" aria-hidden="true" />
 
       </button>
     </div>
@@ -64,7 +77,8 @@ const initials = (title: string): string => {
         class="alert-row"
         :class="{ selected: a.id === selectedId }"
         :title="collapsed ? a.title : undefined"
-        @click="emit('select', a)"
+        :disabled="disabled"
+        @click="onSelect(a)"
       >
         <span
           class="status-dot"
@@ -78,19 +92,22 @@ const initials = (title: string): string => {
         <span v-else class="row-title">{{ a.title }}</span>
       </button>
 
-      <div v-if="alerts.length === 0 && !collapsed" class="sidebar-empty">
-        {{ $t("sidebar.empty") }}
+      <div
+        v-if="alerts.length === 0 && !collapsed"
+        class="sidebar-empty"
+      >
+        {{ disabled ? $t("sidebar.loginPrompt") : $t("sidebar.empty") }}
       </div>
       <button
         type="button"
-        class="btn-new-bottom"
+        class="btn btn-new-bottom"
         :title="collapsed ? $t('button.newAlert') : undefined"
-        @click="emit('new')"
+        :disabled="disabled"
+        @click="onNew"
       >
-        <span class="plus">+</span>
-        <span v-if="!collapsed" class="btn-new-label">{{
-          $t("button.newAlert")
-        }}</span>
+        <LucidePlus class="plus" aria-hidden="true" /> 
+        <span v-if="!collapsed" >  {{$t("button.newAlert")}}</span>
+        
       </button>
     </div>
   </aside>
@@ -100,12 +117,12 @@ const initials = (title: string): string => {
 .sidebar {
   display: flex;
   flex-direction: column;
-  background: transparent;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xl);
+  background: var(--color-bg-app);
+  border-right: 1px solid var(--color-border-subtle);
   overflow: hidden;
   height: 100%;
   min-height: 0;
+  align-items: stretch;
 }
 
 /* ── Head ───────────────────────────────────────────────────────────
@@ -132,13 +149,33 @@ const initials = (title: string): string => {
   overflow: hidden;
 }
 
+/* Collapse toggle — scoped override of the global .btn-icon (which is a
+ * saturated accent circle). Here we want a quieter button that reacts
+ * subtly on hover instead of doing a full color inversion. */
+.sidebar-head .btn-icon {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-text-muted);
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.sidebar-head .btn-icon:hover {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-border);
+  color: var(--color-accent);
+}
+
 /* Chevron itself. Overrides the global `svg.lucide { width:1em }` from
- * reset.css so the icon isn't sized to the surrounding text. `stroke-width`
- * is set here (CSS wins over the SVG attribute) — bump if you want bolder. */
+ * reset.css and gives the icon room inside the 28-px button. Stroke ~2.25
+ * reads bold without looking like a wrench. */
 .chev-icon {
-  width: 20px;
-  height: 20px;
-  stroke-width: 5;
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.6;
   line-height: 1;
   transition: transform 0.2s ease;
 }
@@ -172,7 +209,7 @@ const initials = (title: string): string => {
   gap: var(--space-3);
 
   width: 100%;
-  height: 35px;
+  height: 30px;
   box-sizing: border-box;
 
   text-align: left;
@@ -188,7 +225,7 @@ const initials = (title: string): string => {
 
   .sidebar-collapsed & {
     position: relative;
-    justify-content: center;
+    justify-items: center;
     border-radius: 0;
     padding: 0;
   }
@@ -198,13 +235,13 @@ const initials = (title: string): string => {
   background: var(--color-bg-card-soft);
 }
 .alert-row.selected {
-  background: var(--color-bg-card-soft);
+  background: var(--color-bg-card-selected);
   color: var(--color-text-primary);
 }
 
 .row-title {
   font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -212,28 +249,28 @@ const initials = (title: string): string => {
 
 /* The 3-char prefix shown when collapsed.*/
 .row-initials {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  font-weight: 700;
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 600;
   letter-spacing: 0.5px;
   color: inherit;
   white-space: nowrap;
-  padding-right: 10px;
+  padding-right: 12px;
 }
 
 /* ── Status dots — unchanged ─────────────────────────────────────── */
 .status-dot {
-  width: 13px;
-  height: 13px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
   box-sizing: border-box;
 
   .sidebar-collapsed & {
     /* 2. Status dot as an exponent in smaller size  */
-    position: absolute;
-    top: 5px;
-    right: 5px;
+    position: relative;
+    bottom: 5px;
+    left: 40px;
     width: 8px;
     height: 8px;
   }
@@ -254,7 +291,7 @@ const initials = (title: string): string => {
 
 .sidebar-empty {
   color: var(--color-text-faint);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   text-align: center;
   padding: var(--space-8) var(--space-4);
   font-style: italic;
@@ -268,38 +305,35 @@ const initials = (title: string): string => {
   margin-left: var(--space-2);
   margin-right: var(--space-2);
   margin-bottom: var(--space-3);
-
+  display: flex;
+  flex-direction:row;
+  align-items: center;
   padding: 9px;
   background: var(--color-border-subtle);
   color: var(--color-text-secondary);
-  border: 1px dashed var(--color-border-default);
-  border-radius: var(--radius-lg);
-
-  cursor: pointer;
-  font-size: var(--text-base);
-  font-weight: 600;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  transition:
-    background-color 0.15s,
-    border-color 0.15s,
-    color 0.15s;
+  border: 1px solid var(--color-border-default);
 }
 .btn-new-bottom:hover {
   background: var(--color-accent-soft);
-  /*background: var(--color-border-default);*/
-  color: var(--color-text-primary);
-  border-color: var(--color-border-strong);
+  color: var(--color-accent);
+  border-color: var(--color-accent-border);
+}
+.btn-new-bottom:disabled,
+.alert-row:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn-new-bottom:disabled:hover {
+  background: var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-default);
 }
 
-.btn-new-label {
-  white-space: nowrap;
-}
 .plus {
-  font-size: var(--text-xl);
-  line-height: 1;
+  width: 24px;
+  height: 14px;
+  stroke-width: 3;
+  flex-shrink: 0;
 }
+
 </style>

@@ -43,7 +43,7 @@ const htmlReader = new XMLParser({
   ],
   processEntities: true,
   htmlEntities: true,
-  maxNestedTags: 300,
+  maxNestedTags: 500,
 });
 
 /** Remove `<script>…</script>` and `<style>…</style>` blocks entirely

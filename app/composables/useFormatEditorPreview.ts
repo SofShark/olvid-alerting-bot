@@ -13,11 +13,12 @@ import { formatMessage } from "#shared/handlebars";
  * receive shapes that are already parsed on the server. Handlebars
  * render errors can surface from any source.
  *
- * The output text gets a tiny markdown-lite pass (`**bold**` → <strong>,
- * `\n-` → `\n•`) so the chat-bubble preview matches what Olvid renders.
- *
- * Returned shape `{ text, error }` is what the bubble vs error-bubble
- * branch in PreviewPanel switches on.
+ * Returned shape `{ text, error }` — `text` is the RAW Handlebars output.
+ * Channel-specific rendering (Olvid markup transforms, HTML escaping)
+ * lives in the preview components so each channel shows what its real
+ * transport actually renders:
+ *   - Mail  → HTML tags rendered, plain-text markup shown literally.
+ *   - Olvid → markup rendered, HTML tags escaped as literal text.
  */
 export const useFormatEditorPreview = (opts: {
   scriptContent: Ref<string>;
@@ -55,13 +56,7 @@ export const useFormatEditorPreview = (opts: {
 
     try {
       const msg = formatMessage(script, context);
-      return {
-        text: msg
-          .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-          .replace(/_(.*?)_/g, "<i>$1</i>")
-          .replace(/\n-/g, "\n•"),
-        error: null,
-      };
+      return { text: msg, error: null };
     } catch (err) {
       return {
         text: "",

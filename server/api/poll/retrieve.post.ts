@@ -4,6 +4,8 @@
 import { pollingEngine } from "../../utils/engine";
 
 export default defineEventHandler(async (event) => {
+  await requireUserSession(event);
+
   try {
     const body = await readBody<{ url?: string; format?: string }>(event);
     const url = (body?.url ?? "").trim();

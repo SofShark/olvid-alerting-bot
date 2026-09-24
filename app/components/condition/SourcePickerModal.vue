@@ -1,13 +1,16 @@
 <script setup lang="ts">
+import JsonTreeNode from "~/components/payload/JsonTreeNode.vue";
+import XmlTreeNode from "~/components/payload/XmlTreeNode.vue";
+import { PollingFormat } from "#shared/types/polling";
+
 /*
   "Pick from source" modal — shows the parsed source snapshot as a
   clickable tree so the user picks watched paths visually instead of
   typing them.
 
   Owns UI concerns only:
-    - Header (title + close button).
-    - Body (loading / error / empty / tree — matches the four states
-      that useSourceRetrieve can be in).
+    - Header
+    - Body (loading / error / empty / tree — matches the four states that useSourceRetrieve can be in).
     - Footer (selected count + Done button).
 
   Path selection is driven by the parent through `select` events. The
@@ -22,7 +25,7 @@ const props = defineProps<{
   error: string;
   retrieved: boolean;
   rootEntries: Array<[string, any]>;
-  /** Concrete paths currently in the watched-fields list. Passed to the
+  /** Concrete paths (wildcards extended) currently in the watched-fields list. Passed to the
    *  tree so already-watched leaves render highlighted. */
   effectivePaths: string[];
 }>();
@@ -45,7 +48,7 @@ const emit = defineEmits<{
           :title="$t('conditionEditor.picker.closeTitle')"
           @click="emit('close')"
         >
-          ✕
+          <LucideX :stroke-width="2" />
         </button>
       </div>
 
@@ -92,7 +95,9 @@ const emit = defineEmits<{
             </div>
 
             <template v-else>
-              <XmlTreeNode
+              <!-- Pick the tree renderer that matches the source format: -->
+              <component
+                :is="(format ?? '') === PollingFormat.JSON ? JsonTreeNode : XmlTreeNode"
                 v-for="[k, v] in rootEntries"
                 :key="k"
                 :node-name="k"
@@ -197,7 +202,7 @@ const emit = defineEmits<{
 }
 .picker-count {
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   font-variant-numeric: tabular-nums;
 }
 
@@ -208,7 +213,7 @@ const emit = defineEmits<{
   min-width: 0;
   color: var(--color-text-dim);
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -242,15 +247,16 @@ const emit = defineEmits<{
 /* ── Source body callouts ──────────────────────────────────────────── */
 .tree-body {
   background: var(--color-bg-code);
-  padding: var(--space-3);
+  padding: var(--space-3)var(--space-8);
   min-height: 220px;
   max-height: 55vh;
   overflow: auto;
 }
 .muted {
   color: var(--color-text-dim);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   line-height: 1.5;
+  font-family: var(--font-mono);
 }
 
 .source-error {
@@ -275,7 +281,7 @@ const emit = defineEmits<{
   border-radius: var(--radius-sm);
   color: var(--color-danger-bright);
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
@@ -283,6 +289,6 @@ const emit = defineEmits<{
 .error-hint {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
 }
 </style>

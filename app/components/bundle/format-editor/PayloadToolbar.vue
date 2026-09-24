@@ -1,19 +1,10 @@
 <script setup lang="ts">
-/*
-  Webhook-only toolbar that sits inside the PayloadPanel's code-header.
-  Emits semantic intents only — never owns state.
-
-  `open-load` carries the trigger button's DOMRect so the container can
-  position the teleported LoadTemplate dropdown without needing a ref
-  chain through PayloadPanel.
-*/
-
 defineProps<{
   loadOpen: boolean;
 }>();
 
 defineEmits<{
-  (e: "open-load", anchor: DOMRect): void;
+  (e: "toggle-load"): void;
   (e: "toggle-picker"): void;
   (e: "prettify"): void;
   (e: "clear"): void;
@@ -24,37 +15,38 @@ defineEmits<{
   <div class="payload-toolbar">
     <button
       type="button"
-      class="toggle-btn toggle-btn-wide"
+      class="code-toggle-btn code-toggle-btn-wide"
       :class="{ 'is-open': loadOpen }"
       :aria-expanded="loadOpen"
-      title="Load template payload"
-      @click="
-        $emit(
-          'open-load',
-          ($event.currentTarget as HTMLElement).getBoundingClientRect(),
-        )
-      "
+      :title="$t('formatEditor.toolbar.loadTemplateTitle')"
+      @click="$emit('toggle-load')"
     >
-      <span>Load Template</span>
+      <span>{{ $t('formatEditor.toolbar.loadTemplate') }}</span>
       <span class="caret" aria-hidden="true" />
     </button>
     <span class="toolbar-divider" aria-hidden="true" />
     <button
-      class="toggle-btn"
-      title="Picker Mode"
+      class="code-toggle-btn"
+      :title="$t('formatEditor.toolbar.pickerMode')"
+      :aria-label="$t('formatEditor.toolbar.pickerMode')"
       @click="$emit('toggle-picker')"
     >
-      <img
-        src="../../../assets/eyedrop.png"
-        alt="Picker Mode"
-        class="eyedrop-icon"
-      />
+      <LucidePipette :stroke-width="2" class="toolbar-icon" />
     </button>
-    <button class="toggle-btn" title="Prettify JSON" @click="$emit('prettify')">
+    <button
+      class="code-toggle-btn"
+      :title="$t('formatEditor.toolbar.prettify')"
+      :aria-label="$t('formatEditor.toolbar.prettify')"
+      @click="$emit('prettify')"
+    >
       { }
     </button>
-    <button class="toggle-btn" title="Clear Payload" @click="$emit('clear')">
-      Clear
+    <button
+      class="code-toggle-btn"
+      :title="$t('formatEditor.toolbar.clear')"
+      @click="$emit('clear')"
+    >
+      {{ $t('formatEditor.toolbar.clear') }}
     </button>
   </div>
 </template>
@@ -62,19 +54,14 @@ defineEmits<{
 <style scoped>
 .payload-toolbar {
   display: flex;
-  gap: 8px;
+  gap: var(--space-3);
   margin-left: auto;
   align-items: center;
 }
-.toolbar-divider {
-  width: 1px;
-  height: 18px;
-  background: #3a3a3a;
-  margin: 0 4px;
-}
-.eyedrop-icon {
+
+.toolbar-icon {
   width: 14px;
   height: 14px;
-  display: flex;
+  display: block;
 }
 </style>

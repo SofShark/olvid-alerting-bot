@@ -1,47 +1,39 @@
-// Olvid daemon *listener* — a second connection dedicated to receiving
-// notifications from the daemon (discussion created, title updated, …).
-// The write-side lives in `olvidClient.ts`; keeping them separate lets us
-// reason about the two roles independently and lets the streaming
-// listener run alongside RPC calls without contention on the same client.
-//
-// This file has two jobs:
-//   · init()          — one-time seed of olvidDiscussionRepository from
-//                       whatever the daemon knows right now (discussions
-//                       + photos).
+// Olvid daemon listener
+// The write-side lives in `olvidClient.ts`
+
+// Two jobs:
+//   · init()          — one-time on-boot population of olvidDiscussionRepository from
+//                       current context (discussions + photos).
 //   · startUpdater()  — long-lived listener that keeps the repo in sync
 //                       with subsequent daemon events.
 //
-// Previously the file ran `main()` at import time. That was a bug: any
-// server module that imported anything from `server/clients/` also
-// triggered Nitro to auto-import THIS file, and `runForever()` fired
-// once per HMR reload — leaking gRPC subscriptions on the daemon.
-// Fixed by exporting `startUpdater()` and having a Nitro plugin call it
-// exactly once at server boot (`server/plugins/olvid-updater.ts`).
+// A Nitro plugin calls main() and startUpdater()exactly once at server boot (`server/plugins/olvid-updater.ts`).
 
 import { OlvidClient, datatypes } from "@olvid/bot-node";
 import { olvidClient } from "./olvidClient";
 
-/** Guard against a second start in dev-HMR reloads (Nitro plugins can
- *  re-run on server hot-reload; the underlying subscription would
- *  otherwise leak on the daemon side). */
-let started = false;
 
-/**
- * Seed the cache: fetch every discussion the daemon knows plus its
- * profile photo, hand each pair to olvidDiscussionRepository.
- *
- * Sequential on purpose — the daemon's gRPC channel is happier with a
- * steady drip than a parallel burst of photo fetches, and for the
- * typical desktop-scale contact list (<200 discussions) the wall-clock
- * is trivial.
- */
+function toModel(d: datatypes.Discussion): DiscussionModel {
+  const isGroup = d.identifier?.case === "groupId";
+  return {
+    id: String(d.id),
+    title: d.title + (isGroup ? " (group)" : ""),
+    kind: isGroup ? "group" : "contact",
+    // Photo lives in the parallel `photosById` map. listModels() inlines
+    // it as a data URL on read — the row itself carries no bytes.
+    photoDataUrl: null,
+  };
+}
+
+
+
 export async function init(): Promise<void> {
   const discussions = await olvidClient.getDiscussions();
   for (const discussion of discussions) {
     if (!discussion || !discussion.id) continue;
     try {
       const photo = await olvidClient.getDiscussionPhoto(discussion.id);
-      olvidDiscussionRepository.add(discussion, photo);
+      olvidDiscussionRepository.add(toModel(discussion), photo);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       console.warn(
@@ -53,6 +45,11 @@ export async function init(): Promise<void> {
     `[Olvid updater] cache seeded: ${olvidDiscussionRepository.size().discussions} discussions, ${olvidDiscussionRepository.size().photos} photos`,
   );
 }
+
+/** Guard against a second start in dev-HMR reloads (Nitro plugins can
+ *  re-run on server hot-reload; the underlying subscription would
+ *  otherwise leak on the daemon side). */
+let started = false;
 
 export async function startUpdater(): Promise<void> {
   if (started) {
@@ -72,15 +69,14 @@ export async function startUpdater(): Promise<void> {
   updater.onDiscussionNew({
     callback: async (discussion: datatypes.Discussion) => {
       console.log(`✅ [Olvid] New discussion: ${discussion.id}`);
-      olvidDiscussionRepository.addDiscussion(discussion);
-      // Fetch its photo separately — onDiscussionNew doesn't carry one.
-      // Skip on failure; a subsequent photo event will fill it in.
+      
+      // Try to load photo now, if it fails — the photo will resurface via onXxxPhotoUpdated.
+      let photo = null
       try {
-        const photo = await olvidClient.getDiscussionPhoto(discussion.id);
-        if (photo) olvidDiscussionRepository.updatePhoto(discussion.id, photo);
+        photo = await olvidClient.getDiscussionPhoto(discussion.id);
       } catch {
-        /* silent — the photo will resurface via onXxxPhotoUpdated */
       }
+      olvidDiscussionRepository.add(toModel(discussion), photo);
     },
   });
 
@@ -89,14 +85,14 @@ export async function startUpdater(): Promise<void> {
       console.log(
         `✅ [Olvid] Title ${discussion.id}: "${previousTitle}" → "${discussion.title}"`,
       );
-      olvidDiscussionRepository.updateTitle(discussion.id, discussion.title);
+      olvidDiscussionRepository.updateTitle(discussion.id.toString(), discussion.title);
     },
   });
 
   updater.onGroupDeleted({
     callback: (group: datatypes.Group) => {
       console.log(`✅ [Olvid] Group deleted: ${group.id}`);
-      olvidDiscussionRepository.remove(group.id);
+      olvidDiscussionRepository.remove(group.id.toString());
     },
   });
 
@@ -105,9 +101,9 @@ export async function startUpdater(): Promise<void> {
       console.log(`✅ [Olvid] Contact photo updated: ${contact.id}`);
       try {
         const photo = await olvidClient.getDiscussionPhoto(contact.id);
-        if (photo) olvidDiscussionRepository.updatePhoto(contact.id, photo);
+        if (photo) olvidDiscussionRepository.updatePhoto(contact.id.toString(), photo);
       } catch {
-        /* silent — cache keeps the previous photo, still better than nothing */
+        /* silent — cache keeps the previous photo */
       }
     },
   });
@@ -117,7 +113,7 @@ export async function startUpdater(): Promise<void> {
       console.log(`✅ [Olvid] Group photo updated: ${group.id}`);
       try {
         const photo = await olvidClient.getDiscussionPhoto(group.id);
-        if (photo) olvidDiscussionRepository.updatePhoto(group.id, photo);
+        if (photo) olvidDiscussionRepository.updatePhoto(group.id.toString(), photo);
       } catch {
         /* silent — cache keeps the previous photo */
       }

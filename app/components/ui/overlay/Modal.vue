@@ -23,16 +23,18 @@ import { nextTick, ref, watch } from "vue";
     · compact — 420px cap. Two/three-button prompts (delete? discard?).
     · default — 560px cap. Standard forms with a few fields.
     · wide    — 700px cap. Richer content, still centered.
-    · full    — 92vw × 80vh. The bundle editor / any modal that hosts
-                its own scrolling body.
-  Every size caps at 92vw so mobile doesn't overflow.
+    · full    — 92vw × 80vh × 700px. Tall form shells (bundle-edit).
+    · editor  — 96vw × 92vh × 1600px. Two-column code editors (format).
+  `full` and `editor` are flex-column shells with hidden overflow, so
+  callers can lay out head/body/foot with `flex: 1` on the body without
+  further plumbing. Every size caps at 92vw so mobile doesn't overflow.
 */
 
 const props = withDefaults(
   defineProps<{
     open: boolean;
     closeOnBackdrop?: boolean;
-    size?: "compact" | "default" | "wide" | "full";
+    size?: "compact" | "default" | "wide" | "full" | "editor";
     ariaLabel?: string;
   }>(),
   {

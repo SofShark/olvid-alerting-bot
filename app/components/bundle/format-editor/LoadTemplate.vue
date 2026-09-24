@@ -1,118 +1,104 @@
 <script setup lang="ts">
-import { computed } from "vue";
 import { webhookTemplateList } from "#shared/payloadTemplates";
 
-/*
-  Teleported "Load Template" dropdown. Two sections:
-    - From database — last successful / last failed payload
-    - From library  — bundled templates (GitHub Push, etc.)
-
-  Positions itself from the trigger button's DOMRect (passed by the
-  container). Teleported to <body> so the parent's overflow:hidden
-  doesn't clip it. Internal backdrop swallows outside clicks.
-*/
-
-const props = defineProps<{
+defineProps<{
   open: boolean;
-  anchor: DOMRect | null;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   (e: "select-last", type: "success" | "failed"): void;
   (e: "select-template", id: string): void;
   (e: "close"): void;
 }>();
 
-const positionStyle = computed<Record<string, string>>(() => {
-  if (!props.anchor) return {} as Record<string, string>;
-  return {
-    position: "fixed",
-    top: `${props.anchor.bottom + 6}px`,
-    right: `${Math.max(8, window.innerWidth - props.anchor.right)}px`,
-    "z-index": "10510",
-  };
-});
+const pick = (type: "success" | "failed") => {
+  emit("select-last", type);
+  emit("close");
+};
+const pickTemplate = (id: string) => {
+  emit("select-template", id);
+  emit("close");
+};
 </script>
 
 <template>
-  <Teleport to="body">
-    <div v-if="open" class="dropdown-backdrop" @click="$emit('close')" />
-    <div v-if="open" class="template-dropdown" :style="positionStyle">
-      <div class="template-section">
-        <div class="template-section-label">From database</div>
-        <button class="template-item" @click="$emit('select-last', 'success')">
+  <Modal
+    :open="open"
+    size="compact"
+    :aria-label="$t('formatEditor.toolbar.loadTemplate')"
+    @close="$emit('close')"
+  >
+    
+    <div class="template-body">
+      
+        <h5 class="template-section-label">
+          {{ $t("formatEditor.templates.fromDatabase") }}
+        </h5>
+        <button type="button" class="template-item" @click="pick('success')">
           <span class="status-pip pip-ok" aria-hidden="true" />
-          <span class="template-item-label">Last successful payload</span>
+          <span class="template-item-label">
+            {{ $t("formatEditor.templates.lastSuccess") }}
+          </span>
         </button>
-        <button class="template-item" @click="$emit('select-last', 'failed')">
+        <button type="button" class="template-item" @click="pick('failed')">
           <span class="status-pip pip-fail" aria-hidden="true" />
-          <span class="template-item-label">Last failed payload</span>
+          <span class="template-item-label">
+            {{ $t("formatEditor.templates.lastFailed") }}
+          </span>
         </button>
-      </div>
-      <div class="template-section">
-        <div class="template-section-label">From library</div>
+      
+      
+        <h5 class="template-section-label">
+          {{ $t("formatEditor.templates.fromLibrary") }}
+        </h5>
         <button
           v-for="tpl in webhookTemplateList"
           :key="tpl.id"
+          type="button"
           class="template-item"
-          @click="$emit('select-template', tpl.id)"
+          @click="pickTemplate(tpl.id)"
         >
           <span class="template-item-label">{{ tpl.label }}</span>
         </button>
-      </div>
     </div>
-  </Teleport>
+  </Modal>
 </template>
 
 <style scoped>
-.dropdown-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 10509;
-}
-.template-dropdown {
-  min-width: 260px;
-  padding: 6px 0;
-  background: #1e1e22;
-  border: 1px solid #3f3f46;
-  border-radius: 10px;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.04) inset,
-    0 12px 32px rgba(0, 0, 0, 0.55);
-  overflow: hidden;
-  font-family: inherit;
-}
-.template-section {
-  padding: 4px 0 6px;
+.template-body {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: var(--space-3) 0;
+  background: var(--color-bg-panel);
 }
 .template-section + .template-section {
-  border-top: 1px solid #2c2c30;
-  margin-top: 2px;
-  padding-top: 8px;
+  border-top: 1px solid var(--color-border-subtle);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
 }
 .template-section-label {
-  padding: 4px 16px 6px;
-  font-size: 10px;
-  font-weight: 700;
+  margin: 0;
+  padding: var(--space-1) var(--space-6) var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-bold);
   letter-spacing: 0.9px;
   text-transform: uppercase;
-  color: #71717a;
+  color: var(--color-text-muted);
 }
 .template-item {
-  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   width: 100%;
-  padding: 8px 16px 8px 18px;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-md);
   background: transparent;
-  color: #d4d4d8;
+  color: var(--color-text-secondary);
   border: none;
-  border-left: 2px solid transparent;
   text-align: left;
   font-family: inherit;
-  font-size: 13px;
-  line-height: 1.3;
+  font-size: var(--text-base);
+  line-height: 1.4;
   cursor: pointer;
   transition:
     background-color 0.12s ease,
@@ -122,26 +108,24 @@ const positionStyle = computed<Record<string, string>>(() => {
 .template-item:hover,
 .template-item:focus-visible {
   outline: none;
-  background: #2a2a30;
-  color: #fff;
-  border-left-color: var(--color-accent, #3b82f6);
+  background: var(--color-bg-card-soft);
+  color: var(--color-text-primary);
 }
 .template-item-label {
   flex: 1;
   min-width: 0;
 }
-
 .status-pip {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
   flex-shrink: 0;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 0 2px var(--color-border-subtle);
 }
 .pip-ok {
-  background: #22c55e;
+  background: var(--color-success);
 }
 .pip-fail {
-  background: #ef4444;
+  background: var(--color-danger);
 }
 </style>

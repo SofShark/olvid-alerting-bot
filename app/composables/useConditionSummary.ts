@@ -4,7 +4,7 @@ import {
   ConditionOperator,
   OPERATORS_NEEDING_VALUE,
 } from "#shared/types/condition";
-import { migrateCondition } from "#shared/condition/migrate";
+import { paramCleaner } from "~~/shared/condition/paramCleaner";
 
 /**
  * Builds the human-readable summary of a polling condition shown in the
@@ -58,7 +58,7 @@ export const useConditionSummary = () => {
   const conditionSummary = (
     rawCondition: any,
   ): { headline: string; paths: string[] } => {
-    const c = migrateCondition(rawCondition);
+    const c = paramCleaner.migrateCondition(rawCondition);
 
     if (c.kind === ConditionKind.None) {
       return { headline: t("editor.condition.summaryNone"), paths: [] };

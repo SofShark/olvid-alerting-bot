@@ -1,8 +1,6 @@
 import { ref, computed } from "vue";
 import {
-  webhookTemplateList,
   getWebhookPayloadJson,
-  getWebhookScript,
   type WebhookTemplate,
 } from "#shared/payloadTemplates";
 
@@ -14,15 +12,9 @@ import {
  * Reads the alert id lazily via `getAlertId` so the composable doesn't
  * capture stale props — the editor is mounted fresh on every open, but
  * the alert id can be null (brand-new alert) and we need to surface that.
- *
- * `loadLibraryPayload` returns the matching Handlebars script when the
- * user confirms applying the template's script too. The container decides
- * what to do with that string (typically: writes it to `scriptContent`).
- * Keeping the confirm flow here means the policy ("payload + ask about
- * script") lives in one file instead of being split across composable +
- * container.
  */
 export const useFormatEditorPayload = (getAlertId: () => number | null) => {
+  const { t } = useI18n();
   const jsonPayload = ref("{}");
   const lastPayloadLoading = ref(false);
   const lastPayloadMissing = ref(false);
@@ -53,7 +45,7 @@ export const useFormatEditorPayload = (getAlertId: () => number | null) => {
         2,
       );
     } catch {
-      alert("Invalid JSON: Cannot prettify.");
+      alert(t("formatEditor.errorInvalidJsonPrettify"));
     }
   };
 
@@ -71,7 +63,7 @@ export const useFormatEditorPayload = (getAlertId: () => number | null) => {
   const loadLastPayload = async (type: "success" | "failed") => {
     const alertId = getAlertId();
     if (!alertId) {
-      alert("This alert hasn't been saved yet. No payloads in database.");
+      alert(t("formatEditor.errorAlertNotSaved"));
       return;
     }
     lastPayloadLoading.value = true;
@@ -94,24 +86,12 @@ export const useFormatEditorPayload = (getAlertId: () => number | null) => {
     }
   };
 
-  /**
-   * Fill the JSON panel from the bundled template registry. Returns the
-   * matching Handlebars script when the user confirms applying it too,
-   * otherwise null — the container decides whether to write `scriptContent`.
-   */
-  const loadLibraryPayload = (id: WebhookTemplate["id"]): string | null => {
+  /** Fill the JSON panel from the bundled payload registry. */
+  const loadLibraryPayload = (id: WebhookTemplate["id"]) => {
     const payloadJson = getWebhookPayloadJson(id);
-    if (payloadJson === null) return null;
+    if (payloadJson === null) return;
     jsonPayload.value = payloadJson;
     lastPayloadMissing.value = false;
-    const script = getWebhookScript(id);
-    if (!script) return null;
-    const label = webhookTemplateList.find((t) => t.id === id)?.label ?? id;
-    return window.confirm(
-      `Loaded the ${label} payload. Apply its matching Handlebars template too? (This overwrites your current script.)`,
-    )
-      ? script
-      : null;
   };
 
   return {

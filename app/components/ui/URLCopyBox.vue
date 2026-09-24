@@ -3,12 +3,13 @@ import { ref } from "vue";
 
 const props = defineProps<{ url: string }>();
 
-// Brief visual feedback on copy — icon swap + scale pulse for ~1.4s. Clears
-// any in-flight timeout so rapid-fire clicks always restart the cycle from
-// "just copied" rather than blinking back to idle mid-pulse.
+/* Brief visual animation on copy
+ Clears any in-flight timeout so rapid-fire clicks always restart
+ the cycle from "just copied" rather than blinking back mid-pulse.*/
 const copied = ref(false);
 let copiedTimer: ReturnType<typeof setTimeout> | null = null;
-const copyWebhook = () => {
+
+function copyUrl() {
   if (!props.url) return;
   navigator.clipboard?.writeText(props.url);
   copied.value = true;
@@ -16,73 +17,92 @@ const copyWebhook = () => {
   copiedTimer = setTimeout(() => {
     copied.value = false;
   }, 1400);
-};
+}
 </script>
+
 <template>
-  <div class="url-box">
-    <code>{{ props.url }}</code>
+  <div class="url-copy-box">
+    <!-- readonly input rather than a <code> element so the user can
+         click into it, select the whole URL with Ctrl+A, and copy
+         with the keyboard even if the button ever fails  :) -->
+    <input
+      class="url-input"
+      type="text"
+      readonly
+      :value="props.url"
+      @focus="($event.target as HTMLInputElement).select()"
+    />
     <button
       type="button"
       class="btn-copy"
       :class="{ copied }"
-      :title="
-        copied ? $t('urlCopyBox.copiedTitle') : $t('urlCopyBox.copyTitle')
-      "
-      @click="copyWebhook"
+      :title="copied ? $t('urlCopyBox.copiedTitle') : $t('urlCopyBox.copyTitle')"
+      @click="copyUrl"
     >
-      <span v-if="copied"> ✓ </span>
-      <span v-else>
-        <LucideCopy class="clipboard-icon" />
-      </span>
+      <span v-if="copied">✓</span>
+      <LucideLink v-else class="clipboard-icon" />
     </button>
   </div>
 </template>
 
-<style>
-.url-box {
+<style scoped>
+
+.url-copy-box {
   display: flex;
   align-items: center;
-  height: 35px;
-  min-width: 30%;
   gap: var(--space-3);
+  height: 35px;
+  width: 100%;
+  min-width: 0;
   background: var(--color-bg-code);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
 }
-.url-box code {
-  color: var(--color-text-webhook);
-  font-size: var(--text-md);
+
+.url-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+
+  color: var(--color-text-url);
   font-family: var(--font-mono);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
+  font-size: var(--text-m);
+
+  text-overflow: clip;
+}
+.url-input:focus {
+  outline: none;
 }
 
 .clipboard-icon {
   color: #bebebe;
 }
-/* Copy button — small scale + color pulse on click, swaps to ✓ for ~1.4s.
- * Used a CSS animation rather than a one-shot scale so consecutive clicks
- * always restart the pulse cleanly. */
 .btn-copy {
   background: transparent;
   border: none;
   cursor: pointer;
-  width: 25px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: var(--text-lg);
   line-height: 1;
-  padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
+  flex-shrink: 0;
   transition:
     color 0.15s,
     background-color 0.15s,
     transform 0.1s;
 }
-.btn-copy:hover {
-  background: var(--neutral-80);
+.btn-copy:hover .clipboard-icon {
+  color: var(--color-text-url);
 }
 .btn-copy:active {
   transform: scale(0.88);
@@ -96,14 +116,8 @@ const copyWebhook = () => {
 }
 
 @keyframes copy-pulse {
-  0% {
-    transform: scale(0.85);
-  }
-  50% {
-    transform: scale(1.18);
-  }
-  100% {
-    transform: scale(1);
-  }
+  0%   { transform: scale(0.85); }
+  50%  { transform: scale(1.18); }
+  100% { transform: scale(1); }
 }
 </style>

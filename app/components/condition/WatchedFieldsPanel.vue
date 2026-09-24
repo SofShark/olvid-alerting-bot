@@ -82,6 +82,7 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
          when active — the input behaves like a "chip in progress". -->
     <div v-if="paths.length > 0 || isAdding" class="chips">
       <span v-for="p in paths" :key="p" class="chip">
+        
         <span class="chip-path">{{ p }}</span>
         <button type="button" class="chip-x" @click="emit('remove-path', p)">
           ×
@@ -116,7 +117,7 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
           :title="$t('conditionEditor.watchedFields.inputCancel')"
           @click="cancelAdd"
         >
-          ✕
+          <LucideX :stroke-width="2" />
         </button>
       </span>
     </div>
@@ -156,7 +157,7 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
   flex-shrink: 0;
 }
 .icon {
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
 }
 
 .rule-label {
@@ -175,7 +176,7 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
 .rule-hint {
   margin: 0;
   color: var(--color-text-dim);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   line-height: 1.5;
 }
 .rule-hint code {
@@ -190,7 +191,7 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
 .add-error {
   margin: 0;
   color: var(--color-danger-text);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
 }
 
 /* ── Chips + inline input ────────────────────────────────────────── */
@@ -204,35 +205,18 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
 
 /* Compact monospace chips — reads like a code token, not a fluffy tag.
  * `×` hides until hover to reduce visual noise (git-style). */
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 3px var(--space-2) 3px var(--space-3);
-  background: var(--color-border-subtle);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  transition:
-    border-color 0.15s,
-    background-color 0.15s;
-}
+
 .chip:hover {
   border-color: var(--color-border-strong);
 }
 .chip:hover .chip-x {
   opacity: 1;
 }
-.chip-path {
-  white-space: nowrap;
-}
 .chip-x {
   background: transparent;
   border: none;
   color: var(--color-text-dim);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   line-height: 1;
   padding: 0 2px;
   cursor: pointer;
@@ -249,7 +233,7 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
 .chips-empty {
   margin: 0;
   color: var(--color-text-faint);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   font-style: italic;
 }
 
@@ -266,11 +250,12 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
   background: var(--color-danger-soft);
 }
 .chip-input {
+  
   border: none;
   background: transparent;
   color: var(--color-text-primary);
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   padding: 4px var(--space-3);
   outline: none;
   min-width: 180px;
@@ -282,7 +267,7 @@ const watchedFieldsHint = t("conditionEditor.watchedFields.hint");
   cursor: pointer;
   color: var(--color-text-muted);
   padding: 0 var(--space-2);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   transition:
     background-color 0.12s,
     color 0.12s;

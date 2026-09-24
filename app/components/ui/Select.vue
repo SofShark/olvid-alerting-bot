@@ -23,16 +23,19 @@ const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
-    modelValue: string;
+    modelValue?: string;
     options: Option[];
     disabled?: boolean;
     placeholder?: string;
     size?: "md" | "sm";
+    // Initial open state. Only read at mount
+    defaultOpen?: boolean;
   }>(),
   {
     disabled: false,
     placeholder: () => "",
     size: "md",
+    defaultOpen: false,
   },
 );
 
@@ -40,7 +43,7 @@ const emit = defineEmits<{
   (e: "update:modelValue", v: string): void;
 }>();
 
-const isOpen = ref(false);
+const isOpen = ref(props.defaultOpen);
 const containerRef = ref<HTMLElement | null>(null);
 
 const current = computed(() =>
@@ -79,7 +82,10 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
       :aria-expanded="isOpen"
       @click="toggle"
     >
-      <span class="select-label">{{ displayLabel }}</span>
+      <span
+        class="select-label"
+        :class="{ 'select-label--placeholder': !current }"
+      >{{ displayLabel }}</span>
       <span class="select-chevron" :class="{ open: isOpen }" aria-hidden="true"
         >▾</span
       >
@@ -118,6 +124,9 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  height: 32px;
+  
   font-family: inherit;
   cursor: pointer;
   text-align: left;
@@ -133,7 +142,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 .select-trigger:focus-visible,
 .select-trigger.open {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--color-accent); 
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
 .select-trigger.disabled {
@@ -148,7 +157,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   box-sizing: border-box;
   padding: 9px var(--space-4);
   background: var(--color-bg-input);
-  font-size: var(--text-base);
+
 }
 /* sm — inline chip, but visually a sibling of .field-input: same
  * background and vertical rhythm so a Select and an <input> sitting
@@ -157,7 +166,6 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   padding: var(--space-3) var(--space-3);
   background: var(--color-bg-input);
   color: var(--color-text-primary);
-  font-size: var(--text-base);
   line-height: 1;
 }
 .size-sm .select-trigger:hover:not(.open):not(.disabled) {
@@ -169,6 +177,11 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* Muted color when the trigger is showing the placeholder — matches
+ * the treatment `<input>::placeholder` gets across the app. */
+.select-label--placeholder {
+  color: var(--color-text-dim);
 }
 .select-chevron {
   color: var(--color-text-dim);
@@ -188,6 +201,9 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
+  min-width: 100%;
+  width:max-content;
+
   max-height: 240px;
   overflow-y: auto;
   z-index: 200;
@@ -198,7 +214,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 }
 .size-sm .select-dropdown {
   left: 0;
-  min-width: 100%;
+  
   padding: var(--space-1);
 }
 
@@ -229,7 +245,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 .size-sm .select-item {
   padding: 6px var(--space-3);
   border-radius: var(--radius-sm);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   white-space: nowrap;
 }
 </style>

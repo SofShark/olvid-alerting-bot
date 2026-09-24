@@ -1,7 +1,7 @@
 import { nextTick } from "vue";
 
 /**
- * Imperative textarea cursor helper. Inserts text at the caret (replacing
+ * Textarea cursor helper. Inserts text at the caret (replacing
  * any selection), then restores focus and places the caret right after
  * the inserted text. Falls back to appending when no textarea is mounted.
  *
@@ -19,10 +19,21 @@ export const useCursorInsert = (
   getScript: () => string,
   setScript: (v: string) => void,
 ) => {
+  // Convert a dot-path with array indices into Handlebars syntax. Two
+  // segments need bracket-escaping so Handlebars parses them literally
+  // instead of treating them as special tokens:
+  //   - numeric indices (`0`, `1`, …) — the docs' recommended form.
+  //   - segments starting with a character Handlebars would otherwise
+  //     interpret (`#` opens a block, `@` is a data-variable prefix,
+  //     `/` closes a block, `>` is a partial). fast-xml-parser emits
+  //     `#text` for the text child of an element that also has attrs;
+  //     without escaping, `{{foo.#text}}` fails to compile.
   const pathToHandlebars = (path: string): string =>
     path
       .split(".")
-      .map((seg) => (/^\d+$/.test(seg) ? `[${seg}]` : seg))
+      .map((seg) =>
+        /^\d+$/.test(seg) || /^[#@/>]/.test(seg) ? `[${seg}]` : seg,
+      )
       .join(".");
 
   const insertAtCursor = (text: string) => {

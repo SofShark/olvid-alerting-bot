@@ -113,31 +113,22 @@ function onLineClick() {
     />
   </template>
 
-  <!-- Primitive value inline: `<name>value</name>`. -->
-
+  <!-- Primitive value inline: `<name>value</name>`.
+       Parsed shape is `{name: value}` — the VALUE lives at `path`, not
+       at `path.#text`. Clicking the text line emits `path` so
+       `{{root.…name}}` resolves to the primitive directly. -->
   <template v-else-if="!isBranch">
     <div class="element opening" :style="indent(depth)">
       <span class="punct">&lt;</span><span class="tag">{{ nodeName }}</span
-      ><span
-        v-for="[k, v] in parts.attrs"
-        :key="k"
-        class="attr"
-        :class="{ selected: isSelected(attrPath(k)) }"
-        :title="attrPath(k)"
-        @click.stop="emit('select', attrPath(k))"
-        >&nbsp;<span class="attr-name">{{ k }}</span
-        ><span class="punct">="</span><span class="attr-value">{{ v }}</span
-        ><span class="punct">"</span></span
       ><span class="punct">&gt;</span>
     </div>
 
     <div
       class="text-line"
-      :class="{ selected: isSelected(textPath) }"
+      :class="{ selected: isSelected(path) }"
       :style="indent(depth + 1)"
-      :depth="depth + 1"
-      :title="textPath"
-      @click="emit('select', textPath)"
+      :title="path"
+      @click="emit('select', path)"
     >
       <span class="text">{{ nodeValue }}</span>
     </div>
@@ -276,7 +267,7 @@ function onLineClick() {
  * container chrome. */
 .element {
   font-family: var(--font-mono);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   line-height: 1.55;
   white-space: nowrap;
   border-radius: var(--radius-sm);
@@ -300,7 +291,7 @@ function onLineClick() {
 
 .text-line {
   font-family: var(--font-mono);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   line-height: 1.55;
   padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
@@ -319,24 +310,27 @@ function onLineClick() {
   border-color: color-mix(in srgb, var(--color-success) 50%, transparent);
 }
 
-/* Syntax colors — same VS Code XML feel as the JSON tree. */
+/* Syntax colors — same VS Code XML feel as the JSON tree. All syntax
+ * colors are tokenised in tokens.css so the JSON + XML trees share one
+ * palette; local hex is a regression, add new colors to the token
+ * layer. */
 .tag {
-  color: #60a5fa;
-  font-weight: 500;
+  color: var(--color-syntax-tag);
+  font-weight: var(--font-weight-medium);
 }
 .punct {
-  color: var(--color-text-faint);
+  color: var(--color-syntax-punct);
 }
 .text {
-  color: rgb(255, 255, 255);
+  color: var(--color-syntax-text);
 }
 
 /* Attribute chip — its own click zone within the tag, with hover +
  * selected states so the user sees which attrs are already watched. */
 .attr {
   cursor: pointer;
-  border-radius: 3px;
-  padding: 0 2px;
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-1);
   transition:
     background-color 0.1s,
     border-color 0.1s;
@@ -351,19 +345,19 @@ function onLineClick() {
   border-color: color-mix(in srgb, var(--color-success) 55%, transparent);
 }
 .attr-name {
-  color: #f472b6;
-  font-weight: 500;
+  color: var(--color-syntax-attr-name);
+  font-weight: var(--font-weight-medium);
 }
 .attr-value {
-  color: blanchedalmond;
+  color: var(--color-syntax-attr-value);
 }
 
 /* Text used as an in-line click zone (mixed content case). Same hover /
  * selected feel as attrs. */
 .text.clickable {
   cursor: pointer;
-  border-radius: 3px;
-  padding: 0 2px;
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-1);
   border: 1px solid transparent;
   transition:
     background-color 0.1s,

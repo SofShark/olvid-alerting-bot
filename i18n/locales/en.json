@@ -2,7 +2,17 @@
   "topNav": {
     "title": "Alerting System",
     "themeToggle": "Toggle Theme",
-    "languageToggle": "Change language"
+    "languageToggle": "Change language",
+    "users": "Users",
+    "login": "Login"
+  },
+
+  "accountMenu": {
+    "account": "Account",
+    "login": "Login",
+    "email": "Email",
+    "role": "Role",
+    "logout": "Logout"
   },
 
   "index": {
@@ -12,11 +22,29 @@
   "sidebar": {
     "title": "Alert List",
     "empty": "No alerts yet",
+    "loginPrompt": "Log in to see your alerts",
     "searchPlaceholder": "Filter alerts...",
     "statusLabel": {
       "active": "Active",
       "inactive": "Inactive",
       "draft": "Draft"
+    }
+  },
+
+  "user": { 
+    "pageTitle": "Users",
+    "userRow" :{
+      "status": {
+        "registered": "Registered",
+        "pending": "Pending Invite"
+      },
+      "role" : {
+        "admin": "Admin",
+        "user" : "User"
+      }
+    },
+    "invitation" :{
+      "send": "Send invitation"
     }
   },
 
@@ -50,11 +78,12 @@
     "saveAsDraft": "Save as Draft",
     "cancel": "Cancel",
     "delete": "Delete",
+    "ok": "OK",
     "newAlert": "New Alert",
     "backToList": "Back to list",
     "back": "Back",
-    "continue": "Continue →",
-    "addBundles": "Add bundles →",
+    "continue": "Continue",
+    "addBundles": "Add bundles",
     "editAlert": "Edit",
     "close": "Close",
     "done": "Done",
@@ -108,8 +137,7 @@
       "monitorConfiguration": "Monitoring configuration"
     },
 
-    "communicationHint": "Communication: ",
-    "communicationHintSuffix": " — how this source talks to the alert system.",
+    "communicationHint": "Communication: how this source talks to the alert system.",
 
     "webhookInfo": {
       "title": "Webhook URL",
@@ -184,7 +212,8 @@
         "polling": "Polling",
         "condition": "Condition",
         "discussions": "Discussions",
-        "format": "Format"
+        "format": "Format",
+        "trigger": "Trigger"
       },
       "dividers": {
         "triggerConfiguration": "Trigger configuration",
@@ -196,25 +225,34 @@
       "noBundlesEditAlert": "Edit",
       "bundleTag": "BUNDLE {n}",
       "bundleEdit": "Edit",
-      "discussionsEmpty": "— none —"
+      "discussionsEmpty": "— none —",
+      "eyebrowConfiguration": "Configuration",
+      "eyebrowBundles": "Bundles",
+      "inputTitle": {
+        "polling": "Data Polling Alert",
+        "monitoring": "Monitoring Alert",
+        "webhook": "Webhook Alert",
+        "generic": "{input} Alert"
+      }
     },
 
     "schedule": {
       "interval": {
-        "everyDay": "every {n} day",
-        "everyDays": "every {n} days",
-        "everyHour": "every {n} hour",
-        "everyHours": "every {n} hours",
-        "everyMinute": "every {n} minute",
-        "everyMinutes": "every {n} minutes",
-        "everySeconds": "every {n} seconds",
-        "dailyAt": "daily at {time}",
+        "everyDay": "Every {n} day",
+        "everyDays": "Every {n} days",
+        "everyHour": "Every {n} hour",
+        "everyHours": "Every {n} hours",
+        "everyMinute": "Every {n} minute",
+        "everyMinutes": "Every {n} minutes",
+        "everySeconds": "Every {n} seconds",
+        "dailyAt": "Daily at {time}",
         "empty": "—"
       },
       "mode": {
         "basic": "basic",
         "advanced": "advanced"
-      }
+      },
+      "lastPolledAt": "Last polled at {time}"
     },
 
     "condition": {
@@ -222,12 +260,12 @@
       "summaryRule": "Fires when {subject} {phrase}.",
       "summaryRuleMissingValue": "Fires when {subject} {phrase} (value missing — edit to set).",
       "subject": {
-        "all": "all of these fields",
-        "any": "any of these fields",
-        "sum": "the sum of these fields",
-        "average": "the average of these fields",
-        "minimum": "the minimum of these fields",
-        "maximum": "the maximum of these fields"
+        "all": "all of the watched fields",
+        "any": "any of the watched fields",
+        "sum": "the sum of the watched fields",
+        "average": "the average of the watched fields",
+        "minimum": "the minimum of the watched fields",
+        "maximum": "the maximum of the watched fields"
       },
       "phrase": {
         "changed": "change between polls",
@@ -275,7 +313,9 @@
       "discardWarning": "⚠ Discard unsaved changes to this bundle?",
       "keepEditingButton": "Keep editing",
       "discardButton": "Discard",
-      "untitled": "Untitled"
+      "untitled": "Untitled",
+      "titleLabel": "Bundle Title",
+      "namePlaceholder": "Bundle {n}"
     },
 
     "errors": {
@@ -283,6 +323,11 @@
       "testFailed": "Test failed",
       "duplicating": "Error duplicating alert:"
     }
+  },
+
+  "testVerdict": {
+    "fired": "FIRED",
+    "notFired": "DID NOT FIRE"
   },
 
   "alertActions": {
@@ -397,17 +442,19 @@
   "formatEditor": {
     "title": "Custom Format Editor",
     "intro": {
-      "polling": "Build the message that fires when this polling alert triggers. Click any value on the right to insert its path, or use the watched-path shortcuts below the script.",
-      "monitoring": "Build the message that fires when this monitor triggers. Press ⟳ to probe the URL; click any field on the right ({status}, {body}, {url}, {latencyMs}) to insert its path.",
+      "polling": "Click on the paths bellow to insert, or use the .. wildcard shortcuts in the script.",
+      "monitoring": "Press ⟳ to probe the URL; click on the fields bellow to insert their value.",
       "webhook": "Configure the message that users will receive on Olvid."
     },
-    "scriptTitle": "script.hbs (Handlebars)",
     "watchedPathsLabel": "Watched paths:",
     "watchedPathsInsertTitle": "Insert {token}",
     "sourceTitlePollingFormat": "source.{format}",
     "sourceTitleWebhook": "payload.json (Test Data)",
+    "sourceTitleMonitor": "monitor-probe.json",
     "sourceRefreshTitle": "Re-fetch the source",
     "monitorProbeTitle": "Probe the monitor URL now",
+    "errorInvalidJsonPrettify": "Invalid JSON: Cannot prettify.",
+    "errorAlertNotSaved": "This alert hasn't been saved yet. No payloads in database.",
     "sourceExampleButton": "Example",
     "sourceLastReceivedButton": "Last received",
     "sourceLoadingPolling": "Loading source…",
@@ -425,11 +472,13 @@
       "handlebarsError": "Error in Handlebars: {message}"
     },
     "preview": {
-      "title": "📱 Preview on device",
-      "mailTitle": "✉️ Preview in inbox",
+      "title": "Preview on device",
+      "mailTitle": "Preview in inbox",
       "placeholder": "Formatted message will appear here...",
       "sender": "Alerting Bot",
-      "time": "now"
+      "time": "now",
+      "mailHint": "Format this Mail message using HTML tags",
+      "olvidHint": " Format this Olvid message using Olvid markdown — see https://olvid.io/faq/format-your-messages/"
     },
     "mailPreview": {
       "from": "From",
@@ -443,6 +492,19 @@
       "cancel": "Cancel",
       "save": "Save Script",
       "closeTitle": "Close"
+    },
+    "toolbar": {
+      "loadTemplate": "Load Template",
+      "loadTemplateTitle": "Load template payload",
+      "pickerMode": "Picker mode",
+      "prettify": "Prettify JSON",
+      "clear": "Clear"
+    },
+    "templates": {
+      "fromDatabase": "From database",
+      "fromLibrary": "From library",
+      "lastSuccess": "Last successful payload",
+      "lastFailed": "Last failed payload"
     }
   },
 
@@ -456,6 +518,15 @@
 
   "bundleRow": {
     "tag": "BUNDLE {n}",
+    "untitled": "Untitled bundle",
+    "noDestinations": "No destinations",
+    "editTooltip": "Edit bundle",
+    "removeTooltip": "Remove bundle",
+    "status": {
+      "ready": "Ready",
+      "noDestinations": "No destinations",
+      "noScript": "Custom format set but no script"
+    },
     "destSummary": {
       "None": "— no discussions —",
       "Plural": "{firstTwoNames} + {remaining} more discussions",
@@ -464,6 +535,7 @@
     "fields": {
       "discussions": "Discussions",
       "emailRecipients": "Email recipients",
+      "mailSubject": "Mail subject",
       "format": "Message Format"
     },
     "format": {
@@ -474,7 +546,6 @@
       "pollingCustom": "Custom script"
     },
     "scriptButton": "Script",
-    "previewPlaceholder": "Default polling message — fills in the watched paths and their observed values when the alert fires.",
     "removeTitle": "Remove bundle",
     "editTitle": "Edit this bundle",
     "editButton": "Edit"
@@ -490,7 +561,8 @@
       "noFound": "No discussions found in daemon",
       "allAdded": "All discussions already added"
     },
-    "empty": "— no discussions —"
+    "empty": "— no discussions —",
+    "change": "Change"
   },
 
   "emailRecipientSelector": {
@@ -500,9 +572,7 @@
   },
 
   "inputSourceSelector": {
-    "lockedHint": "🔒 Can't be changed, bundles already depend on this source",
-    "searchPlaceholder": "Search source (GitHub, Grafana, Sentry...)",
-    "noResults": "No results",
+    "searchPlaceholder": "Select a source",
     "changeButton": "Change",
     "labels": {
       "Polling Source": "Data Polling",
@@ -530,6 +600,16 @@
       "minutes": "minutes",
       "hours": "hours",
       "daily": "daily"
+    },
+    "cron": {
+      "legend": {
+        "minute": "minute",
+        "hour": "hour",
+        "dayOfMonth": "day-of-month",
+        "month": "month",
+        "dayOfWeek": "day-of-week"
+      },
+      "invalid": "Invalid cron expression"
     }
   },
 
@@ -580,10 +660,197 @@
       }
     },
     "view": {
-      "triggersOn": "Triggers on",
+      "triggersOn": "Condition",
       "codes": "Codes: {codes}",
       "range": "Any {range} response",
       "notOk": "Any non-2xx response"
+    }
+  },
+
+  "alertLog": {
+    "title": "Status logs",
+    "empty": "No polls recorded yet.",
+    "showDetails": "Show details",
+    "hideDetails": "Hide details",
+    "noAdditionalDetail": "No additional detail.",
+    "channelsAria": "Per-channel dispatch outcome",
+    "status": {
+      "sent": "Sent",
+      "partial": "Partial",
+      "failed": "Failed"
+    },
+    "stage": {
+      "fetch": "Fetch",
+      "parse": "Parse",
+      "evaluate": "Evaluate",
+      "dispatch": "Dispatch"
+    },
+    "channel": {
+      "olvid": "Olvid",
+      "mail": "Email"
+    },
+    "detail": {
+      "stage": "Stage"
+    },
+    "channelTable": {
+      "channel": "Channel",
+      "recipients": "Recipients",
+      "outcome": "Outcome",
+      "error": "Error",
+      "ok": "Delivered",
+      "fail": "Failed"
+    }
+  },
+
+  "auth": {
+    "login": {
+      "title": "Log in",
+      "submit": "Login",
+      "identifierEmail": "Email or username",
+      "identifierUsername": "Username",
+      "password": "Password",
+      "errorInvalidCredentials": "Invalid credentials.",
+      "errorNotActivated": "Your account isn't activated yet. Check your invite email.",
+      "resendVerification": "Resend verification email",
+      "verificationSent": "Verification email sent. Check your inbox.",
+      "forgot": "Forgot my password?",
+      "forgotTitle": "Reset your password",
+      "forgotHint": "Enter your login. We'll send a reset link to whichever channel is bound to this account.",
+      "forgotSubmit": "Re-send password",
+      "forgotBusy": "Sending…",
+      "forgotBackToLogin": "Back to login",
+      "resetSubmitted": "If we recognize this login, we've sent reset instructions to the associated channel. Check your Olvid conversation or your inbox — if nothing arrives, ask an administrator to send you a fresh invitation.",
+      "resetNetworkError": "Couldn't reach the server — please try again."
+    },
+    "invite": {
+      "title": "Accept invitation",
+      "hintPassword": "Set a password to activate your account.",
+      "hintPasswordWithLogin": "Set a password to activate your account with login {login}.",
+      "passwordPlaceholder": "New password (min 8 chars)",
+      "confirmPasswordPlaceholder": "Confirm new password",
+      "submit": "Activate account",
+      "errorMissingToken": "Missing invitation token.",
+      "errorPasswordsDoNotMatch": "Passwords do not match",
+      "errorTokenInvalid": "This invitation is invalid, expired, or already used.",
+      "errorBadPassword": "Please pick a password of at least 8 characters.",
+      "errorNetwork": "Couldn't reach the server — please try again.",
+      "invalidTitle": "Invitation invalid or expired",
+      "invalidBody": "This invitation link is invalid, expired, or already used. Ask your administrator for a fresh invitation."
+    },
+    "resetPassword": {
+      "title": "Reset your password",
+      "hint": "Pick a new password to finish resetting your account.",
+      "hintWithLogin": "Pick a new password for {login}.",
+      "passwordPlaceholder": "New password (min 8 chars)",
+      "confirmPasswordPlaceholder": "Confirm new password",
+      "submit": "Set new password",
+      "errorMissingToken": "Missing reset token.",
+      "errorPasswordsDoNotMatch": "Passwords do not match",
+      "errorTokenInvalid": "This reset link is invalid, expired, or already used.",
+      "errorBadPassword": "Please pick a password of at least 8 characters.",
+      "errorNetwork": "Couldn't reach the server — please try again.",
+      "invalidTitle": "Reset link invalid or expired",
+      "invalidBody": "This password reset link is invalid, expired, or already used. Request a new one from the login page."
+    },
+    "verify": {
+      "pending": "Verifying…",
+      "successTitle": "Email verified",
+      "successBody": "Your email address is confirmed. You can sign in now.",
+      "successCta": "Go to login",
+      "errorTitle": "Verification failed",
+      "errorBody": "This link is invalid, expired, or already used. Request a new one from the login page.",
+      "errorCta": "Back to login"
+    },
+    "setup": {
+      "title": "First-run setup",
+      "hint": "Paste the ADMIN_KEY from your .env to prove you deployed this instance.",
+      "adminKey": "ADMIN_KEY",
+      "keyNext": "Next",
+      "keyBusy": "Checking…",
+
+      "inviteTitle": "Invite yourself as the first admin",
+      "inviteHint": "Pick a delivery channel — the same one you'd use to invite anyone else — and we'll send you the activation link. You'll set your password by opening it.",
+      "fieldLogin": "Username",
+      "loginPlaceholder": "The name you'll type at sign-in",
+      "fieldName": "Display name (optional)",
+      "namePlaceholder": "Name shown in the app",
+      "fieldEmail": "Email",
+      "emailPlaceholder": "Where to send the activation link",
+      "inviteSubmit": "Send the activation link",
+      "inviteBusy": "Sending…",
+      "back": "Back",
+
+      "doneTitle": "Setup started",
+      "doneMail": "Activation link sent by email. Open it to set your password and sign in.",
+      "doneOlvid": "Activation link sent through Olvid. Open the DM from the bot to set your password.",
+      "doneLink": "Open the activation link below to set your password and sign in.",
+      "doneCta": "Go to login",
+
+      "errorAdminKeyNotConfigured": "ADMIN_KEY is not set on the server. Configure it in .env and restart.",
+      "errorInvalidAdminKey": "That admin key doesn't match the one configured on the server.",
+      "errorAlreadyComplete": "An admin already exists on this deploy.",
+      "errorEmailRequired": "An email address is required for the mail channel.",
+      "errorMailNotConfigured": "SMTP isn't configured on this deploy — pick another channel.",
+      "errorOlvidRequired": "Pick an Olvid contact discussion for the delivery.",
+      "errorFallback": "Could not start setup. Check the inputs and try again."
+    },
+    "users": {
+      "inviteButton": "Invite user",
+      "table": {
+        "login": "Login",
+        "name": "Name",
+        "role": "Role",
+        "status": "Status"
+      },
+      "loginTagEmail": "Login is an email address",
+      "loginTagOlvid": "Login is an Olvid discussion",
+      "loginTagLocal": "Local username",
+      "copyLinkTitle": "Generate & copy an invite link",
+      "resendTitle": "Resend invitation",
+      "confirmDeletePrompt": "Delete user {login}?",
+      "confirmResendPrompt": "Re-send the invitation to {recipient} via {channel}?",
+      "confirmResendConfirm": "Re-send",
+      "resendSuccessTitle": "Invitation sent",
+      "resendSuccessMessage": "A fresh invitation has been sent to {recipient} via {channel}.",
+      "channelMail": "email"
+    },
+    "inviteModal": {
+      "title": "Invite a new user",
+      "channelLabel": "Delivery channel",
+      "channelPillMail": "Email",
+      "channelPillOlvid": "Olvid",
+      "channelPillLink": "Shareable link",
+      "channelPillMailDisabled": "SMTP is not configured on this deploy.",
+      "fieldName": "Name",
+      "namePlaceholder": "Alice",
+      "fieldEmail": "Email",
+      "emailPlaceholder": "alice{'@'}example.com",
+      "fieldUsername": "Username (login)",
+      "usernamePlaceholder": "alice",
+      "fieldRole": "Role",
+      "fieldOlvidDiscussion": "Olvid discussion",
+      "submitMail": "Send by email",
+      "submitMailBusy": "Sending…",
+      "submitLink": "Create & copy link",
+      "submitLinkBusy": "Creating…",
+      "submitOlvid": "Send via Olvid",
+      "submitOlvidBusy": "Sending…",
+      "cancel": "Cancel",
+      "ariaLabel": "Invite user",
+      "errorUserAlreadyActive": "That user already has an active account.",
+      "errorLoginInUse": "That login is already taken. Pick a different one, or resend the invitation from the users list.",
+      "errorEmailInUse": "That email is already tied to another user. Resend the invitation from the users list instead.",
+      "errorOlvidInUse": "That Olvid discussion is already tied to another user. Pick a different discussion.",
+      "errorEmailRequired": "Email is required for a mail invite.",
+      "errorMailNotConfigured": "SMTP is not configured on this deploy.",
+      "errorOlvidRequired": "Pick an Olvid discussion to send the invitation to.",
+      "errorFallback": "Could not create the invitation."
+    },
+    "reveal": {
+      "title": "Invitation link ready",
+      "ariaLabel": "Invite link",
+      "body": "New {role} with login {login} was created. Copy the invite URL below.",
+      "close": "Close"
     }
   }
 }

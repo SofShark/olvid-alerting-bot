@@ -1,39 +1,12 @@
-/* ────────────────────────────────────────────────────────────────────
- * Design tokens — the single source of truth for color, type, spacing.
- * Two layers, in strict order:
- *
- *   1. PRIMITIVES  — raw palette scales (`--blue-10..90`, `--neutral-10..95`)
- *                    and non-color primitives (radii, spacing, type).
- *                    These are the atoms. Consumers do NOT read them
- *                    directly; treat them as private.
- *
- *   2. SEMANTIC    — context-named tokens (`--color-bg-app`,
- *                    `--color-text-primary`, `--color-accent`, …) that
- *                    map onto the primitives. Components read only from
- *                    this layer. Re-theming = swap this layer, primitives
- *                    stay put.
- *
- * Elevation ladder (both themes, same slot names):
- *   bg-0 = app / page          — the canvas
- *   bg-1 = surface / paper     — panels, nav, cards
- *   bg-2 = elevated surface    — modal, popover, secondary card
- *   bg-3 = header strip / hover
- *   bg-4 = max elevation       — menus, dropdowns
- *
- * Status colors (success / warning / danger) are intentionally OUT of
- * the scale — they're categorical, not gradient.
- *
- * Toggle themes by setting [data-theme="light"] on <html>.
- * ─────────────────────────────────────────────────────────────────── */
+/*
+Theme switch handled by in app/plugins/theme.client.ts
+*/
 
 :root {
   color-scheme: dark;
 
   /* ──────────────────────────────────────────────────────────────
-   *  PRIMITIVES — Blue brand ladder (10 stops, low → high value).
-   *  Sampled from the reference palette so the whole app shares one
-   *  identity. Use the middle stops (50–70) for interactive accents;
-   *  the extremes (10–20 / 80–90) power soft tints and deep backdrops.
+   *  PRIMITIVES — Blue brand ladder 
    * ────────────────────────────────────────────────────────────── */
   --blue-10: #eaf0fe;
   --blue-20: #d5e0fd;
@@ -44,15 +17,10 @@
   --blue-70: #2651c4;
   --blue-80: #1c3d90;
   --blue-90: #132862;
+  --blue-dark:#161c2e;
 
   /* ──────────────────────────────────────────────────────────────
-   *  PRIMITIVES — Neutrals. Text stops (10..70) stay pure grey so
-   *  copy reads cleanly on any dark surface. Surface stops (80..95)
-   *  are the app's bespoke dark ladder — a faint blue undertone
-   *  (hue ~220°, very low chroma) that gives the palette a hint of
-   *  identity without competing with the brand blue.
-   *
-   *  10 is the softest off-white; 95 is the deepest near-black.
+   *  PRIMITIVES — Neutrals.
    * ────────────────────────────────────────────────────────────── */
   --neutral-10: #f8fafc;
   --neutral-20: #f1f5f9;
@@ -73,38 +41,35 @@
 
   /* ──────────────────────────────────────────────────────────────
    *  SEMANTIC — Dark theme mapping.
-   *  Elevation increases with slot number and with brightness.
    * ────────────────────────────────────────────────────────────── */
 
   /* Surfaces */
   --color-bg-app: var(--neutral-95);
   --color-bg-input: var(
     --black
-  ); /* slightly lifted so slots read
-                                              both on app bg AND inside cards */
+  ); 
   --color-bg-nav: var(--neutral-85);
-  --color-bg-sidebar-head: var(--neutral-85);
+  --color-bg-sidebar-head: var(--neutral-85); /* was 85*/
+  --color-bg-sidebar: var(--neutral-90);
   --color-bg-panel: var(--neutral-90);
 
   --color-bg-card: var(--neutral-85);
   --color-bundle-card: var(--neutral-80);
   --color-bg-card-soft: var(--neutral-80);
+  --color-bg-card-selected:#222b42;
   --color-bg-menu: var(--neutral-80);
 
   /* Text */
-
   --color-text-on-accent: var(--white);
   --color-text-primary: var(--neutral-10);
   --color-text-secondary: var(--neutral-30);
   --color-text-muted: var(--neutral-40);
-  --color-text-dim: var(--neutral-60);
-  --color-text-faint: var(--neutral-70);
-
-  --color-text-webhook: #80e0e4; /* informational sky blue */
+  --color-text-dim: var(--neutral-50);
+  --color-text-faint: var(--neutral-60);
 
   /* Borders */
-  --color-border-subtle: var(--neutral-80); /* matches `bg-card-soft` */
-  --color-border-default: var(--neutral-85);
+  --color-border-subtle: var(--neutral-85); /* matches `bg-card-soft` */
+  --color-border-default: var(--neutral-80);
   --color-border-strong: var(--neutral-70);
 
   /* Accent — the actionable blue. `soft`/`border`/`text` form the
@@ -117,11 +82,34 @@
 
   /* Code blocks (special-purpose, kept out of the elevation scale so
    * they always look like an embedded IDE surface) */
-  --color-bg-code: #151515;
-  --color-bg-code-header: #302c2c;
-  --color-bg-code-soft: #262626;
+
+  /*--color-bg-code: #121213;
+  --color-bg-code-header: #19191b;
+  */
+  --color-bg-code-header: var(--neutral-95);
+  --color-bg-code: var(--black);
+  --color-bg-code-soft: var(--black);
   --color-text-code: #d4d4d4;
-  --color-border-code: var(--neutral-85);
+  --color-border-code: var(--neutral-90);
+  --color-text-url: #80e0e4; /* informational sky blue */
+
+  /* Syntax colors — palette used by the JSON/XML tree previews and,
+   * over time, any code-highlighting surface. VS Code "Dark+" inspired
+   * so the payload trees read like an embedded IDE. Themed in a single
+   * place so a future light-mode fix or accessibility pass touches one
+   * file, not every tree node. */
+  --color-syntax-punct: var(--color-text-faint);
+  --color-syntax-key: #9cdcfe;
+  --color-syntax-string: #ce9178;
+  --color-syntax-number: #b5cea8;
+  --color-syntax-boolean: #569cd6;
+  --color-syntax-null: #569cd6;
+  --color-syntax-summary: #808080;
+  --color-syntax-tag: #60a5fa;
+  --color-syntax-attr-name: #f472b6;
+  --color-syntax-attr-value: blanchedalmond;
+  --color-syntax-text: #ffffff;
+
 
   /* Status — categorical, unchanged from before */
   --color-success: #22c55e;
@@ -150,11 +138,16 @@
    *  PRIMITIVES — Non-color
    * ────────────────────────────────────────────────────────────── */
 
-  /* Radii — tight, dev-tool feel. */
+  /* Radii — tight, dev-tool feel.
+   * `2xl` and `3xl` are the "expressive" tiers: cards / bubbles that
+   * want to feel physical (chat bubbles, mail cards) reach for them.
+   * Everything else stays on the sm..xl scale. */
   --radius-sm: 4px;
   --radius-md: 5px;
   --radius-lg: 6px;
   --radius-xl: 8px;
+  --radius-2xl: 12px;
+  --radius-3xl: 16px;
   --radius-pill: 999px;
 
   /* Spacing scale — 4px base, tight steps up to 24px. */
@@ -169,24 +162,19 @@
 
   /* Typography — system stacks (fast + native feel).
    * The mono stack prefers modern coding fonts if the OS has them; if
-   * you install "JetBrains Mono" or "Fira Code" they'll take over. */
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
-  --font-mono:
-    "JetBrains Mono", "Fira Code", ui-monospace, "SFMono-Regular", "Consolas",
-    "Courier New", monospace;
+   * you install  */
+  --font-sans: Arial, Helvetica, Roboto;
+  --font-mono: "Consolas",  monospace,  "Courier New";
 
   /* Font sizes — small by design (tech-tool density). `lg` is the new
    * reading step used by preview bodies and long-form fields. */
   --text-xs: 10px;
-  --text-sm: 11px;
-  --text-md: 12px;
+  --text-s: 11px;
+  --text-m: 12px;
   --text-base: 13px;
   --text-lg: 15px;
-  --text-l: 18px;
-  --text-xl: 20px;
-  --text-2xl: 24px;
+  --text-xl: 18px;
+  --text-2xl: 20px;
 
   /* Font weights — one alias per intent, no numeric literals scattered
    * across component CSS. */
@@ -195,19 +183,14 @@
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
-  /* Line heights — three ratios cover every case. */
-  --line-tight: 1.25; /* headings, single-line labels */
-  --line-normal: 1.4; /* ui text */
-  --line-reading: 1.55; /* body prose */
-
   /* Shadows — quiet by default; overlays stack heavier. */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15);
+  --shadow-card: 0 9px 16px rgba(0, 0, 0, 0.15), 0 1px 10px rgba(0, 0, 0, 0.10);
   --shadow-overlay: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 /* ──────────────────────────────────────────────────────────────────
  *  LIGHT theme — semantic mapping only. Primitives are shared with
- *  dark (blues, grays); only the alias layer flips.
+ *  dark (blues, grays); 
  * ────────────────────────────────────────────────────────────────── */
 [data-theme="light"] {
   color-scheme: light;
@@ -219,11 +202,13 @@
   --color-bg-app: var(--neutral-20); /* soft slate page */
   --color-bg-input: var(--white); /* border defines the slot */
   --color-bg-nav: var(--neutral-25); /* nav pops from the page */
-  --color-bg-panel: var(--neutral-10); /* off-white so cards lift */
   --color-bg-sidebar-head: var(--neutral-25);
+  --color-bg-panel: var(--neutral-10); /* off-white so cards lift */
+  
   --color-bg-card: var(--white);
   --color-bundle-card: var(--white);
   --color-bg-card-soft: var(--neutral-25); /* wcard-head, hover strips */
+   --color-bg-card-selected: var(--blue-10);
   --color-bg-menu: var(--white);
 
   /* Text */
@@ -236,6 +221,7 @@
 
   /* Borders — subtle is neutral-25 so cards get a visible outline
    * against the grey app; default/strong stay in the greyer mid-scale. */
+  --color-bg-code: var(--neutral-83);
   --color-border-subtle: var(--neutral-25);
   --color-border-default: var(--neutral-30);
   --color-border-strong: var(--neutral-40);
@@ -269,7 +255,7 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
- *  ARCHIVE — "Cool dark mode" (SLATE)
+ *  ARCHIVE — "Cool dark mode" ? TODO
  *
  *  A blue-tinted dark palette we tried before switching the default
  *  dark neutrals to a pure grey. Kept here as a ready-to-swap

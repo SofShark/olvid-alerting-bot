@@ -55,7 +55,8 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
         :aria-expanded="isOpen"
         @click="toggle"
       >
-        <span class="globe" aria-hidden="true"> <LucideGlobe/></span>
+        <span class="globe" aria-hidden="true"> 
+        <LucideGlobe/></span>
         <span class="lang-name">{{ currentLocale.name }}</span>
         <span class="chevron" :class="{ open: isOpen }" aria-hidden="true"
           >▾</span
@@ -97,7 +98,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
-  min-width: 160px;
+  width: 100%;
   background: var(--color-bg-panel);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-md);
@@ -114,7 +115,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   padding: 7px var(--space-3);
   border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-family: inherit;
   cursor: pointer;
   transition:
@@ -133,5 +134,11 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
 .lang-item:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: -2px;
+}
+.chevron{
+  transition: transform 0.15s;
+  .open & {
+    transform: rotate(180deg);
+  }
 }
 </style>

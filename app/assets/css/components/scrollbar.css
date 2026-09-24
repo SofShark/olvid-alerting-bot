@@ -1,7 +1,7 @@
 /* Corrección: Usa :: en lugar de . */
 ::-webkit-scrollbar {
   width: 8px;
-  height: 8px; /* Opcional: para la barra de scroll horizontal */
+  height: 8px; 
 }
 
 ::-webkit-scrollbar-thumb {

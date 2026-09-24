@@ -1,4 +1,47 @@
 {
   "i18n-ally.localesPaths": ["i18n/locales"],
-  "i18n-ally.keystyle": "nested"
+  "i18n-ally.keystyle": "nested",
+
+  // Override whatever the outer shell exported. Prisma refuses non-`file:`
+  // DATABASE_URLs (see server/db/prisma.ts), and a stray postgres URL
+  // exported from $PROFILE / Windows user vars would otherwise leak into
+  // `npm run dev` inside VSCode. The `.env` file has the same value —
+  // this is belt-and-suspenders so the wrong value can never win here.
+  "terminal.integrated.env.windows": {
+    "DATABASE_URL": "file:./alert.sqlite"
+  },
+
+  // Keep VSCode from watching / indexing build output and deps. This is
+  // the single biggest RAM saver — the file watcher and search indexer
+  // are what balloon tsserver + the extension host.
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.nuxt/**": true,
+    "**/.output/**": true,
+    "**/dist/**": true,
+    "**/.data/**": true,
+    "**/prisma/generated/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.nuxt": true,
+    "**/.output": true,
+    "**/dist": true,
+    "**/package-lock.json": true,
+    "**/*.sqlite": true
+  },
+  "files.exclude": {
+    "**/.nuxt": true,
+    "**/.output": true
+  },
+
+  // Cap the TS server. Default is unbounded and it happily eats 4-6 GB
+  // on a Nuxt project this size.
+  "typescript.tsserver.maxTsServerMemory": 3072,
+  "typescript.tsserver.watchOptions": {
+    "watchFile": "useFsEventsOnParentDirectory",
+    "watchDirectory": "useFsEvents",
+    "excludeDirectories": ["**/node_modules", "**/.nuxt", "**/.output"]
+  },
+  "i18n-ally.sourceLanguage": "fr"
 }

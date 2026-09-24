@@ -1,19 +1,41 @@
 <script setup>
-import { onMounted, computed } from "vue";
+import { onMounted, computed, watch } from "vue";
 const route = useRoute();
 const { alerts, fetchAlerts, fetchDiscussions } = useAlerts();
 const { collapsed: sidebarCollapsed } = useSidebar();
 
-// Language switching now lives inside <LanguageToggle/> — same chrome as
-// ThemeToggle, dropdown of available locales. Layout no longer needs to
-// know about i18n internals.
+const { user, clear: clearSession } = useUserSession();
 
+async function logout() {
+  await authService.logout();
+  await clearSession();
+  await navigateTo("/login");
+}
+
+async function goLogin() {
+  await navigateTo("/login");
+}
+
+// Only fetch data when we actually have a session — otherwise every
+// nav triggers a 401 that useAlerts silently swallows into empty
+// arrays.
 onMounted(() => {
-  fetchAlerts();
-  fetchDiscussions();
+  if (user.value) {
+    fetchAlerts();
+    fetchDiscussions();
+  }
+});
+// After login the layout is already mounted, so onMounted won't refire.
+// Watching `user` covers that: sign in → lists populate, sign out → they clear.
+watch(user, (u) => {
+  if (u) {
+    fetchAlerts();
+    fetchDiscussions();
+  } else {
+    alerts.value = [];
+  }
 });
 
-// Highlight the sidebar row that matches the current route.
 const selectedId = computed(() => {
   const id = route.params.id;
   return id ? Number(id) : null;
@@ -21,7 +43,7 @@ const selectedId = computed(() => {
 </script>
 
 <template>
-  <div class="layout-dark">
+  <div class="layout">
     <header class="top-nav">
       <div class="nav-content">
         <div class="brand">
@@ -37,6 +59,21 @@ const selectedId = computed(() => {
 
         <div class="nav-actions">
           <LanguageToggle />
+          <button
+            v-if="user && user.role === 'admin'"
+            class="nav-toggle"
+            @click="navigateTo(`/users`)"
+          >
+            <LucideUserCog :stroke-width="2" />
+            {{ $t("topNav.users") }}
+          </button>
+
+          <!-- Signed in → account dropdown with session info + logout.
+               Signed out → plain login shortcut. -->
+          <AccountMenu v-if="user" @logout="logout" />
+          <button v-else class="nav-toggle" @click="goLogin">
+            <LucideUser :stroke-width="2" /> {{ $t("topNav.login") }}
+          </button>
           <ThemeToggle />
         </div>
       </div>
@@ -48,6 +85,7 @@ const selectedId = computed(() => {
           <AlertSidebar
             :alerts="alerts"
             :selected-id="selectedId"
+            :disabled="!user"
             @select="(a) => navigateTo('/alerts/' + a.id)"
             @new="navigateTo('/alerts/new')"
           />
@@ -55,7 +93,6 @@ const selectedId = computed(() => {
 
         <div class="split-right">
           <slot :key="route.path" />
-          <!-- :key="route.path"-->
         </div>
       </div>
     </main>
@@ -68,7 +105,7 @@ const selectedId = computed(() => {
  * Internal scrolling happens INSIDE .split-left and .split-right, never
  * at the document level — this is what was causing the "+ New" button
  * to disappear off the bottom of the screen. */
-.layout-dark {
+.layout {
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -78,14 +115,12 @@ const selectedId = computed(() => {
 .top-nav {
   background-color: var(--color-bg-nav);
   border-bottom: 1px solid var(--color-border-subltle);
-  padding: 10px 0;
   flex-shrink: 0;
   z-index: 100;
 }
 .nav-content {
   width: 100%;
-  margin: 0 auto;
-  padding: 0 24px;
+  padding: 10px 24px 10px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -103,11 +138,26 @@ const selectedId = computed(() => {
   color: var(--color-text-muted);
   font-weight: 500;
 }
+/* Logo is a fixed-colour PNG — under the mildly-lit dark navbar it
+ * blends in. Pin it against a small dark surface so it reads with
+ * proper contrast. In light mode the nav is already dark enough
+ * against the logo, so we clear the surface. */
 .olvid-logo-img {
-  margin-left: 15px;
   width: 120px;
   height: auto;
   object-fit: contain;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0;
+  border-radius: var(--radius-sm);
+  /* Soft dark halo — spreads the tint past the image rectangle so
+   * the edge feathers into the nav instead of showing a hard border. */
+  box-shadow: 0 0 10px 6px rgba(0, 0, 0, 0.2);
+}
+
+:root[data-theme="light"] .olvid-logo-img {
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
 }
 
 .nav-actions {
@@ -150,6 +200,7 @@ const selectedId = computed(() => {
  * wizard) flexes to fill it exactly. NO scroll here — each routed
  * component owns its own internal scroll (AlertLogs, wizard-content). */
 .split-right {
+  padding: 14px;
   min-height: 0;
   height: 100%;
   display: flex;
@@ -159,23 +210,5 @@ const selectedId = computed(() => {
 .split-right > * {
   flex: 1;
   min-height: 0;
-}
-
-/* Sidebar recedes to the app background so it doesn't collide with the
- * top nav's `bg-nav` (which is pure white in light mode). The sidebar
- * reads as chrome extending the page, not a floating card next to the
- * nav. Right border divides rail from content; the nav's bottom border
- * already caps the top. */
-.split-left :deep(.sidebar) {
-  background: var(--color-bg-app);
-  border: none;
-  border-right: 1px solid var(--color-border-subtle);
-  border-radius: 0;
-}
-
-/* Main content area gets breathing room; internal scroll lives in the
- * routed component (AlertEditor / AlertWizard), not on this container. */
-.split-right {
-  padding: 0;
 }
 </style>

@@ -8,25 +8,25 @@ import { Formatting, type BundleModel } from "#shared/types/bundle";
  *   - `no-script` — Custom-format bundle with an empty script → would render blank.
  *
  * Used by the view-mode bundle table (status pip next to the title) and any
- * future "incomplete bundles" warning. Pure — no i18n yet; labels are
- * English text. If you need translated labels later, wire them via
- * `useI18n()` here.
+ * future "incomplete bundles" warning. Labels are pulled from i18n so callers
+ * can render them directly in the UI.
  */
 export type BundleStatusKind = "ready" | "no-dest" | "no-script";
 export type BundleStatus = { kind: BundleStatusKind; label: string };
 
 export const useBundleStatus = () => {
+  const { t } = useI18n();
   const bundleStatus = (b: BundleModel): BundleStatus => {
     if (b.outputs.length === 0) {
-      return { kind: "no-dest", label: "No destinations" };
+      return { kind: "no-dest", label: t("bundleRow.status.noDestinations") };
     }
     const needsScript =
       b.formating === Formatting.Custom ||
       b.formating === Formatting.PollingCustom;
     if (needsScript && !(b.custom_script ?? "").trim()) {
-      return { kind: "no-script", label: "Custom format set but no script" };
+      return { kind: "no-script", label: t("bundleRow.status.noScript") };
     }
-    return { kind: "ready", label: "Ready" };
+    return { kind: "ready", label: t("bundleRow.status.ready") };
   };
 
   return { bundleStatus };

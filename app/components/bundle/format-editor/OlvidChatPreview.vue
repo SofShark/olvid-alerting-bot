@@ -1,14 +1,37 @@
 <script setup lang="ts">
+import { computed } from "vue";
+
 /*
-  Right-hand pane variant: chat-style bubble showing the rendered Handlebars
-  output. Extracted from the former PreviewPanel so a sibling `MailPreview`
-  can plug into the same slot for mail bundles. Purely visual — render text
-  comes in pre-computed from `useFormatEditorPreview`.
+  Chat-style bubble showing the rendered Handlebars
+  output. Sibling of `MailPreview`.
 */
 
-defineProps<{
+const props = defineProps<{
   data: { text: string; error: string | null };
 }>();
+
+
+// If we don't do this the on-line preview will allow html formatting but real messages will show the tags
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+// Small markdown helper that renders text as it would on an Olvid discussion
+function applyOlvidMarkup(s: string): string {
+  return s
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/_(.*?)_/g, "<i>$1</i>")
+    .replace(/\n-/g, "\n•");
+}
+
+const renderedText = computed(() =>
+// First escape, then add the correct html to the markup
+  applyOlvidMarkup(escapeHtml(props.data.text)),
+);
 </script>
 
 <template>
@@ -16,7 +39,7 @@ defineProps<{
     <div v-if="data.error" class="error-bubble">⚠️ {{ data.error }}</div>
     <div v-else class="chat-bubble">
       <div class="bubble-sender">{{ $t("formatEditor.preview.sender") }}</div>
-      <div class="bubble-text" v-html="data.text" />
+      <div class="bubble-text" v-html="renderedText" />
       <div class="bubble-time">{{ $t("formatEditor.preview.time") }}</div>
     </div>
   </div>
@@ -33,8 +56,10 @@ defineProps<{
   max-width: 85%;
   width: fit-content;
   padding: var(--space-4) var(--space-6);
-  border-radius: 16px 16px 16px 0;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  /* Asymmetric corner leaves the bottom-left flat — anchors the
+   * "sent by the app" chat bubble to the left rail of the pane. */
+  border-radius: var(--radius-3xl) var(--radius-3xl) var(--radius-3xl) 0;
+  box-shadow: var(--shadow-card);
   margin-bottom: var(--space-6);
   border: 1px solid var(--color-border-subtle);
   overflow-wrap: break-word;
@@ -42,9 +67,9 @@ defineProps<{
 }
 .bubble-sender {
   color: var(--color-accent);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   font-size: var(--text-base);
-  margin-bottom: 5px;
+  margin-bottom: var(--space-2);
 }
 .bubble-text {
   margin: 0;
@@ -57,15 +82,15 @@ defineProps<{
 .bubble-time {
   text-align: right;
   color: var(--color-text-dim);
-  font-size: var(--text-sm);
-  margin-top: 5px;
+  font-size: var(--text-s);
+  margin-top: var(--space-2);
 }
 .error-bubble {
   background: var(--color-danger-soft);
   color: var(--color-danger-bright);
   max-width: 85%;
   padding: var(--space-4) var(--space-6);
-  border-radius: 16px;
+  border-radius: var(--radius-3xl);
   border: 1px solid var(--color-danger-border);
   font-family: var(--font-mono);
   font-size: var(--text-base);

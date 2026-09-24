@@ -14,22 +14,84 @@ import { OlvidClient, datatypes } from "@olvid/bot-node";
 type MessageId = datatypes.MessageId;
 const client = new OlvidClient();
 
+/** Every message the bot sends is OUTBOUND from its own perspective —
+ *  the SDK enum value is 2. Kept as a named constant so consumers
+ *  don't hardcode magic numbers when reconstructing MessageId shapes
+ *  from a persisted bigint id. */
+const OUTBOUND: datatypes.MessageId["type"] = 2;
+
 export const olvidClient = {
   async sendMessage(discussions: bigint[], message: string) {
-    try {
-      for (const discussionId of discussions) {
-        await client.messageSend({
+
+    let allOk = true;
+    await Promise.allSettled(discussions.map((discussionId) =>
+        client.messageSend({
           discussionId: discussionId,
-          body: message,
-        });
-        console.log(`✅ [Olvid] Message sent to discussion: ${discussionId}`);
-      }
-      return true;
-      // TODO : Consider returning an array of message IDs for tracking and
-      // potential future edits representing recent updates to the alert.
+          body: message, 
+        }).then(() => {
+          console.log(`[olvidClient] Message sent to discussion: ${discussionId}`);
+        }).catch((error: any) => {
+          allOk = false;
+          console.error(
+            `[olvidClient] Failed to send to discussion ${discussionId}:`,
+            error?.message ?? error,
+          );
+        })
+      )
+    );
+
+    return allOk;
+  },
+
+  /**
+   * Send a single message and return its outbound id so the caller
+   * can track it (delete / edit later). Separate from `sendMessage`
+   * because most callers (notifier fan-out) don't need the id and
+   * would pay for the extra wiring; the invite flow does.
+   *
+   * Return shape:
+   *   { ok: true, messageId }   — daemon accepted and produced an id
+   *   { ok: true, messageId: undefined }
+   *                              — daemon accepted but returned no id
+   *                                (shouldn't happen; treat as success)
+   *   { ok: false }              — send failed (caught + logged)
+   */
+  async sendMessageOne(
+    discussionId: bigint,
+    body: string,
+  ): Promise<{ ok: boolean; messageId?: bigint }> {
+    try {
+      const sent = await client.messageSend({ discussionId, body });
+      console.log(
+        `✅ [Olvid] Message sent to discussion: ${discussionId}`,
+      );
+      return { ok: true, messageId: sent.id?.id };
     } catch (error: any) {
       console.error(
         "❌ [Olvid] An error occurred while sending a message:",
+        error,
+      );
+      return { ok: false };
+    }
+  },
+
+  /**
+   * Revoke a previously-sent outbound message. `deleteEverywhere: true`
+   * removes it from the invitee's inbox too — the whole point when
+   * cancelling a pending invitation. Returns a boolean so the caller
+   * (delete-user flow) can log the outcome without cascading failure.
+   */
+  async deleteOutboundMessage(id: bigint): Promise<boolean> {
+    try {
+      await client.messageDelete({
+        messageId : { type: OUTBOUND, id },
+        deleteEverywhere: true,
+      });
+      console.log(`✅ [Olvid] Message ${id} deleted`);
+      return true;
+    } catch (error: any) {
+      console.error(
+        `❌ [Olvid] Failed to delete message ${id}:`,
         error,
       );
       return false;

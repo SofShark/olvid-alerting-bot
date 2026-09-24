@@ -30,6 +30,25 @@ export function hasWildcard(pattern: string): boolean {
 }
 
 /**
+ * Walk an object by a concrete dot-path. Returns `undefined` when any
+ * segment is missing instead of throwing. Meant for paths already
+ * resolved to leaves (either non-wildcard input from the user or one of
+ * the expansions produced by `expandPath`) — passing a `..`-style
+ * wildcard yields `undefined` because `filter(Boolean)` drops the empty
+ * segments and the walker only looks up literal keys.
+ */
+export function resolvePath(obj: unknown, path: string): unknown {
+  if (!path) return undefined;
+  const parts = path.split(".").filter(Boolean);
+  let cur: any = obj;
+  for (const p of parts) {
+    if (cur == null) return undefined;
+    cur = cur[p];
+  }
+  return cur;
+}
+
+/**
  * Split on `.`, then collapse consecutive empty segments to a single `''`
  * marker so `..`, `...`, `....` all parse as ONE wildcard (otherwise the
  * walker would multiply work for nothing). Leading and trailing empties are

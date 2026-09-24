@@ -15,11 +15,8 @@ defineEmits<{ (e: "edit-bundle", index: number): void }>();
 
 <template>
   <div class="data-block">
-    <h4 class="section-eyebrow">
-      Bundles
-      <span v-if="bundles.length > 0" class="eyebrow-count">{{
-        bundles.length
-      }}</span>
+    <h4 class="alert-section-label">
+      {{ $t("editor.view.eyebrowBundles") }}
     </h4>
 
     <div v-if="bundles.length === 0" class="bundles-hint">
@@ -54,6 +51,7 @@ defineEmits<{ (e: "edit-bundle", index: number): void }>();
  * sections read as supporting copy under the main h2 alert title. */
 .section-eyebrow {
   margin: 0 0 var(--space-3);
+  margin-left:var(--radius-md);
   padding: 0;
   display: flex;
   align-items: baseline;
@@ -64,15 +62,11 @@ defineEmits<{ (e: "edit-bundle", index: number): void }>();
   text-transform: uppercase;
   color: var(--color-text-dim);
 }
-.eyebrow-count {
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
-  color: var(--color-text-faint);
-}
+
 
 .bundles-hint {
   color: var(--color-text-dim);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-style: italic;
   margin: var(--space-3) 0;
 }

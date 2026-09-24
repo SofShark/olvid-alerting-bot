@@ -17,8 +17,6 @@ import { ConditionKind, type PollingCondition } from "#shared/types/condition";
   · useConditionForm       → owns the CONDITION model + every mutation.
   · useSourceRetrieve      → fetches + parses the source snapshot.
   · useConditionVerdict    → computes { ok, label, breakdown } for preview.
-
-  See audit F-1 for the original 1142-line god component this replaces.
 */
 
 const props = defineProps<{

@@ -9,7 +9,7 @@
 // `PollingCondition` is the homogeneous storage shape: every field is always
 // present, even when not currently meaningful (e.g. `value` is unused for
 // the `Changed` operator). The compact form for DB persistence is produced
-// by `compactCondition` (lives in shared/condition/migrate.ts).
+// by `paramCleaner.compactCondition` (in shared/condition/paramCleaner.ts).
 
 export const ConditionKind = {
   None: "none",
@@ -20,10 +20,10 @@ export type ConditionKind = (typeof ConditionKind)[keyof typeof ConditionKind];
 export const ConditionOperator = {
   Changed: "changed", // value differs from previous poll's snapshot
   Equals: "equals", // value === literal
-  GreaterThan: "greater_than", // numeric comparison
-  LessThan: "less_than",
+  GreaterThan: "greaterThan", // numeric comparison
+  LessThan: "lessThan",
   Contains: "contains", // substring match on string value
-  RegExp: "regexp", // regular-expression match against value's string form
+  RegExp: "regExp", // regular-expression match against value's string form
 } as const;
 export type ConditionOperator =
   (typeof ConditionOperator)[keyof typeof ConditionOperator];

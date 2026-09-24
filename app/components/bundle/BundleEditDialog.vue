@@ -1,55 +1,37 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
-import { isPolling as isPollingSource } from "#shared/types/source";
+import { toRef } from "vue";
 import type { AlertModel, AlertParams } from "#shared/types/alert";
-import {
-  Formatting,
-  DEFAULT_FORMAT_FOR_POLLING,
-  DEFAULT_FORMAT_FOR_WEBHOOK,
-  type BundleModel,
-} from "#shared/types/bundle";
+import { BundleOutputType, type BundleModel } from "#shared/types/bundle";
 import type { DiscussionModel } from "#shared/types/discussion";
-import { buildPollingDefaultMessage } from "#shared/polling/message";
-import {
-  olvidIdsOf,
-  mailAddressesOf,
-  outputsFromOlvidIds,
-  outputsFromMailAddresses,
-} from "~/composables/useAlertForm";
-import {
-  BundleOutputType,
-  type BundleFrontendOutput,
-} from "#shared/types/bundleOutput";
+import type { Source } from "#shared/types/source";
+import { useBundleEditor } from "~/composables/useBundleEditor";
 
 /*
-  THE bundle editor — one modal for both flows:
+  Bundle editor modal. Layout + wiring only — every piece of state or
+  logic is owned by a composable:
 
-    - Edit    (index: number)  → seeded from the existing bundle.
-    - Create  (index: null)    → seeded from a source-appropriate blank;
-                                 the parent pushes the result on save.
+    useBundleEditor         → draft, isDirty, discard prompt, kind/format
+                              bindings, saveScript, …
+    useBundleFormatOptions  → i18n-labelled Format select options.
 
-  Absorbed the former BundleCard: title, WhatsApp-style destination
-  picker, format select + custom-script editor + polling preview all
-  live here now. Wizard rows and view-mode rows both open this dialog,
-  so the two surfaces stay visually and behaviourally identical.
-
-  Owns its own draft + dirty tracking. The parent only receives the
-  final bundle on `save` (never a half-edited one) or a `cancel`.
+  The only local functions are two thin emit wrappers (`requestClose`,
+  `onSave`) because emit is component-scoped.
 */
 
 const props = defineProps<{
   open: boolean;
   bundle: BundleModel | null; // null with open=true ⇒ create mode
-  index: number | null; //     null              ⇒ create mode
+  index: number | null; //      null               ⇒ create mode
   alertContext: AlertModel;
   alertParams?: AlertParams;
-  inputSource?: string;
+  // Nullable to match `AlertModel.input` on the wire. `useBundleEditor`
+  // already treats an undefined source as "not polling" — the picker in
+  // the modal will show the webhook / mail-family formats, which is the
+  // right default when a caller opens the dialog before a source is set.
+  inputSource?: Source;
   availableDiscussions: DiscussionModel[];
   discussionsLoading: boolean;
   saving?: boolean;
-  /** Live parsed payload from the wizard's trigger step — feeds the
-   *  polling-default preview. Optional; preview falls back to a hint. */
-  pollPayload?: any;
 }>();
 
 const emit = defineEmits<{
@@ -59,220 +41,31 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const isPolling = computed(() => isPollingSource(props.inputSource));
-
-// Source-appropriate empty bundle for create mode.
-const blankBundle = (): BundleModel => ({
-  outputs: [],
-  formating: isPolling.value
-    ? DEFAULT_FORMAT_FOR_POLLING
-    : DEFAULT_FORMAT_FOR_WEBHOOK,
-  custom_script: "",
+const {
+  draft,
+  isDirty,
+  confirmDiscard,
+  isEditorOpen,
+  isPolling,
+  kind,
+  isCustomFormat,
+  bundleName,
+  mailSubject,
+  discussions,
+  mailAddresses,
+  formating,
+  onKindChange,
+  onFormatChange,
+  saveScript,
+} = useBundleEditor({
+  open: toRef(props, "open"),
+  bundle: toRef(props, "bundle"),
+  alertContext: toRef(props, "alertContext"),
+  inputSource: toRef(props, "inputSource"),
+  availableDiscussions: toRef(props, "availableDiscussions"),
 });
 
-// A stored format can be stale relative to the alert's current source
-// (e.g. the user flipped Polling → Webhook after creating the bundle).
-// Normalize once at seed time — the source can't change while the modal
-// is open, so a watch is unnecessary.
-const normalizeFormat = (b: BundleModel): BundleModel => {
-  const isPollingFmt =
-    b.formating === Formatting.PollingDefault ||
-    b.formating === Formatting.PollingCustom;
-  if (isPolling.value && !isPollingFmt) {
-    return { ...b, formating: DEFAULT_FORMAT_FOR_POLLING };
-  }
-  if (!isPolling.value && isPollingFmt) {
-    return { ...b, formating: DEFAULT_FORMAT_FOR_WEBHOOK };
-  }
-  return b;
-};
-
-// Legacy bundles may persist mixed-kind `outputs` (from before the
-// one-channel-per-bundle policy). Collapse to the first row's kind on
-// open so the editor's visible state matches what a save would persist —
-// no hidden rows to surprise the user later.
-const normalizeToKind = (b: BundleModel): BundleModel => {
-  const firstKind = b.outputs[0]?.type;
-  if (!firstKind) return b;
-  const filtered = b.outputs.filter((o) => o.type === firstKind);
-  return filtered.length === b.outputs.length ? b : { ...b, outputs: filtered };
-};
-
-const draft = ref<BundleModel | null>(null);
-const snapshot = ref("");
-const confirmDiscard = ref(false);
-// Local editor-state for the active channel kind. Kept separate from
-// `draft.outputs` so an empty selection still remembers which selector
-// to show — deriving kind from `outputs[0]?.type` alone would flip back
-// to "no channel picked" the moment the user cleared their picks.
-const activeKind = ref<BundleOutputType | null>(null);
-
-// Per-kind recipients stash. Held for the modal's lifetime so flipping
-// olvid → mail → olvid restores the discussions the user had before the
-// switch. Reset every time the modal opens; discarded on cancel or save.
-const outputsByKind = ref<
-  Partial<Record<BundleOutputType, BundleFrontendOutput[]>>
->({});
-
-// (Re)seed the draft every time the modal opens. Create mode seeds a
-// blank; edit mode deep-copies the incoming bundle.
-watch(
-  () => [props.open, props.bundle] as const,
-  ([open, b]) => {
-    if (!open) {
-      draft.value = null;
-      snapshot.value = "";
-      confirmDiscard.value = false;
-      outputsByKind.value = {};
-      return;
-    }
-    const seed = b ? { ...b, outputs: [...b.outputs] } : blankBundle();
-    draft.value = normalizeFormat(normalizeToKind(seed));
-    activeKind.value = draft.value.outputs[0]?.type ?? null;
-    // Seed the stash from whatever kind the bundle opened with. Other
-    // kinds start empty and only accumulate as the user picks them.
-    outputsByKind.value = activeKind.value
-      ? { [activeKind.value]: [...draft.value.outputs] }
-      : {};
-    snapshot.value = JSON.stringify(draft.value);
-    confirmDiscard.value = false;
-  },
-  { immediate: true },
-);
-
-const isDirty = computed(
-  () => !!draft.value && JSON.stringify(draft.value) !== snapshot.value,
-);
-
-const isCreate = computed(() => props.index === null);
-const modalTitle = computed(() =>
-  isCreate.value
-    ? t("editor.bundleModal.newTitle")
-    : t("editor.bundleModal.title", {
-        n: bundleName.value || t("editor.bundleModal.untitled"),
-      }),
-);
-
-// ── Draft field bindings ──────────────────────────────────────────────────
-
-const patch = (changes: Partial<BundleModel>) => {
-  if (!draft.value) return;
-  draft.value = { ...draft.value, ...changes };
-};
-
-const bundleName = computed<string>({
-  get: () => draft.value?.name ?? "",
-  set: (val) => patch({ name: val.trim() || undefined }),
-});
-
-// `kind` reads from the editor's activeKind, not the outputs array —
-// that lets an "I've picked Email but haven't typed an address yet"
-// state stick. Once the user commits recipients, activeKind and
-// bundleKind(outputs) agree.
-const kind = computed<BundleOutputType | null>(() => activeKind.value);
-
-// Switching kind is non-destructive until save: current outputs get
-// stashed under the outgoing kind, and if the incoming kind has a
-// stashed set we restore it. Fresh kinds start empty. Idempotent when
-// the requested kind is already active.
-const onKindChange = (next: BundleOutputType) => {
-  if (!draft.value || activeKind.value === next) return;
-  if (activeKind.value) {
-    outputsByKind.value[activeKind.value] = [...draft.value.outputs];
-  }
-  activeKind.value = next;
-  patch({ outputs: outputsByKind.value[next] ?? [] });
-};
-
-// Bridge between the outputs shape (source of truth in draft) and the
-// DiscussionModel[] API that DiscussionSelector speaks. Title lookup is
-// on-the-fly from availableDiscussions; if a discussion hasn't been
-// fetched yet, we fall back to `#<id>`.
-const discussions = computed<DiscussionModel[]>({
-  get: () => {
-    if (!draft.value) return [];
-    const ids = olvidIdsOf(draft.value.outputs);
-    return ids.map((id) => {
-      const found = props.availableDiscussions.find((d) => d.id === id);
-      return found ?? { id, title: `#${id}` };
-    });
-  },
-  set: (val) => {
-    if (!draft.value) return;
-    patch({ outputs: outputsFromOlvidIds(val.map((d) => d.id)) });
-  },
-});
-
-// Mirror of `discussions` for the mail subset. Homogeneous — never
-// coexists with olvid rows in the persisted `outputs`.
-const mailAddresses = computed<string[]>({
-  get: () => (draft.value ? mailAddressesOf(draft.value.outputs) : []),
-  set: (val) => {
-    if (!draft.value) return;
-    patch({ outputs: outputsFromMailAddresses(val) });
-  },
-});
-
-const formating = computed<Formatting>({
-  get: () => draft.value?.formating ?? Formatting.Unformatted,
-  set: (val) => patch({ formating: val }),
-});
-
-// Format options depend on the alert's source: polling alerts get the
-// watched-field-aware formats, everything else the classic trio.
-const formatOptions = computed(() =>
-  isPolling.value
-    ? [
-        {
-          value: Formatting.PollingDefault,
-          label: t("bundleRow.format.pollingDefault"),
-        },
-        {
-          value: Formatting.PollingCustom,
-          label: t("bundleRow.format.pollingCustom"),
-        },
-      ]
-    : [
-        {
-          value: Formatting.Unformatted,
-          label: t("bundleRow.format.unformatted"),
-        },
-        { value: Formatting.Simple, label: t("bundleRow.format.simple") },
-        { value: Formatting.Custom, label: t("bundleRow.format.custom") },
-      ],
-);
-
-const isCustomFormat = computed(
-  () =>
-    formating.value === Formatting.Custom ||
-    formating.value === Formatting.PollingCustom,
-);
-
-// ── Custom script editor (nested overlay) ─────────────────────────────────
-
-const isEditorOpen = ref(false);
-
-const onFormatChange = () => {
-  if (isCustomFormat.value) isEditorOpen.value = true;
-};
-
-const saveScript = (script: string) => {
-  patch({ custom_script: script });
-  isEditorOpen.value = false;
-};
-
-// ── Polling-default preview ───────────────────────────────────────────────
-
-const pollingPreview = computed(() => {
-  if (formating.value !== Formatting.PollingDefault) return "";
-  if (!props.alertContext) return "";
-  return buildPollingDefaultMessage(
-    props.alertContext,
-    props.pollPayload ?? {},
-  );
-});
-
-// ── Close / save flow ─────────────────────────────────────────────────────
+const { formatOptions } = useBundleFormatOptions(isPolling);
 
 const requestClose = () => {
   if (isDirty.value) {
@@ -289,6 +82,7 @@ const onSave = () => {
 </script>
 
 <template>
+  
   <Modal
     :open="open"
     size="full"
@@ -297,13 +91,14 @@ const onSave = () => {
   >
     <div class="bundle-edit-modal">
       <FormatEditor
-        v-if="isEditorOpen && draft"
+        v-if="draft"
+        :open="isEditorOpen"
         :initial-script="draft.custom_script || ''"
         :input-source="inputSource"
         :alert-params="alertParams ?? alertContext?.alertParams"
         :alert-id="alertContext?.id ?? null"
         :preview-mode="kind ?? BundleOutputType.Olvid"
-        :mail-subject="alertContext?.title"
+        :mail-subject="mailSubject"
         @save="saveScript"
         @close="isEditorOpen = false"
       />
@@ -316,12 +111,16 @@ const onSave = () => {
       <div v-if="draft" class="modal-body">
         <!-- Title — optional; rows fall back to "Untitled bundle". -->
         <div class="field">
-          <label class="field-label">Title</label>
+          <label class="field-label">{{ t("editor.bundleModal.titleLabel") }}</label>
           <input
             v-model="bundleName"
             type="text"
             class="field-input"
-            :placeholder="`Bundle ${(index ?? alertContext.bundles.length) + 1}`"
+            :placeholder="
+              t('editor.bundleModal.namePlaceholder', {
+                n: (index ?? alertContext.bundles.length) + 1,
+              })
+            "
           />
         </div>
 
@@ -336,9 +135,9 @@ const onSave = () => {
 
         <!-- Recipients — the picker above decides which one renders.
              Empty bundles show a soft hint asking the user to pick first. -->
-        <div v-if="kind === null" class="field field-hint">
+        <span v-if="kind === null" class="hint">
           {{ $t("bundleKind.pickPrompt") }}
-        </div>
+        </span>
 
         <div v-else-if="kind === BundleOutputType.Olvid" class="field">
           <label class="field-label">{{
@@ -358,6 +157,15 @@ const onSave = () => {
           <EmailRecipientSelector v-model="mailAddresses" />
         </div>
 
+        <div v-if="kind === BundleOutputType.Mail" class="field">
+          <label class="field-label">{{ $t("bundleRow.fields.mailSubject") }} </label>
+          <input
+            v-model="mailSubject"
+            type="text"
+            class="field-input"
+            :placeholder="alertContext?.title ?? ''"
+          />
+        </div>
         <!-- Format + optional custom-script editor + preview. -->
         <div class="field">
           <label class="field-label">{{ $t("bundleRow.fields.format") }}</label>
@@ -374,16 +182,10 @@ const onSave = () => {
               class="btn btn-secondary btn-sm"
               @click="isEditorOpen = true"
             >
-               <LucidePencil />
+              <LucidePencil />
               {{ $t("bundleRow.scriptButton") }}
             </button>
           </div>
-
-          <pre
-            v-if="formating === Formatting.PollingDefault"
-            class="poll-preview"
-            >{{ pollingPreview || $t("bundleRow.previewPlaceholder") }}</pre
-          >
         </div>
       </div>
 
@@ -408,7 +210,7 @@ const onSave = () => {
         </button>
         <button
           type="button"
-          class="btn btn-primary"
+          class="btn btn-primary btn-sm"
           :disabled="saving"
           @click="onSave"
         >
@@ -424,7 +226,7 @@ const onSave = () => {
 </template>
 
 <style scoped>
-/* Sizing (92vw × 80vh, capped at 700px) is provided by
+/* Sizing (96vw × 92vh, capped at 1600px) is provided by
  * <Modal size="full"> — see overlay-box--full in overlay.css. This
  * wrapper only owns the flex layout of head/body/foot. */
 .bundle-edit-modal {
@@ -462,23 +264,9 @@ const onSave = () => {
   flex: 1;
 }
 
-.poll-preview {
-  margin: var(--space-3) 0 0;
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-bg-input);
-  border: 1px dashed var(--color-accent-border);
-  border-radius: var(--radius-md);
-  color: var(--color-accent-text);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 140px;
-  overflow-y: auto;
-}
-
 .modal-foot {
+  align-self: center;
+  width: 105%;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -491,7 +279,7 @@ const onSave = () => {
 .discard-msg {
   flex: 1;
   color: var(--color-warning-text);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-weight: 600;
 }
 </style>

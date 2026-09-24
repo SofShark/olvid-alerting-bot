@@ -3,24 +3,16 @@ import { ref, onMounted, onBeforeUnmount } from "vue";
 
 /*
   Overflow menu (⋮) for view-mode alert actions that don't warrant their
-  own top-level button: duplicate, manage access, move to project, delete.
-  Lives as a sibling of the Edit button inside AlertViewHeader — the
-  header composes it, but the menu owns its own dropdown state,
-  click-outside handling, and item wiring.
-
-  Emits one event per item. Delete is styled as a destructive action
-  (own colour, plus a separator above it). Manage/Move are stubbed —
-  they emit their event so the parent can wire them when the features
-  arrive; they render disabled by default via `unavailable` items.
-
-  This file replaces the inline dropdown that used to live in
-  AlertViewHeader.vue and mixed presentation concerns with menu logic.
+  own top-level button: 
+  - duplicate
+  - test now (if the alert is polling / monitoring)
+  - manage access (TO DO)
+  - move to project (TO DO)
+  - delete
 */
 
 withDefaults(
   defineProps<{
-    /** Show the "Test now" item. Only polling alerts have a pipeline to
-     *  test — the parent decides based on `isPolling`. */
     canTest?: boolean;
   }>(),
   { canTest: false },
@@ -179,7 +171,7 @@ onBeforeUnmount(() => document.removeEventListener("click", onClickOutside));
   padding: 8px var(--space-3);
   text-align: left;
   font-family: var(--font-sans);
-  font-size: var(--text-md);
+  font-size: var(--text-m);
   font-weight: 500;
   color: var(--color-text-secondary);
   cursor: pointer;

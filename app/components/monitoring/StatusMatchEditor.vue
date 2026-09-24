@@ -178,14 +178,14 @@ const summaryLabel = computed(() => {
         <div v-if="currentKind === 'codes'" class="mode-body">
           <div class="chips">
             <span v-for="c in codes" :key="c" class="chip">
-              {{ c }}
+              <span class="chip-path">{{ c }}</span>
               <button
                 type="button"
                 class="chip-x"
                 :title="`Remove ${c}`"
                 @click="removeCode(c)"
               >
-                ✕
+                <LucideX :stroke-width="2" />
               </button>
             </span>
             <span v-if="codes.length === 0" class="chips-empty">
@@ -201,7 +201,7 @@ const summaryLabel = computed(() => {
               step="1"
               :placeholder="$t('monitorEditor.match.codesPlaceholder')"
               class="field-input"
-              :class="{ 'has-error': codesError }"
+              :class="{ 'is-invalid': codesError }"
               @keydown.enter.prevent="addCode"
             />
             <button
@@ -270,7 +270,7 @@ const summaryLabel = computed(() => {
   color: var(--color-accent-text);
   border-radius: var(--radius-pill);
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
 }
 .chip-x {
   appearance: none;
@@ -287,7 +287,7 @@ const summaryLabel = computed(() => {
 }
 .chips-empty {
   color: var(--color-text-faint);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   font-style: italic;
 }
 
@@ -307,7 +307,7 @@ const summaryLabel = computed(() => {
 .hint {
   margin: 0;
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   line-height: 1.4;
 }
 
@@ -317,9 +317,8 @@ const summaryLabel = computed(() => {
   font-family: var(--font-mono);
 }
 
-.field-input.has-error {
-  border-color: var(--color-danger, #ef4444);
-}
+/* Error state now provided by `.field-input.is-invalid` in
+ * components/input.css — nothing to redeclare here. */
 
 /* Verdict strip now delegated to ui/VerdictStrip (shared with the
  * polling ConditionEditor). Trigger mode field delegated to

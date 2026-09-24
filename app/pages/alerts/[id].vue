@@ -1,4 +1,8 @@
 <script setup lang="ts">
+definePageMeta({
+    middleware: ["auth"],
+  });
+
 const route = ref(useRoute());
 const { alerts, alertsLoading, fetchAlerts } = useAlerts();
 
@@ -15,8 +19,9 @@ const alert = computed(
 // Explicit edit request via query (?edit=1) puts a non-draft alert into the
 // wizard for full reconfiguration. Drafts always open in the wizard.
 const isEditing = computed(() => route.value.query.edit === "1");
-</script>
 
+  
+</script>
 <template>
   <div v-if="alertsLoading || !alert" class="loading-panel">
     <span v-if="alertsLoading">{{ $t("alertPage.loading") }}</span>
@@ -25,12 +30,12 @@ const isEditing = computed(() => route.value.query.edit === "1");
   <AlertWizard
     v-else-if="isEditing"
     :key="`wizard-${alert.id?.toString()}`"
-    :alerta-inicial="alert"
+    :initial-alert="alert"
   />
   <AlertView
     v-else
     :key="`view-${alert.id?.toString()}`"
-    :alerta-inicial="alert"
+    :initial-alert="alert"
   />
 </template>
 

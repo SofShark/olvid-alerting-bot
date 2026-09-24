@@ -1,5 +1,4 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-//import { resolve } from "node:dns"
 import { resolve } from "path";
 
 export default defineNuxtConfig({
@@ -12,11 +11,8 @@ export default defineNuxtConfig({
   },
 
   compatibilityDate: "2025-07-15",
-  devtools: { enabled: true },
+  devtools: { enabled: false },
 
-  // DATABASE_URL is read directly by server/db/prisma.ts at boot — no
-  // runtimeConfig hop needed. See that module for the SQLite-default /
-  // Postgres-opt-in switch.
 
   // Global stylesheet — design tokens + shared component classes. Loaded
   // before any component-scoped <style>, so scoped rules can still override.
@@ -39,6 +35,7 @@ export default defineNuxtConfig({
     { path: "~/components/condition", pathPrefix: false },
     { path: "~/components/monitoring", pathPrefix: false },
     { path: "~/components/payload", pathPrefix: false },
+    { path: "~/components/user", pathPrefix: false },
   ],
 
   alias: {
@@ -46,11 +43,7 @@ export default defineNuxtConfig({
     "@": resolve(__dirname, "/"),
   },
 
-  // Auto-import the layered server-side architecture. Matches the implicit
-  // auto-import that `server/utils/` already had (bdManager / alertManager
-  // / daemonClient were used without explicit imports) — extended to the
-  // new repositories / services / clients folders so the existing
-  // convention keeps working after the split.
+  // Auto-import the layered server-side architecture. 
   nitro: {
     imports: {
       dirs: [
@@ -66,14 +59,48 @@ export default defineNuxtConfig({
       ],
     },
 
-    experimental: { tasks: true }, // Internal heartbeat that conditionally triggers the activation of scheduled alerts
+    
+    experimental: { tasks: true, openAPI: false }, // Internal heartbeat that conditionally triggers the activation of scheduled alerts
     scheduledTasks: {
       "* * * * *": ["polling:heartbeat"],
     },
+    
+
   },
 
-  modules: ["@nuxtjs/i18n", "@nuxt/eslint"],
+  modules: ["@nuxtjs/i18n", "@nuxt/eslint", "nuxt-auth-utils"],
+  
+  runtimeConfig: {
+    // NUXT_SESSION_PASSWORD (≥32 chars) signs the session cookie; refusing
+    // to boot with an empty value is the correct behavior — the auth flow
+    // is unusable without it, so surface the misconfig loudly at start.
+    session: {
+      password: '',
+      name: 'alert-session',
+      cookie: {
+        maxAge: 60 * 60 * 8, // 8 hours
+        // nuxt-auth-utils forces `secure: true` when NODE_ENV=production.
+        // Modern browsers refuse Secure cookies over plain HTTP, with
+        // `localhost` as the sole exception — so a prod-mode container
+        // accessed from a LAN IP would silently drop the cookie and login
+        // does nothing. Set to `false` for LAN / HTTP dev; put TLS in
+        // front (Caddy / nginx) for real deployments and flip this back
+        // to `true` (or drop the override entirely).
+        secure: false,
+      },
+    },
+    public: {
+      // Origin used to build absolute links in outgoing verification /
+      // invitation emails. If unset at runtime the auth endpoints fall
+      // back to the request's own host header.
+      baseUrl: '',
+    },
+  },
+  
   i18n: {
+    bundle:{
+      optimizeTranslationDirective: false
+    },
     locales: [
       { code: "en", name: "English", file: "en.json", language: "en-US" },
       { code: "fr", name: "Français", file: "fr.json", language: "fr-FR" },

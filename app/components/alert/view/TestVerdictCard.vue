@@ -23,8 +23,8 @@ defineProps<{
     <div class="verdict-row">
       <span class="verdict-badge">
         <span class="verdict-dot" aria-hidden="true" />
-        <span v-if="outcome.fired">FIRED</span>
-        <span v-else>DID NOT FIRE</span>
+        <span v-if="outcome.fired">{{ $t("testVerdict.fired") }}</span>
+        <span v-else>{{ $t("testVerdict.notFired") }}</span>
       </span>
       <span class="verdict-headline">{{ headline }}</span>
     </div>
@@ -93,7 +93,7 @@ defineProps<{
 .verdict-reason {
   margin: var(--space-3) 0 0;
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-s);
   line-height: 1.5;
 }
 </style>
