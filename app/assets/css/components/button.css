@@ -150,6 +150,13 @@ input[type="radio"] {
   color: var(--color-text-primary);
 }
 
+.btn-pill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+
 /* Nav Toggle*/
 .nav-toggle {
   background: transparent;

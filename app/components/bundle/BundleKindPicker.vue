@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { BundleOutputType } from "#shared/types/bundle";
-
 defineProps<{
   modelValue: BundleOutputType | null;
 }>();
@@ -8,6 +7,9 @@ defineProps<{
 defineEmits<{
   (e: "update:modelValue", val: BundleOutputType): void;
 }>();
+
+const { data: authConfig } = useAuthConfig();
+const mailEnabled = computed(() => authConfig.value?.mailEnabled ?? false);
 
 const { t } = useI18n();
 </script>
@@ -38,8 +40,11 @@ const { t } = useI18n();
     <button
       type="button"
       class="btn-pill"
-      :class="{ active: modelValue === BundleOutputType.Mail }"
-      @click="$emit('update:modelValue', BundleOutputType.Mail)"
+      :disabled="!mailEnabled"
+      :class="{
+        active: modelValue === BundleOutputType.Mail
+      }"
+      @click="mailEnabled && $emit('update:modelValue', BundleOutputType.Mail)"
     >
       <span class="tile-media" aria-hidden="true">
         <LucideMail  :stroke-width="2"/>

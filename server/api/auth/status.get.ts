@@ -6,6 +6,7 @@ import { mailClient } from "#server/clients/mailClient";
 import type { AuthStatus } from "#shared/types/auth";
 
 export default defineEventHandler(async (): Promise<AuthStatus> => {
+  console.log(mailClient.isAvailable());
   return {
     needsSetup: (await userRepository.findFirstAdmin()) === null,
     mailEnabled: mailClient.isAvailable(),

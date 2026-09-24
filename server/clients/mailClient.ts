@@ -21,7 +21,7 @@ let warnedMissing = false; // Flag to detect unset smtp env variables => mail se
 
 function getClient(): MailPace.DomainClient | null {
   if (client) return client;
-  if (!PASSWORD || !FROM) {
+  if (!PASSWORD || !FROM || PASSWORD===""  || FROM === "") {
     if (!warnedMissing) {
       console.warn(
         "[Mail] SMTP_PASSWORD or SMTP_FROM missing. Mail outputs will be skipped.",
@@ -38,7 +38,8 @@ export const mailClient = {
   /** Check if the SMTP env vars set. 
    * Used to keep unavailable mail option out of the ui */
   isAvailable(): boolean {
-    return Boolean(PASSWORD && FROM);
+    console.log(PASSWORD);
+    return Boolean(PASSWORD && FROM && PASSWORD.length > 0 && FROM.length >0);
   },
 
   async send(
